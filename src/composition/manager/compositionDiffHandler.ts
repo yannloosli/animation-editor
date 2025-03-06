@@ -4,7 +4,7 @@ import { layerManagerDiffHandler } from "~/composition/manager/layer/layerManage
 import { propertyManagerDiffHandler } from "~/composition/manager/property/propertyManagerDiffHandler";
 import { Diff } from "~/diff/diffs";
 import { getActionStateFromApplicationState } from "~/state/stateUtils";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
 
 export const passDiffsToManagers = (
 	ctx: CompositionManager,

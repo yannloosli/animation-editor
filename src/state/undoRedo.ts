@@ -3,7 +3,7 @@ import { sendDiffsToSubscribers } from "~/listener/diffListener";
 import { isKeyCodeOf, isKeyDown } from "~/listener/keyboard";
 import { historyActions } from "~/state/history/historyActions";
 import { getActionStateFromApplicationState } from "~/state/stateUtils";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
 
 const redo = () => {
 	const state = store.getState();

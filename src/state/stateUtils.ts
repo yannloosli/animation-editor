@@ -1,23 +1,29 @@
 import { connect, DispatchProp, InferableComponentEnhancerWithProps } from "react-redux";
 import { AreaType } from "~/constants";
+import { initialProjectState } from "~/project/projectReducer";
 import { HistoryState } from "~/state/history/historyReducer";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
+import { initialState as initialToolState } from "~/toolbar/toolSlice";
 import { AreaState } from "~/types/areaTypes";
 
 const getCurrentStateFromApplicationState = (_state: ApplicationState): ActionState => {
 	const state: any = _state;
 	const keys = Object.keys(state) as Array<keyof ApplicationState>;
 	const actionState = keys.reduce<ActionState>((obj, key) => {
-		if (state[key].list) {
+		if (key === 'tool') {
+			obj[key] = state[key] || initialToolState;
+		} else if (key === 'area') {
+			obj[key] = state[key].state;
+		} else if (state[key].list) {
 			const s = state[key] as HistoryState<any>;
 			const shiftForward =
 				s.index > 0 &&
 				s.type === "selection" &&
 				s.indexDirection === -1 &&
-				s.list[s.index + 1].modifiedRelated &&
-				s.list[s.index + 1].allowIndexShift;
+				s.list[s.index + 1]?.modifiedRelated &&
+				s.list[s.index + 1]?.allowIndexShift;
 
-			obj[key] = s.list[s.index + (shiftForward ? 1 : 0)].state;
+			obj[key] = s.list[s.index + (shiftForward ? 1 : 0)]?.state || (key === 'project' ? initialProjectState : {});
 		} else {
 			obj[key] = state[key].state;
 		}
@@ -32,26 +38,34 @@ export const getActionStateFromApplicationState = (
 	index?: number,
 ): ActionState => {
 	const state: any = _state;
+	console.log('Application State:', state);
 	const keys = Object.keys(state) as Array<keyof ApplicationState>;
+	console.log('Keys:', keys);
 	const actionState = keys.reduce<ActionState>((obj, key) => {
-		if (state[key].action) {
-			obj[key] = state[key].action.state;
+		console.log('Processing key:', key, 'Value:', state[key]);
+		if (key === 'tool') {
+			obj[key] = state[key] || initialToolState;
+		} else if (key === 'area' || key === 'contextMenu') {
+			obj[key] = state[key].state;
 		} else if (state[key].list) {
 			const s = state[key] as HistoryState<any>;
 			const shiftForward =
 				typeof index === "undefined" &&
 				s.type === "selection" &&
 				s.indexDirection === -1 &&
-				s.list[s.index + 1].modifiedRelated &&
-				s.list[s.index + 1].allowIndexShift;
+				s.list[s.index + 1]?.modifiedRelated &&
+				s.list[s.index + 1]?.allowIndexShift;
 
-			obj[key] = s.list[index ?? s.index + (shiftForward ? 1 : 0)].state;
+			obj[key] = s.list[index ?? s.index + (shiftForward ? 1 : 0)]?.state || (key === 'project' ? initialProjectState : {});
+		} else if (state[key].action) {
+			obj[key] = state[key].action.state;
 		} else {
 			obj[key] = state[key].state;
 		}
 
 		return obj;
 	}, {} as any);
+	console.log('Action State:', actionState);
 	return actionState;
 };
 

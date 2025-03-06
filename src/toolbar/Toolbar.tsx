@@ -8,16 +8,15 @@ import { PolygonIcon } from "~/components/icons/PolygonIcon";
 import { RectangleIcon } from "~/components/icons/RectangleIcon";
 import { SelectionIcon } from "~/components/icons/SelectionIcon";
 import { Tool, toolGroups, toolToKey, toolToLabel } from "~/constants";
-import { requestAction } from "~/listener/requestAction";
 import { connectActionState } from "~/state/stateUtils";
-import { toolActions } from "~/toolbar/toolActions";
+import { store } from "~/state/store-init";
 import styles from "~/toolbar/Toolbar.styles";
-import { ToolState } from "~/toolbar/toolReducer";
+import { setOpenGroupIndex, setTool, ToolState } from "~/toolbar/toolSlice";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(styles);
 
-export const toolToIconMap = {
+export const toolToIconMap: Record<Tool, () => JSX.Element> = {
 	[Tool.move]: SelectionIcon,
 	[Tool.pen]: PenIcon,
 	[Tool.editVertex]: ConvertAnchorIcon,
@@ -36,42 +35,40 @@ type Props = StateProps;
 const ToolbarComponent: React.FC<Props> = (props) => {
 	const onGroupItemClick = useRef<((tool: Tool) => void) | null>(null);
 	const group = useRef<HTMLDivElement>(null);
+	const cleanupRef = useRef<(() => void) | null>(null);
 
 	const onItemClick = (tool: Tool) => {
-		requestAnimationFrame(() => {
-			requestAction({}, (params) => {
-				params.dispatch(toolActions.setTool(tool));
-				params.performDiff((diff) => diff.tool());
-				params.submitAction("Set tool");
-			});
-		});
+		store.dispatch(setTool({ tool }));
 	};
 
 	const onGroupClick = (index: number) => {
-		requestAction({}, (params) => {
-			params.dispatch(toolActions.setOpenGroupIndex(index));
+		console.log('Opening group:', index);
+		store.dispatch(setOpenGroupIndex({ index }));
+		console.log('Dispatched setOpenGroupIndex with index:', index);
 
-			onGroupItemClick.current = (tool: Tool) => {
-				params.dispatch(toolActions.setTool(tool));
-				params.performDiff((diff) => diff.tool());
-				params.submitAction("Set tool");
-			};
+		// Nettoyer le listener précédent s'il existe
+		if (cleanupRef.current) {
+			cleanupRef.current();
+		}
 
-			setTimeout(() => {
-				params.addListener.repeated("mousedown", (e) => {
-					if (
-						group.current !== e.target &&
-						!group.current?.contains(e.target as HTMLDivElement)
-					) {
-						params.cancelAction();
-					}
-				});
-			});
+		onGroupItemClick.current = (tool: Tool) => {
+			store.dispatch(setTool({ tool }));
+			store.dispatch(setOpenGroupIndex({ index: -1 }));
+		};
 
-			params.execOnComplete(() => {
-				onGroupItemClick.current = null;
-			});
-		});
+		const handleClickOutside = (e: MouseEvent) => {
+			if (
+				group.current !== e.target &&
+				!group.current?.contains(e.target as HTMLDivElement)
+			) {
+				store.dispatch(setOpenGroupIndex({ index: -1 }));
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		cleanupRef.current = () => {
+			document.removeEventListener('mousedown', handleClickOutside);
+		};
 	};
 
 	return (
@@ -80,6 +77,7 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 			<div className={s("list")}>
 				{toolGroups.map((tools, i) => {
 					const active = props.toolState.selected === props.toolState.selectedInGroup[i];
+					console.log('Rendering group:', i, 'openGroupIndex:', props.toolState.openGroupIndex);
 					return (
 						<div key={i} className={s("group", { active })}>
 							<button
@@ -90,10 +88,14 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 							</button>
 							<button
 								className={s("group__openDropdown", { active })}
-								onMouseDown={() => onGroupClick(i)}
+								onMouseDown={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									onGroupClick(i);
+								}}
 							/>
 
-							{props.toolState.openGroupIndex === i ? (
+							{props.toolState.openGroupIndex === i && (
 								<div
 									ref={group}
 									className={s("dropdown")}
@@ -103,7 +105,9 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 										<button
 											key={tool}
 											className={s("item")}
-											onClick={() => {
+											onMouseDown={(e) => {
+												e.preventDefault();
+												e.stopPropagation();
 												if (
 													typeof onGroupItemClick.current === "function"
 												) {
@@ -123,7 +127,7 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 										</button>
 									))}
 								</div>
-							) : null}
+							)}
 						</div>
 					);
 				})}

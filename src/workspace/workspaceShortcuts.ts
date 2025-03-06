@@ -1,14 +1,12 @@
 import { compositionKeyboardShortcuts } from "~/composition/compositionShortcuts";
 import { Tool } from "~/constants";
 import { RequestActionParams } from "~/listener/requestAction";
-import { createOperation } from "~/state/operation";
 import { KeyboardShortcut } from "~/types";
-import { workspaceOperations } from "~/workspace/workspaceOperations";
+import { setToolOperation } from "~/workspace/workspaceOperations";
 
 const workspaceShortcuts = {
 	selectTool: (tool: Tool) => (_: string, params: RequestActionParams) => {
-		const op = createOperation(params);
-		workspaceOperations.selectTool(op, tool);
+		const op = setToolOperation(params, tool);
 		op.submit();
 	},
 };

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { getActionStateFromApplicationState } from "~/state/stateUtils";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
 
 type Selector<T> = (actionState: ActionState) => T;
 

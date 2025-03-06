@@ -1,42 +1,42 @@
 import { combineReducers } from "redux";
 import { areaReducer, AreaReducerState, initialAreaState } from "~/area/state/areaReducer";
 import {
-	compositionReducer,
-	CompositionState,
-	initialCompositionState,
+    compositionReducer,
+    CompositionState,
+    initialCompositionState,
 } from "~/composition/compositionReducer";
 import {
-	compositionSelectionReducer,
-	CompositionSelectionState,
-	initialCompositionSelectionState,
+    compositionSelectionReducer,
+    CompositionSelectionState,
+    initialCompositionSelectionState,
 } from "~/composition/compositionSelectionReducer";
 import {
-	contextMenuReducer,
-	ContextMenuState,
-	initialContextMenuState,
+    contextMenuReducer,
+    ContextMenuState,
+    initialContextMenuState,
 } from "~/contextMenu/contextMenuReducer";
 import { flowReducer, FlowState, initialFlowState } from "~/flow/state/flowReducers";
 import {
-	flowSelectionReducer,
-	FlowSelectionState,
-	initialFlowSelectionState,
+    flowSelectionReducer,
+    FlowSelectionState,
+    initialFlowSelectionState,
 } from "~/flow/state/flowSelectionReducer";
 import { initialProjectState, projectReducer, ProjectState } from "~/project/projectReducer";
 import { initialShapeState, shapeReducer, ShapeState } from "~/shape/shapeReducer";
 import {
-	initialShapeSelectionState,
-	shapeSelectionReducer,
-	ShapeSelectionState,
+    initialShapeSelectionState,
+    shapeSelectionReducer,
+    ShapeSelectionState,
 } from "~/shape/shapeSelectionReducer";
 import { ActionBasedState, createActionBasedReducer } from "~/state/history/actionBasedReducer";
 import { createReducerWithHistory, HistoryState } from "~/state/history/historyReducer";
 import { initialTimelineState, timelineReducer, TimelineState } from "~/timeline/timelineReducer";
 import {
-	initialTimelineSelectionState,
-	timelineSelectionReducer,
-	TimelineSelectionState,
+    initialTimelineSelectionState,
+    timelineSelectionReducer,
+    TimelineSelectionState,
 } from "~/timeline/timelineSelectionReducer";
-import { initialToolState, toolReducer, ToolState } from "~/toolbar/toolReducer";
+import toolReducer, { ToolState } from "~/toolbar/toolSlice";
 
 declare global {
 	interface ApplicationState {
@@ -51,7 +51,7 @@ declare global {
 		shapeSelectionState: HistoryState<ShapeSelectionState>;
 		timelineState: HistoryState<TimelineState>;
 		timelineSelectionState: HistoryState<TimelineSelectionState>;
-		tool: ActionBasedState<ToolState>;
+		tool: ToolState;
 	}
 
 	interface ActionState {
@@ -113,7 +113,7 @@ const reducers = {
 		{ selectionForKey: "timelineState" },
 	),
 
-	tool: createActionBasedReducer(initialToolState, toolReducer),
-};
+	tool: toolReducer,
+} as const;
 
 export default combineReducers<ApplicationState>(reducers);

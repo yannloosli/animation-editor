@@ -6,7 +6,7 @@ import { sendDiffsToSubscribers } from "~/listener/diffListener";
 import { historyActions } from "~/state/history/historyActions";
 import { HistoryState } from "~/state/history/historyReducer";
 import { getActionId, getActionState, getCurrentState } from "~/state/stateUtils";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
 import { Action } from "~/types";
 
 let _n = 0;
@@ -187,7 +187,7 @@ const performRequestedAction = (
 					}
 
 					const s = state[key] as HistoryState<any>;
-					if (s.action!.state !== s.list[s.index].state) {
+					if (s.action && s.action.state !== s.list[s.index].state) {
 						modifiedKeys.push(key);
 					}
 				}

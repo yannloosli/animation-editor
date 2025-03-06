@@ -32,24 +32,43 @@ export function createReducerWithHistory<S>(
 ) {
 	const { selectionForKey = "" } = options;
 
-	const initState: HistoryState<S> = {
+	return (state: HistoryState<S> = {
 		type: selectionForKey ? "selection" : "normal",
-		list: [
-			{
-				state: initialState,
-				name: "Initial state",
-				modifiedRelated: false,
-				allowIndexShift: false,
-				diffs: [],
-			},
-		],
+		list: [{ state: initialState, name: "Initial state", modifiedRelated: false, allowIndexShift: false, diffs: [] }],
 		index: 0,
 		indexDirection: 1,
 		action: null,
-	};
-
-	return (state: HistoryState<S> = initState, action: HistoryAction): HistoryState<S> => {
+	}, action: HistoryAction): HistoryState<S> => {
 		switch (action.type) {
+			case "history/START_ACTION": {
+				const { actionId } = action.payload;
+
+				if (state.action) {
+					console.warn("Attempted to start an action while another is in progress.");
+					return state;
+				}
+
+				const shiftForward =
+					state.type === "selection" &&
+					state.indexDirection === -1 &&
+					state.list[state.index + 1]?.modifiedRelated &&
+					state.list[state.index + 1]?.allowIndexShift;
+
+				const currentState = state.list[state.index + (shiftForward ? 1 : 0)]?.state;
+				if (!currentState) {
+					console.warn("No valid state found in history list");
+					return state;
+				}
+
+				return {
+					...state,
+					action: {
+						id: actionId,
+						state: currentState,
+					},
+				};
+			}
+
 			case "history/MOVE_INDEX": {
 				if (state.action) {
 					console.warn("Attempted to move history list index with an action in process.");
@@ -61,29 +80,6 @@ export function createReducerWithHistory<S>(
 					...state,
 					index,
 					indexDirection: index > state.index ? 1 : -1,
-				};
-			}
-
-			case "history/START_ACTION": {
-				if (state.action) {
-					console.warn("Attempted to start an action with another action in process.");
-					return state;
-				}
-
-				const { actionId } = action.payload;
-
-				const shiftForward =
-					state.type === "selection" &&
-					state.indexDirection === -1 &&
-					state.list[state.index + 1].modifiedRelated &&
-					state.list[state.index + 1].allowIndexShift;
-
-				return {
-					...state,
-					action: {
-						id: actionId,
-						state: state.list[state.index + (shiftForward ? 1 : 0)].state,
-					},
 				};
 			}
 
@@ -108,6 +104,10 @@ export function createReducerWithHistory<S>(
 
 				for (let i = 0; i < actionBatch.length; i += 1) {
 					newState = reducer(newState, actionBatch[i]);
+					if (!newState) {
+						console.warn("Reducer returned undefined state");
+						return state;
+					}
 				}
 
 				if (newState === state.action.state) {
@@ -132,7 +132,6 @@ export function createReducerWithHistory<S>(
 				}
 
 				if (!state.action) {
-					console.log(actionToDispatch);
 					console.warn("Attempted to dispatch to an action that does not exist.");
 					return state;
 				}
@@ -143,6 +142,10 @@ export function createReducerWithHistory<S>(
 				}
 
 				const newState = reducer(state.action.state, actionToDispatch);
+				if (!newState) {
+					console.warn("Reducer returned undefined state");
+					return state;
+				}
 
 				if (newState === state.action.state) {
 					// State was not modified

@@ -1,14 +1,14 @@
+import { debounce } from 'lodash';
 import * as PIXI from "pixi.js";
-import React from "react";
 import ReactDOM from "react-dom";
 import { ErrorBoundary } from 'react-error-boundary';
-import { debounce } from 'lodash';
 import { Provider } from "react-redux";
 import { DiffType } from "~/diff/diffs";
 import "~/globals";
 import { sendDiffsToSubscribers } from "~/listener/diffListener";
 import { getActionState } from "~/state/stateUtils";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
+import { testStoreSync } from "~/state/store-sync-test";
 import "~/state/undoRedo";
 import { App } from "./App";
 
@@ -19,17 +19,21 @@ import { App } from "./App";
 
 PIXI.utils.skipHello();
 
-const Root = () => (
-    <React.StrictMode>
-        <ErrorBoundary fallback={<div>Une erreur est survenue</div>}>
-            <Provider store={store}>
-                <App />
-            </Provider>
-        </ErrorBoundary>
-    </React.StrictMode>
+const ErrorFallback = ({ error }: { error: Error }) => (
+    <div role="alert">
+        <p>Une erreur est survenue :</p>
+        <pre>{error.message}</pre>
+    </div>
 );
 
-ReactDOM.render(<Root />, document.getElementById("root"));
+ReactDOM.render(
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Provider store={store}>
+            <App />
+        </Provider>
+    </ErrorBoundary>,
+    document.getElementById("root")
+);
 
 // Disable right click context menu
 document.addEventListener("contextmenu", (e) => e.preventDefault(), false);
@@ -41,3 +45,6 @@ const handleResize = debounce(() => {
 }, 100);
 
 window.addEventListener("resize", handleResize);
+
+// Exposer la fonction de test dans la console
+(window as any).testStoreSync = testStoreSync;

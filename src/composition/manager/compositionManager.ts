@@ -3,21 +3,21 @@ import { getAreaViewport } from "~/area/util/getAreaViewport";
 import { passDiffsToManagers } from "~/composition/manager/compositionDiffHandler";
 import { HitTestManager } from "~/composition/manager/hitTest/HitTestManager";
 import {
-	createInteractionManager,
-	InteractionManager,
-	_emptyInteractionManager,
+    _emptyInteractionManager,
+    createInteractionManager,
+    InteractionManager,
 } from "~/composition/manager/interaction/interactionManager";
 import { LayerManager } from "~/composition/manager/layer/LayerManager";
 import {
-	createPropertyManager,
-	PropertyManager,
+    createPropertyManager,
+    PropertyManager,
 } from "~/composition/manager/property/propertyManager";
 import { AreaType } from "~/constants";
 import { Diff, DiffType } from "~/diff/diffs";
 import { filterIncomingTopLevelDiff } from "~/diff/filterIncomingTopLevelDiff";
 import { subscribeToDiffs, unsubscribeToDiffs } from "~/listener/diffListener";
 import { getActionState, getActionStateFromApplicationState } from "~/state/stateUtils";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
 import { CompositionError, LayerDimension } from "~/types";
 import { Area } from "~/types/areaTypes";
 

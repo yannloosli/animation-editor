@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
 import { cssVariables } from "~/cssVariables";
-import { store } from "~/state/store";
+import { store } from "~/state/store-init";
 import { AreaComponentProps } from "~/types/areaTypes";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
