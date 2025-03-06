@@ -9,6 +9,7 @@ export const historyActions = {
 	},
 
 	dispatchToAction: (actionId: string, actionToDispatch: any, modifiesHistory: boolean) => {
+		console.log("dispatchToAction called with:", { actionId, actionToDispatch, modifiesHistory });
 		return action("history/DISPATCH_TO_ACTION", {
 			actionId,
 			actionToDispatch,
@@ -17,6 +18,7 @@ export const historyActions = {
 	},
 
 	dispatchBatchToAction: (actionId: string, actionBatch: any[], modifiesHistory: boolean) => {
+		console.log("dispatchBatchToAction called with:", { actionId, actionBatch, modifiesHistory });
 		return action("history/DISPATCH_BATCH_TO_ACTION", {
 			actionId,
 			actionBatch,

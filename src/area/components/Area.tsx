@@ -1,5 +1,5 @@
 import React from "react";
-import { areaComponentRegistry, _areaReactKeyRegistry } from "~/area/areaRegistry";
+import { _areaReactKeyRegistry, areaComponentRegistry } from "~/area/areaRegistry";
 import styles from "~/area/components/Area.styles";
 import { AreaErrorBoundary } from "~/area/components/AreaErrorBoundary";
 import { useAreaKeyboardShortcuts } from "~/area/components/useAreaKeyboardShortcuts";
@@ -8,11 +8,12 @@ import { areaActions } from "~/area/state/areaActions";
 import { AreaIdContext } from "~/area/util/AreaIdContext";
 import { EditIcon } from "~/components/icons/EditIcon";
 import { PenIcon } from "~/components/icons/PenIcon";
-import { AreaType, AREA_BORDER_WIDTH } from "~/constants";
-import { contextMenuActions } from "~/contextMenu/contextMenuActions";
-import { requestAction } from "~/listener/requestAction";
+import { AREA_BORDER_WIDTH, AreaType } from "~/constants";
+import { createContextMenuActions } from "~/contextMenu/contextMenuActions";
 import { connectActionState } from "~/state/stateUtils";
+import { store } from "~/state/store-init";
 import { AreaComponentProps } from "~/types/areaTypes";
+import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(styles);
@@ -68,46 +69,45 @@ export const AreaComponent: React.FC<Props> = (props) => {
 	const { icon: Icon } = areaTypeOptions[typeToIndex[type]];
 
 	const openSelectArea = (_: React.MouseEvent) => {
+		console.log("openSelectArea called");
 		const pos = Vec2.new(viewport.left + 4, viewport.top + 4);
-		requestAction({}, (params) => {
-			params.dispatch(
-				contextMenuActions.openContextMenu(
-					"Area type",
-					[
-						{
-							label: "Project",
-							type: AreaType.Project,
-						},
-						{
-							label: "Timeline",
-							type: AreaType.Timeline,
-						},
-						{
-							label: "Workspace",
-							type: AreaType.Workspace,
-						},
-						{
-							label: "Node Editor",
-							type: AreaType.FlowEditor,
-						},
-						{
-							label: "History",
-							type: AreaType.History,
-						},
-					].map((item) => ({
-						// icon: item.icon,
-						label: item.label,
-						onSelect: () => {
-							params.dispatch(areaActions.setAreaType(id, item.type));
-							params.dispatch(contextMenuActions.closeContextMenu());
-							params.submitAction("Update area type");
-						},
-					})),
-					pos,
-					params.cancelAction,
-				),
-			);
-		});
+		console.log("Position:", pos);
+		const contextMenuActions = createContextMenuActions(store.dispatch);
+		contextMenuActions.openContextMenu(
+			"Area type",
+			[
+				{
+					label: "Project",
+					type: AreaType.Project,
+				},
+				{
+					label: "Timeline",
+					type: AreaType.Timeline,
+				},
+				{
+					label: "Workspace",
+					type: AreaType.Workspace,
+				},
+				{
+					label: "Node Editor",
+					type: AreaType.FlowEditor,
+				},
+				{
+					label: "History",
+					type: AreaType.History,
+				},
+			].map((item) => ({
+				// icon: item.icon,
+				label: item.label,
+				onSelect: () => {
+					console.log("Option selected:", item.label);
+					store.dispatch(areaActions.setAreaType(id, item.type, {}));
+					contextMenuActions.closeContextMenu();
+				},
+			})),
+			pos,
+			() => contextMenuActions.closeContextMenu(),
+		);
 	};
 
 	const areaStateKey = _areaReactKeyRegistry[props.type];

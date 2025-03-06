@@ -1,24 +1,36 @@
-import { createAction } from "typesafe-actions";
-import { ContextMenuOption } from "~/contextMenu/contextMenuReducer";
-import { ContextMenuBaseProps, OpenCustomContextMenuOptions } from "~/contextMenu/contextMenuTypes";
-
-const openCustomContextMenu = createAction("contextMenu/OPEN_CUSTOM", (action) => {
-	return (options: OpenCustomContextMenuOptions<any>) => action({ options });
-});
-
-type OpenCustomContextMenuFn = <P extends ContextMenuBaseProps>(
-	options: OpenCustomContextMenuOptions<P>,
-) => ReturnType<typeof openCustomContextMenu>;
+import { store } from "~/state/store-init";
+import { Vec2 } from "~/util/math/vec2";
+import { ContextMenuOption } from "./contextMenuReducer";
+import { closeContextMenu as rtkCloseContextMenu, openContextMenu as rtkOpenContextMenu } from "./contextMenuSlice";
+import { OpenCustomContextMenuOptions } from "./contextMenuTypes";
 
 export const contextMenuActions = {
-	openContextMenu: createAction("contextMenu/OPEN", (action) => {
-		return (name: string, options: ContextMenuOption[], position: Vec2, close: () => void) =>
-			action({ name, options, position, close });
-	}),
+	openContextMenu: (name: string, options: ContextMenuOption[], position: Vec2, close: () => void) => {
+		store.dispatch(rtkOpenContextMenu({ name, options, position, close }));
+	},
 
-	openCustomContextMenu: openCustomContextMenu as OpenCustomContextMenuFn,
+	openCustomContextMenu: (options: OpenCustomContextMenuOptions<any>) => {
+		store.dispatch(rtkOpenContextMenu({ name: "", options: [], position: Vec2.new(0, 0), close: () => store.dispatch(rtkCloseContextMenu()) }));
+	},
 
-	closeContextMenu: createAction("contextMenu/CLOSE", (action) => {
-		return () => action({});
-	}),
+	closeContextMenu: () => {
+		store.dispatch(rtkCloseContextMenu());
+	},
 };
+
+// Type pour le dispatch Redux
+type AppDispatch = (action: any) => void;
+
+export const createContextMenuActions = (dispatch: AppDispatch) => ({
+	openContextMenu: (name: string, options: ContextMenuOption[], position: Vec2, close: () => void) => {
+		dispatch(rtkOpenContextMenu({ name, options, position, close }));
+	},
+
+	openCustomContextMenu: (options: OpenCustomContextMenuOptions<any>) => {
+		dispatch(rtkOpenContextMenu({ name: "", options: [], position: Vec2.new(0, 0), close: () => dispatch(rtkCloseContextMenu()) }));
+	},
+
+	closeContextMenu: () => {
+		dispatch(rtkCloseContextMenu());
+	},
+});

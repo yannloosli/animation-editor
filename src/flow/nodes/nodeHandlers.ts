@@ -1,22 +1,22 @@
 import { getAreaViewport } from "~/area/util/getAreaViewport";
 import { AreaType, FLOW_NODE_MIN_WIDTH } from "~/constants";
-import { contextMenuActions } from "~/contextMenu/contextMenuActions";
+import { createContextMenuActions } from "~/contextMenu/contextMenuActions";
 import { flowAreaActions } from "~/flow/flowAreaActions";
 import { flowOperations } from "~/flow/flowOperations";
 import {
-	didFlowSelectionChange,
-	flowEditorGlobalToNormal,
-	flowSelectionFromState,
+    didFlowSelectionChange,
+    flowEditorGlobalToNormal,
+    flowSelectionFromState,
 } from "~/flow/flowUtils";
 import { flowActions } from "~/flow/state/flowActions";
 import { flowSelectionActions } from "~/flow/state/flowSelectionReducer";
 import {
-	getFlowGraphAvailableInputs,
-	getFlowGraphAvailableOutputs,
+    getFlowGraphAvailableInputs,
+    getFlowGraphAvailableOutputs,
 } from "~/flow/util/flowNodeAvailableIO";
 import {
-	calculateNodeInputPosition,
-	calculateNodeOutputPosition,
+    calculateNodeInputPosition,
+    calculateNodeOutputPosition,
 } from "~/flow/util/flowNodeHeight";
 import { isKeyDown } from "~/listener/keyboard";
 import { requestAction } from "~/listener/requestAction";
@@ -25,6 +25,7 @@ import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { ValueType } from "~/types";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
 import { getDistance } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 
 const NODE_MIN_DIST = 10;
 
@@ -32,6 +33,8 @@ export const nodeHandlers = {
 	onRightClick: (e: React.MouseEvent, graphId: string, nodeId: string) => {
 		requestAction({ history: true }, (params) => {
 			performOperation(params, (op) => flowOperations.selectNode(op, nodeId));
+
+			const contextMenuActions = createContextMenuActions(params.dispatch);
 
 			params.dispatch(
 				contextMenuActions.openContextMenu(
@@ -50,7 +53,7 @@ export const nodeHandlers = {
 							default: true,
 						},
 					],
-					Vec2.fromEvent(e),
+					Vec2.new(e.clientX, e.clientY),
 					params.cancelAction,
 				),
 			);
@@ -97,7 +100,6 @@ export const nodeHandlers = {
 						),
 					);
 				}
-				// Node position diff can be added here, if required.
 				op.submit();
 			},
 			mouseUp: (params, hasMoved) => {
@@ -371,7 +373,7 @@ export const nodeHandlers = {
 		const transformMousePosition = (mousePosition: Vec2) =>
 			flowEditorGlobalToNormal(mousePosition, viewport, scale, pan);
 
-		const initialMousePos = transformMousePosition(Vec2.fromEvent(e));
+		const initialMousePos = transformMousePosition(Vec2.new(e.clientX, e.clientY));
 
 		requestAction({ history: true }, (params) => {
 			const { submitAction, cancelAction, dispatch, addListener } = params;
@@ -382,7 +384,7 @@ export const nodeHandlers = {
 			let hasMoved = false;
 
 			addListener.repeated("mousemove", (e) => {
-				const mousePos = transformMousePosition(Vec2.fromEvent(e));
+				const mousePos = transformMousePosition(Vec2.new(e.clientX, e.clientY));
 				if (!hasMoved) {
 					// We don't consider the mouse to be "moved" until the mouse has moved at least
 					// 5px from where it was initially.

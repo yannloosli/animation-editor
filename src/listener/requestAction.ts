@@ -99,6 +99,7 @@ const performRequestedAction = (
 	cancelTokens.push(escToken);
 
 	const dispatch: RequestActionParams["dispatch"] = (action, ...args) => {
+		console.log("dispatch called with action:", action);
 		if (Array.isArray(action)) {
 			if (args.length) {
 				console.warn(
@@ -111,12 +112,14 @@ const performRequestedAction = (
 		}
 
 		if (args.length) {
+			console.log("Dispatching batch action");
 			store.dispatch(
 				historyActions.dispatchBatchToAction(actionId, [action, ...args], history),
 			);
 			return;
 		}
 
+		console.log("Dispatching single action");
 		store.dispatch(historyActions.dispatchToAction(actionId, action, history));
 	};
 

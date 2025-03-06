@@ -10,11 +10,7 @@ import {
     CompositionSelectionState,
     initialCompositionSelectionState,
 } from "~/composition/compositionSelectionReducer";
-import {
-    contextMenuReducer,
-    ContextMenuState,
-    initialContextMenuState,
-} from "~/contextMenu/contextMenuReducer";
+import contextMenuReducer from "~/contextMenu/contextMenuSlice";
 import { flowReducer, FlowState, initialFlowState } from "~/flow/state/flowReducers";
 import {
     flowSelectionReducer,
@@ -45,7 +41,7 @@ declare global {
 		compositionSelectionState: HistoryState<CompositionSelectionState>;
 		flowState: HistoryState<FlowState>;
 		flowSelectionState: HistoryState<FlowSelectionState>;
-		contextMenu: ActionBasedState<ContextMenuState>;
+		contextMenu: ContextMenuState;
 		project: HistoryState<ProjectState>;
 		shapeState: HistoryState<ShapeState>;
 		shapeSelectionState: HistoryState<ShapeSelectionState>;
@@ -95,7 +91,7 @@ const reducers = {
 		selectionForKey: "flowState",
 	}),
 
-	contextMenu: createActionBasedReducer(initialContextMenuState, contextMenuReducer),
+	contextMenu: contextMenuReducer,
 
 	project: createReducerWithHistory(initialProjectState, projectReducer),
 

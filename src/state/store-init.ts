@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { createStore, Store } from "redux";
 import { initialAreaState } from "~/area/state/areaReducer";
-import { initialContextMenuState } from "~/contextMenu/contextMenuReducer";
+import { initialState as initialContextMenuState } from "~/contextMenu/contextMenuSlice";
 import { createApplicationStateFromActionState } from "~/state/createApplicationStateFromActionState";
 import reducers from "~/state/reducers";
 import { getSavedActionState } from "~/state/saveState";

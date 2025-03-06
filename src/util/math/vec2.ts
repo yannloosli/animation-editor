@@ -194,38 +194,3 @@ export class Vec2 {
 		};
 	}
 }
-
-declare global {
-	class Vec2 {
-		public static new(vec: { x: number; y: number } | { left: number; top: number }): Vec2;
-		public static new(x: number, y: number): Vec2;
-		public static fromEvent(e: { clientX: number; clientY: number }): Vec2;
-		public static ORIGIN: Vec2;
-
-		public x: number;
-		public y: number;
-
-		constructor(vec: { x: number; y: number });
-		constructor(x: number, y: number);
-
-		public add(vec: IVec2): Vec2;
-		public addX(x: number): Vec2;
-		public addY(y: number): Vec2;
-		public lerp(vec: IVec2, t: number): Vec2;
-		public sub(vec: IVec2): Vec2;
-		public subX(x: number): Vec2;
-		public subY(y: number): Vec2;
-		public subXY(x: number, y: number): Vec2;
-		public scale(scale: number, anchor?: IVec2): Vec2;
-		public scaleX(scale: number, anchor?: IVec2): Vec2;
-		public scaleY(scale: number, anchor?: IVec2): Vec2;
-		public scaleXY(scaleX: number, scaleY: number, anchor?: IVec2): Vec2;
-		public rotate(rad: number, anchor?: IVec2): Vec2;
-		public multiplyMat2(mat2: Mat2, anchor?: IVec2): Vec2;
-		public copy(): Vec2;
-		public round(): Vec2;
-		public apply(fn: (vec2: Vec2) => IVec2): Vec2;
-		public length(): number;
-		public eq(vec: IVec2): boolean;
-	}
-}

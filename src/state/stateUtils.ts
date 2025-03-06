@@ -1,5 +1,6 @@
 import { connect, DispatchProp, InferableComponentEnhancerWithProps } from "react-redux";
 import { AreaType } from "~/constants";
+import { initialState as initialContextMenuState } from "~/contextMenu/contextMenuSlice";
 import { initialProjectState } from "~/project/projectReducer";
 import { HistoryState } from "~/state/history/historyReducer";
 import { store } from "~/state/store-init";
@@ -12,6 +13,8 @@ const getCurrentStateFromApplicationState = (_state: ApplicationState): ActionSt
 	const actionState = keys.reduce<ActionState>((obj, key) => {
 		if (key === 'tool') {
 			obj[key] = state[key] || initialToolState;
+		} else if (key === 'contextMenu') {
+			obj[key] = state[key] || initialContextMenuState;
 		} else if (key === 'area') {
 			obj[key] = state[key].state;
 		} else if (state[key].list) {
@@ -38,14 +41,13 @@ export const getActionStateFromApplicationState = (
 	index?: number,
 ): ActionState => {
 	const state: any = _state;
-	console.log('Application State:', state);
 	const keys = Object.keys(state) as Array<keyof ApplicationState>;
-	console.log('Keys:', keys);
 	const actionState = keys.reduce<ActionState>((obj, key) => {
-		console.log('Processing key:', key, 'Value:', state[key]);
 		if (key === 'tool') {
 			obj[key] = state[key] || initialToolState;
-		} else if (key === 'area' || key === 'contextMenu') {
+		} else if (key === 'contextMenu') {
+			obj[key] = state[key] || initialContextMenuState;
+		} else if (key === 'area') {
 			obj[key] = state[key].state;
 		} else if (state[key].list) {
 			const s = state[key] as HistoryState<any>;
@@ -65,7 +67,6 @@ export const getActionStateFromApplicationState = (
 
 		return obj;
 	}, {} as any);
-	console.log('Action State:', actionState);
 	return actionState;
 };
 

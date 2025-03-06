@@ -14,12 +14,12 @@ export const createCompatibilityMiddleware = (oldStore: StoreType, rtkStore: Sto
         }
 
         // Si l'action vient du store RTK, la dispatcher dans l'ancien store
-        if (action.type.startsWith("toolkit/") || action.type.startsWith("tool/")) {
+        if (action.type.startsWith("toolkit/") || action.type.startsWith("tool/") || action.type.startsWith("contextMenu/")) {
             oldStore.dispatch(action);
         }
         
         // Si l'action vient de l'ancien store, la dispatcher dans le store RTK
-        if (!action.type.startsWith("toolkit/") && !action.type.startsWith("tool/")) {
+        if (!action.type.startsWith("toolkit/") && !action.type.startsWith("tool/") && !action.type.startsWith("contextMenu/")) {
             rtkStore.dispatch(action);
         }
 

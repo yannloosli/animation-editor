@@ -24,7 +24,6 @@ const resolvePropertyInputNode = (
 
 	switch (property.type) {
 		case "property":
-			console.log();
 			return [propertyStore.getPropertyValue(property.id)];
 		case "compound": {
 			if (property.properties.length !== 2) {

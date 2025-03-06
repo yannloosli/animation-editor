@@ -1,24 +1,26 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { CONTEXT_MENU_OPTION_HEIGHT, DEFAULT_CONTEXT_MENU_WIDTH } from "~/constants";
 import {
-	ContextMenuActionOption,
-	ContextMenuListOption,
-	ContextMenuOption,
-	ContextMenuState,
+    ContextMenuActionOption,
+    ContextMenuListOption,
+    ContextMenuOption
 } from "~/contextMenu/contextMenuReducer";
 import styles from "~/contextMenu/normal/NormalContextMenu.styles";
-import { connectActionState } from "~/state/stateUtils";
+import { RootState } from "~/state/store-init";
 import { boundingRectOfRects, isVecInRect } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheet } from "~/util/stylesheets";
 
 const s = compileStylesheet(styles);
 
-type Props = ContextMenuState;
-
 const CLOSE_MENU_BUFFER = 100;
 const REDUCE_STACK_BUFFER = 64;
 
-const NormalContextMenuComponent: React.FC<Props> = (props) => {
+const NormalContextMenuComponent: React.FC = () => {
+	const props = useSelector((state: RootState) => state.contextMenu);
+	console.log("NormalContextMenu props:", props);
+
 	const [rect, setRect] = useState<Rect | null>(null);
 	const [reduceStackRect, setReduceStackRect] = useState<Rect | null>(null);
 	const [stack, setStack] = useState<
@@ -28,6 +30,7 @@ const NormalContextMenuComponent: React.FC<Props> = (props) => {
 	const mouseOverOptionListener = useRef<number | null>(null);
 
 	useEffect(() => {
+		console.log("NormalContextMenu useEffect - props changed:", props);
 		if (!props.isOpen) {
 			setStack([]);
 			return;
@@ -76,7 +79,7 @@ const NormalContextMenuComponent: React.FC<Props> = (props) => {
 	}
 
 	const onMouseMove = (e: React.MouseEvent) => {
-		const vec = Vec2.fromEvent(e);
+		const vec = Vec2.new(e.clientX, e.clientY);
 		const { x, y } = vec;
 
 		if (!rect) {
@@ -205,6 +208,4 @@ const NormalContextMenuComponent: React.FC<Props> = (props) => {
 	);
 };
 
-export const NormalContextMenu = connectActionState((state) => state.contextMenu)(
-	NormalContextMenuComponent,
-);
+export const NormalContextMenu = NormalContextMenuComponent;

@@ -42,9 +42,7 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 	};
 
 	const onGroupClick = (index: number) => {
-		console.log('Opening group:', index);
 		store.dispatch(setOpenGroupIndex({ index }));
-		console.log('Dispatched setOpenGroupIndex with index:', index);
 
 		// Nettoyer le listener précédent s'il existe
 		if (cleanupRef.current) {
@@ -77,7 +75,6 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 			<div className={s("list")}>
 				{toolGroups.map((tools, i) => {
 					const active = props.toolState.selected === props.toolState.selectedInGroup[i];
-					console.log('Rendering group:', i, 'openGroupIndex:', props.toolState.openGroupIndex);
 					return (
 						<div key={i} className={s("group", { active })}>
 							<button

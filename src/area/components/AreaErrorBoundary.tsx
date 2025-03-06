@@ -38,8 +38,14 @@ const s = compileStylesheetLabelled(({ css }) => ({
 	`,
 }));
 
-interface OwnProps extends AreaComponentProps<any> {
+interface OwnProps {
 	component: React.ComponentType<AreaComponentProps<any>>;
+	areaId: string;
+	areaState: any;
+	left: number;
+	top: number;
+	width: number;
+	height: number;
 }
 interface StateProps {
 	historyIndex: number;
@@ -119,4 +125,10 @@ class AreaErrorBoundaryComponent extends React.Component<Props> {
 const mapState = (state: ApplicationState): StateProps => ({
 	historyIndex: state.flowState.index,
 });
-export const AreaErrorBoundary = connect(mapState)(AreaErrorBoundaryComponent);
+
+const ConnectedAreaErrorBoundary = connect<StateProps, {}, OwnProps, ApplicationState>(
+	mapState,
+	{},
+)(AreaErrorBoundaryComponent);
+
+export const AreaErrorBoundary = ConnectedAreaErrorBoundary as React.ComponentType<OwnProps>;

@@ -33,11 +33,16 @@
             "vite/client",
             "jest",
             "node"
+        ],
+        "typeRoots": [
+            "./node_modules/@types",
+            "."
         ]
     },
     "include": [
         "src/**/*.ts",
-        "src/**/*.tsx"
+        "src/**/*.tsx",
+        "index.d.ts"
     ],
     "exclude": [
         "node_modules"

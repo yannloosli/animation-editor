@@ -3,11 +3,13 @@ import { Composition } from "~/composition/compositionTypes";
 import { getTimelineIdsReferencedByComposition } from "~/composition/compositionUtils";
 import { contextMenuActions } from "~/contextMenu/contextMenuActions";
 import { ContextMenuOption } from "~/contextMenu/contextMenuReducer";
+import { closeContextMenu as rtkCloseContextMenu } from "~/contextMenu/contextMenuSlice";
 import { requestAction } from "~/listener/requestAction";
 import { projectActions } from "~/project/projectReducer";
 import { getActionState } from "~/state/stateUtils";
 import { timelineActions } from "~/timeline/timelineActions";
 import { createMapNumberId } from "~/util/mapUtils";
+import { Vec2 } from "~/util/math/vec2";
 import { getNonDuplicateName } from "~/util/names";
 
 interface Options {
@@ -15,15 +17,14 @@ interface Options {
 }
 
 export const createProjectContextMenu = (position: Vec2, { compositionId }: Options): void => {
-	requestAction({ history: true }, (params) => {
-		const options: ContextMenuOption[] = [];
+	const options: ContextMenuOption[] = [];
 
-		if (!compositionId) {
-			options.push({
-				label: "Add new composition",
-				onSelect: () => {
+	if (!compositionId) {
+		options.push({
+			label: "Add new composition",
+			onSelect: () => {
+				requestAction({ history: true }, (params) => {
 					const compositions = getActionState().compositionState.compositions;
-
 					const existingNames = Object.values(compositions).map((comp) => comp.name);
 
 					const composition: Composition = {
@@ -36,45 +37,46 @@ export const createProjectContextMenu = (position: Vec2, { compositionId }: Opti
 						frameIndex: 0,
 					};
 
-					params.dispatch(projectActions.addComposition(composition));
-					params.dispatch(compositionActions.setComposition(composition));
-					params.dispatch(contextMenuActions.closeContextMenu());
+					params.dispatch([
+						projectActions.addComposition(composition),
+						compositionActions.setComposition(composition),
+						rtkCloseContextMenu(),
+					]);
 					params.submitAction("Add new composition");
-				},
-			});
-		}
+				});
+			},
+		});
+	}
 
-		if (compositionId) {
-			const composition = getActionState().compositionState.compositions[compositionId];
+	if (compositionId) {
+		const composition = getActionState().compositionState.compositions[compositionId];
 
-			options.push({
-				label: `Delete composition '${composition.name}'`,
-				onSelect: () => {
+		options.push({
+			label: `Delete composition '${composition.name}'`,
+			onSelect: () => {
+				requestAction({ history: true }, (params) => {
 					const { compositionState } = getActionState();
-
 					const timelineIds = getTimelineIdsReferencedByComposition(
 						compositionId,
 						compositionState,
 					);
 
-					params.dispatch(
+					const actions = [
 						projectActions.removeComposition(compositionId),
 						compositionActions.removeComposition(compositionId),
 						...timelineIds.map((id) => timelineActions.removeTimeline(id)),
-					);
-
-					params.dispatch(contextMenuActions.closeContextMenu());
+						rtkCloseContextMenu(),
+					];
+					params.dispatch(actions);
 					params.submitAction("Remove composition");
-				},
-			});
-		}
+				});
+			},
+		});
+	}
 
-		/**
-		 * @todo Composition Settings
-		 */
+	/**
+	 * @todo Composition Settings
+	 */
 
-		params.dispatch(
-			contextMenuActions.openContextMenu("Project", options, position, params.cancelAction),
-		);
-	});
+	contextMenuActions.openContextMenu("Project", options, position, () => contextMenuActions.closeContextMenu());
 };

@@ -1,8 +1,8 @@
-import { getType, ActionType } from "typesafe-actions";
-import { contextMenuActions } from "~/contextMenu/contextMenuActions";
+import { ActionType, getType } from "typesafe-actions";
+import { contextMenuActionCreators } from "~/contextMenu/contextMenuActionTypes";
 import { OpenCustomContextMenuOptions } from "~/contextMenu/contextMenuTypes";
 
-type ContextMenuAction = ActionType<typeof contextMenuActions>;
+type ContextMenuAction = ActionType<typeof contextMenuActionCreators>;
 
 export interface ContextMenuActionOption {
 	label: string;
@@ -29,21 +29,12 @@ export interface ContextMenuState {
 	customContextMenu: null | OpenCustomContextMenuOptions;
 }
 
-export const initialContextMenuState: ContextMenuState = {
-	isOpen: false,
-	name: "",
-	options: [],
-	position: Vec2.new(0, 0),
-	close: null,
-	customContextMenu: null,
-};
-
 export const contextMenuReducer = (
 	state: ContextMenuState,
 	action: ContextMenuAction,
 ): ContextMenuState => {
 	switch (action.type) {
-		case getType(contextMenuActions.openContextMenu): {
+		case getType(contextMenuActionCreators.openContextMenu): {
 			const { name, options, position, close } = action.payload;
 			return {
 				...state,
@@ -55,7 +46,7 @@ export const contextMenuReducer = (
 			};
 		}
 
-		case getType(contextMenuActions.openCustomContextMenu): {
+		case getType(contextMenuActionCreators.openCustomContextMenu): {
 			const { options } = action.payload;
 			return {
 				...state,
@@ -63,7 +54,7 @@ export const contextMenuReducer = (
 			};
 		}
 
-		case getType(contextMenuActions.closeContextMenu): {
+		case getType(contextMenuActionCreators.closeContextMenu): {
 			return {
 				...state,
 				isOpen: false,
