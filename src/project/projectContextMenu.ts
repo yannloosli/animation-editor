@@ -38,7 +38,7 @@ export const createProjectContextMenu = (position: Vec2, { compositionId }: Opti
 					};
 
 					params.dispatch([
-						projectActions.addComposition(composition),
+						projectActions.addComposition({ composition }),
 						compositionActions.setComposition(composition),
 						rtkCloseContextMenu(),
 					]);
@@ -62,7 +62,7 @@ export const createProjectContextMenu = (position: Vec2, { compositionId }: Opti
 					);
 
 					const actions = [
-						projectActions.removeComposition(compositionId),
+						projectActions.removeComposition({ compositionId }),
 						compositionActions.removeComposition(compositionId),
 						...timelineIds.map((id) => timelineActions.removeTimeline(id)),
 						rtkCloseContextMenu(),
@@ -78,5 +78,5 @@ export const createProjectContextMenu = (position: Vec2, { compositionId }: Opti
 	 * @todo Composition Settings
 	 */
 
-	contextMenuActions.openContextMenu("Project", options, position, () => contextMenuActions.closeContextMenu());
+	contextMenuActions.openContextMenu("Project", options, position);
 };

@@ -18,8 +18,10 @@ import { filterIncomingTopLevelDiff } from "~/diff/filterIncomingTopLevelDiff";
 import { subscribeToDiffs, unsubscribeToDiffs } from "~/listener/diffListener";
 import { getActionState, getActionStateFromApplicationState } from "~/state/stateUtils";
 import { store } from "~/state/store-init";
+import { ActionState, ApplicationState } from "~/state/store-types";
 import { CompositionError, LayerDimension } from "~/types";
 import { Area } from "~/types/areaTypes";
+import { Vec2 } from "~/util/math/vec2";
 
 const compositionManagersByAreaId: Partial<Record<string, CompositionManager>> = {};
 
@@ -137,7 +139,7 @@ export const manageTopLevelComposition = (
 	canvas: HTMLCanvasElement,
 	setErrors: (errors: CompositionError[]) => void,
 ) => {
-	let prevState = getActionStateFromApplicationState(store.getState());
+	let prevState = getActionStateFromApplicationState(store.getState() as ApplicationState);
 
 	const app = new PIXI.Application({
 		width: canvas.width,
@@ -194,11 +196,15 @@ export const manageTopLevelComposition = (
 
 	{
 		const composition = prevState.compositionState.compositions[compositionId];
+		if (!composition) return;
 
 		const area = prevState.area.areas[areaId] as Area<AreaType.Workspace>;
 		const { scale = 1, pan: _pan = Vec2.ORIGIN } = area ? area.state : {};
 
-		const pan = _pan.add(getHalfStage());
+		// Calculer le décalage initial pour centrer la composition
+		const halfComposition = Vec2.new(composition.width, composition.height).scale(0.5);
+		const initialOffset = getHalfStage().sub(halfComposition);
+		const pan = _pan.add(initialOffset);
 
 		compContainer.scale.set(scale, scale);
 		compContainer.position.set(pan.x, pan.y);
@@ -225,11 +231,19 @@ export const manageTopLevelComposition = (
 					}
 
 					const area = actionState.area.areas[areaId] as Area<AreaType.Workspace>;
-					const { scale } = area.state;
-					const pan = area.state.pan.add(getHalfStage());
+					if (!area?.state) continue;
+
+					const composition = actionState.compositionState.compositions[compositionId];
+					if (!composition) continue;
+
+					const { scale = 1, pan = Vec2.ORIGIN } = area.state;
+					const halfComposition = Vec2.new(composition.width, composition.height).scale(0.5);
+					const initialOffset = getHalfStage().sub(halfComposition);
+					const adjustedPan = pan.add(initialOffset);
+					
 					compContainer.scale.set(scale, scale);
-					compContainer.position.set(pan.x, pan.y);
-					interactionContainer.position.set(pan.x, pan.y);
+					compContainer.position.set(adjustedPan.x, adjustedPan.y);
+					interactionContainer.position.set(adjustedPan.x, adjustedPan.y);
 					break;
 				}
 				case DiffType.ModifyCompositionDimensions: {
@@ -239,7 +253,10 @@ export const manageTopLevelComposition = (
 					}
 
 					const { compositionState } = actionState;
-					const { width, height } = compositionState.compositions[compositionId];
+					const composition = compositionState.compositions[compositionId];
+					if (!composition) continue;
+
+					const { width, height } = composition;
 					background.clear();
 					background.beginFill(0x555555);
 					background.drawRect(0, 0, width, height);
@@ -247,17 +264,27 @@ export const manageTopLevelComposition = (
 				}
 				case DiffType.ResizeAreas: {
 					const areaViewport = getAreaViewport(areaId, AreaType.Workspace);
+					if (!areaViewport) continue;
+
 					app.renderer.resize(areaViewport.width, areaViewport.height);
 					const area = actionState.area.areas[areaId] as Area<AreaType.Workspace>;
-					const { pan: _pan = Vec2.ORIGIN } = area ? area.state : {};
-					const pan = _pan.add(getHalfStage());
-					compContainer.position.set(pan.x, pan.y);
-					interactionContainer.position.set(pan.x, pan.y);
+					const composition = actionState.compositionState.compositions[compositionId];
+					if (!composition) continue;
+
+					const { state = { pan: Vec2.ORIGIN } } = area || {};
+					const { pan = Vec2.ORIGIN } = state;
+					const halfComposition = Vec2.new(composition.width, composition.height).scale(0.5);
+					const initialOffset = getHalfStage().sub(halfComposition);
+					const adjustedPan = pan.add(initialOffset);
+					
+					compContainer.position.set(adjustedPan.x, adjustedPan.y);
+					interactionContainer.position.set(adjustedPan.x, adjustedPan.y);
+					break;
 				}
 			}
 		}
 
-		prevState = getActionStateFromApplicationState(store.getState());
+		prevState = getActionStateFromApplicationState(store.getState() as ApplicationState);
 	});
 
 	return () => {

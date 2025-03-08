@@ -1,7 +1,8 @@
 import { areaActions } from "~/area/state/areaActions";
+import { keys } from "~/constants";
 import { diffFactory, DiffFactoryFn } from "~/diff/diffFactory";
 import { Diff } from "~/diff/diffs";
-import { addListener as _addListener, removeListener } from "~/listener/addListener";
+import { addListener as baseAddListener, removeListener } from "~/listener/addListener";
 import { sendDiffsToSubscribers } from "~/listener/diffListener";
 import { historyActions } from "~/state/history/historyActions";
 import { getActionId, getActionState, getCurrentState } from "~/state/stateUtils";
@@ -9,6 +10,10 @@ import { store } from "~/state/store-init";
 import { Action } from "~/types";
 
 let _n = 0;
+
+type Key = keyof typeof keys;
+type MouseEventType = "mousedown" | "mouseup" | "mousemove";
+type KeyboardEventType = "keydown" | "keyup" | "keypress";
 
 export type ShouldAddToStackFn = (prevState: ActionState, nextState: ActionState) => boolean;
 
@@ -28,7 +33,12 @@ export interface RequestActionParams {
 	dispatchToAreaState: (areaId: string, action: Action) => void;
 	cancelAction: () => void;
 	submitAction: (name?: string, options?: Partial<SubmitOptions>) => void;
-	addListener: typeof _addListener;
+	addListener: {
+		once: (type: MouseEventType | KeyboardEventType, listenerFn: (e: MouseEvent | KeyboardEvent) => void) => string;
+		repeated: (type: MouseEventType | KeyboardEventType, listenerFn: (e: MouseEvent | KeyboardEvent) => void) => string;
+		keyboardOnce: (key: Key, type: KeyboardEventType, listenerFn: (e: KeyboardEvent) => void) => string;
+		keydownLong: (key: Key, listenerFn: (e: KeyboardEvent) => void) => string;
+	};
 	removeListener: typeof removeListener;
 	execOnComplete: (callback: () => void) => void;
 	done: () => boolean;
@@ -50,18 +60,38 @@ const performRequestedAction = (
 
 	const done = () => actionId !== getActionId();
 
-	const addListener = Object.keys(_addListener).reduce<typeof _addListener>((obj, key) => {
-		(obj as any)[key] = (...args: any[]) => {
-			if (done()) {
-				return;
-			}
-
-			const cancelToken = (_addListener as any)[key](...args);
+	const wrappedAddListener = {
+		once: <T extends MouseEventType | KeyboardEventType>(
+			type: T,
+			listenerFn: (e: T extends MouseEventType ? MouseEvent : KeyboardEvent) => void
+		): string => {
+			if (done()) return actionId;
+			const cancelToken = baseAddListener.once(type, listenerFn as any);
 			cancelTokens.push(cancelToken);
 			return cancelToken;
-		};
-		return obj;
-	}, {} as any);
+		},
+		repeated: <T extends MouseEventType | KeyboardEventType>(
+			type: T,
+			listenerFn: (e: T extends MouseEventType ? MouseEvent : KeyboardEvent) => void
+		): string => {
+			if (done()) return actionId;
+			const cancelToken = baseAddListener.repeated(type, listenerFn as any);
+			cancelTokens.push(cancelToken);
+			return cancelToken;
+		},
+		keyboardOnce: (key: Key, type: KeyboardEventType, listenerFn: (e: KeyboardEvent) => void): string => {
+			if (done()) return actionId;
+			const cancelToken = baseAddListener.keyboardOnce(key, type, listenerFn);
+			cancelTokens.push(cancelToken);
+			return cancelToken;
+		},
+		keydownLong: (key: Key, listenerFn: (e: KeyboardEvent) => void): string => {
+			if (done()) return actionId;
+			const cancelToken = baseAddListener.keydownLong(key, listenerFn);
+			cancelTokens.push(cancelToken);
+			return cancelToken;
+		},
+	};
 
 	let onCompleteCallback: (() => void) | null = null;
 
@@ -88,7 +118,7 @@ const performRequestedAction = (
 
 	store.dispatch(historyActions.startAction(actionId));
 
-	const escToken = addListener.keyboardOnce("Esc", "keydown", cancelAction);
+	const escToken = wrappedAddListener.keyboardOnce("Esc", "keydown", cancelAction);
 	cancelTokens.push(escToken);
 
 	const dispatch: RequestActionParams["dispatch"] = (action, ...args) => {
@@ -210,7 +240,7 @@ const performRequestedAction = (
 			onComplete();
 		},
 		cancelAction,
-		addListener,
+		addListener: wrappedAddListener,
 		removeListener,
 		execOnComplete: (cb) => {
 			onCompleteCallback = cb;

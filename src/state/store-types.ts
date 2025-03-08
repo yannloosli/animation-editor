@@ -1,4 +1,5 @@
 import { Store } from "redux";
+import { StateWithHistory } from "redux-undo";
 import { AreaReducerState } from "~/area/state/areaSlice";
 import { CompositionState } from "~/composition/compositionReducer";
 import { CompositionSelectionState } from "~/composition/compositionSelectionReducer";
@@ -11,22 +12,33 @@ import { ShapeSelectionState } from "~/shape/shapeSelectionReducer";
 import { TimelineState } from "~/timeline/timelineReducer";
 import { TimelineSelectionState } from "~/timeline/timelineSelectionReducer";
 import { ToolState } from "~/toolbar/toolSlice";
+import { WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 import { ActionBasedState } from "./history/actionBasedReducer";
-import { HistoryState } from "./history/historyReducer";
+
+// Type pour les actions de base de redux-undo
+export interface UndoableAction {
+  type: string;
+}
+
+// Type pour les actions avec payload
+export interface PayloadAction<T = any> extends UndoableAction {
+  payload: T;
+}
 
 export type ApplicationState = {
     area: ActionBasedState<AreaReducerState>;
-    compositionState: HistoryState<CompositionState>;
-    compositionSelectionState: HistoryState<CompositionSelectionState>;
-    flowState: HistoryState<FlowState>;
-    flowSelectionState: HistoryState<FlowSelectionState>;
+    compositionState: StateWithHistory<CompositionState>;
+    compositionSelectionState: StateWithHistory<CompositionSelectionState>;
+    flowState: StateWithHistory<FlowState>;
+    flowSelectionState: StateWithHistory<FlowSelectionState>;
     contextMenu: ActionBasedState<ContextMenuState>;
-    project: HistoryState<ProjectState>;
-    shapeState: HistoryState<ShapeState>;
-    shapeSelectionState: HistoryState<ShapeSelectionState>;
-    timelineState: HistoryState<TimelineState>;
-    timelineSelectionState: HistoryState<TimelineSelectionState>;
+    project: StateWithHistory<ProjectState>;
+    shapeState: StateWithHistory<ShapeState>;
+    shapeSelectionState: StateWithHistory<ShapeSelectionState>;
+    timelineState: StateWithHistory<TimelineState>;
+    timelineSelectionState: StateWithHistory<TimelineSelectionState>;
     tool: ActionBasedState<ToolState>;
+    workspace: ActionBasedState<WorkspaceAreaState>;
 };
 
 export type ActionState = {
@@ -42,6 +54,7 @@ export type ActionState = {
     timelineState: TimelineState;
     timelineSelectionState: TimelineSelectionState;
     tool: ToolState;
+    workspace: WorkspaceAreaState;
 };
 
 export type StoreType = Store<ApplicationState>; 

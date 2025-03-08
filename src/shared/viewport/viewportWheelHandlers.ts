@@ -6,8 +6,9 @@ import { requestAction } from "~/listener/requestAction";
 import { getAreaActionState } from "~/state/stateUtils";
 import { Action } from "~/types";
 import { capToRange, interpolate } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 import { parseWheelEvent } from "~/util/wheelEvent";
-import { WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
+import { SerializableVec2, WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 
 type PossibleAreaTypes = AreaType.FlowEditor | AreaType.Workspace;
 
@@ -16,42 +17,59 @@ interface Actions {
 	setScale: (scale: number) => Action;
 }
 
+// Fonction utilitaire pour convertir SerializableVec2 en Vec2
+const toVec2 = (v: SerializableVec2): Vec2 => Vec2.new(v.x, v.y);
+
 export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 	areaType: T,
 	actions: Actions,
 ) => {
 	const handlers = {
 		onPanStart: (areaId: string, e: React.MouseEvent) => {
-			const areaState = getAreaActionState<T>(areaId);
-			const initialPos = Vec2.fromEvent(e);
+			e.stopPropagation();
 
-			requestAction({}, (params) => {
-				params.addListener.repeated("mousemove", (e) => {
-					const pos = Vec2.fromEvent(e);
-					const diff = pos.sub(initialPos);
-					const action = actions.setPan(areaState.pan.add(diff));
-					if ((<WorkspaceAreaState>areaState).compositionId) {
-						const { compositionId, scale } = areaState as WorkspaceAreaState;
-						params.performDiff((diff) => diff.compositionView(compositionId, scale));
+			const initialPos = Vec2.fromEvent(e.nativeEvent);
+
+			requestAction({ history: true }, (params) => {
+				const handleMouseMove = (e: MouseEvent | KeyboardEvent) => {
+					if (e instanceof MouseEvent) {
+						const areaState = getAreaActionState<T>(areaId);
+						if (!areaState || !areaState.pan) return;
+
+						const pos = Vec2.fromEvent(e);
+						const diff = pos.sub(initialPos);
+						const action = actions.setPan(toVec2(areaState.pan).add(diff));
+						if ((<WorkspaceAreaState>areaState).compositionId) {
+							const { compositionId, scale } = areaState as WorkspaceAreaState;
+							params.performDiff((diff) => diff.compositionView(compositionId, scale));
+						}
+						params.dispatchToAreaState(areaId, action);
 					}
-					params.dispatchToAreaState(areaId, action);
-				});
+				};
 
-				params.addListener.once("mouseup", () => {
+				const handleMouseUp = () => {
+					const areaState = getAreaActionState<T>(areaId);
+					if (!areaState) return;
+
 					if ((<WorkspaceAreaState>areaState).compositionId) {
 						const { compositionId, scale } = areaState as WorkspaceAreaState;
 						params.addDiff((diff) => diff.compositionView(compositionId, scale));
 					}
 					params.submitAction("Pan");
-				});
+				};
+
+				params.addListener.repeated("mousemove", handleMouseMove);
+				params.addListener.once("mouseup", handleMouseUp);
 			});
 		},
 
 		onZoomClick: (e: React.MouseEvent, areaId: string) => {
 			e.stopPropagation();
 
-			const mousePos = Vec2.fromEvent(e);
+			const mousePos = Vec2.fromEvent(e.nativeEvent);
 			const areaState = getAreaActionState<T>(areaId);
+			
+			if (!areaState || !areaState.pan || !areaState.scale) return;
 
 			if (
 				(areaState.scale < 0.0625 && isKeyDown("Alt")) ||
@@ -60,8 +78,10 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 				return;
 			}
 
-			requestAction({}, (params) => {
+			requestAction({ history: true }, (params) => {
 				const viewport = getAreaViewport(areaId, areaType);
+				if (!viewport) return;
+
 				const fac = isKeyDown("Alt") ? 0.5 : 2;
 
 				const pos = mousePos
@@ -78,7 +98,7 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 				);
 
 				const nextScale = areaState.scale * fac;
-				const panAction = actions.setPan(areaState.pan.sub(diff));
+				const panAction = actions.setPan(toVec2(areaState.pan).sub(diff));
 				const scaleAction = actions.setScale(areaState.scale * fac);
 
 				params.dispatch(
@@ -100,6 +120,8 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 			const areaState = getAreaActionState<T>(areaId);
 			const viewport = getAreaViewport(areaId, areaType);
 
+			if (!areaState || !areaState.pan || !areaState.scale || !viewport) return;
+
 			const fac = interpolate(1, -deltaY < 0 ? 0.85 : 1.15, capToRange(0, 2, impact));
 
 			requestAction({ history: false }, (params) => {
@@ -116,7 +138,7 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 
 				const diff = Vec2.new(xDiff, yDiff);
 
-				const panAction = actions.setPan(areaState.pan.sub(diff));
+				const panAction = actions.setPan(toVec2(areaState.pan).sub(diff));
 				const scaleAction = actions.setScale(areaState.scale * fac);
 
 				params.dispatch(
@@ -133,9 +155,11 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 
 		onWheelPan: (deltaX: number, deltaY: number, areaId: string) => {
 			const areaState = getAreaActionState<T>(areaId);
+			
+			if (!areaState || !areaState.pan) return;
 
 			requestAction({ history: false }, (params) => {
-				const pan = areaState.pan.add(Vec2.new(-deltaX, -deltaY));
+				const pan = toVec2(areaState.pan).add(Vec2.new(-deltaX, -deltaY));
 				const panAction = actions.setPan(pan);
 
 				params.dispatch(areaActions.dispatchToAreaState(areaId, panAction));

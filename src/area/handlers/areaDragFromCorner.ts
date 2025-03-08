@@ -11,7 +11,7 @@ import { computeAreaToParentRow } from '~/area/util/areaToParentRow';
 import { computeAreaToViewport } from '~/area/util/areaToViewport';
 import { AREA_MIN_CONTENT_WIDTH } from '~/constants';
 import { isKeyDown } from '~/listener/keyboard';
-import { storeRTK } from '~/state/store-init';
+import { store } from '~/state/store-init';
 import { CardinalDirection, IntercardinalDirection } from '~/types';
 import { AreaRowLayout } from '~/types/areaTypes';
 import { capToRange, interpolate } from "~/util/math";
@@ -89,7 +89,7 @@ export const handleAreaDragFromCorner = (
 	let pendingJoinAction: (() => void) | null = null;
 
 	try {
-		const areaState = storeRTK.getState().area.state;
+		const areaState = store.getState().area.state;
 
 		if (!areaState || !areaState.layout) {
 			console.error('Invalid area state:', areaState);
@@ -107,7 +107,7 @@ export const handleAreaDragFromCorner = (
 		const row = areaState.layout[areaToRow[areaId]] as AreaRowLayout | null;
 
 		const createNewArea = (horizontal: boolean) => {
-			const state = storeRTK.getState().area.state;
+			const state = store.getState().area.state;
 			
 			const getT = (vec: Vec2): number => {
 				const viewportSize = horizontal ? viewport.width : viewport.height;
@@ -135,7 +135,7 @@ export const handleAreaDragFromCorner = (
 			//          mouse was moved in to trigger the creation of the area.
 			//
 			if (!row || row.orientation !== (horizontal ? "horizontal" : "vertical")) {
-				storeRTK.dispatch(convertAreaToRow({ 
+				store.dispatch(convertAreaToRow({ 
 					areaId, 
 					cornerParts: directionParts, 
 					horizontal
@@ -143,7 +143,7 @@ export const handleAreaDragFromCorner = (
 
 				const newMoveFn: MoveFn = (vec: Vec2) => {
 					const t = getT(vec);
-					storeRTK.dispatch(setRowSizes({
+					store.dispatch(setRowSizes({
 						rowId: areaId,
 						sizes: [t, 1 - t]
 					}));
@@ -166,7 +166,7 @@ export const handleAreaDragFromCorner = (
 
 			const sizeToShare = row.areas[areaIndex].size;
 
-			storeRTK.dispatch(insertAreaIntoRow({
+			store.dispatch(insertAreaIntoRow({
 				rowId: row.id,
 				area: { ...state.areas[areaId] },
 				insertIndex
@@ -180,7 +180,7 @@ export const handleAreaDragFromCorner = (
 				rowAreas[areaIndex] = sizes[0];
 				rowAreas[areaIndex + 1] = sizes[1];
 				
-				storeRTK.dispatch(setRowSizes({
+				store.dispatch(setRowSizes({
 					rowId: row.id,
 					sizes: rowAreas
 				}));
@@ -236,14 +236,14 @@ export const handleAreaDragFromCorner = (
 
 							const targetAreaId = row.areas[targetIndex]?.id;
 							if (targetAreaId) {
-								storeRTK.dispatch(setJoinAreasPreview({
+								store.dispatch(setJoinAreasPreview({
 									areaId: targetAreaId,
 									from: arrowDirection,
 									eligibleAreaIds: getEligibleAreaIds(eligibleAreaIndices)
 								}));
 
 								pendingJoinAction = () => {
-									storeRTK.dispatch(joinAreasAction({
+									store.dispatch(joinAreasAction({
 										areaRowId: row.id,
 										areaIndex: Math.min(areaIndex, targetIndex),
 										mergeInto: targetIndex > areaIndex ? 1 : -1
@@ -290,14 +290,14 @@ export const handleAreaDragFromCorner = (
 
 							const targetAreaId = row.areas[targetIndex]?.id;
 							if (targetAreaId) {
-								storeRTK.dispatch(setJoinAreasPreview({
+								store.dispatch(setJoinAreasPreview({
 									areaId: targetAreaId,
 									from: arrowDirection,
 									eligibleAreaIds: getEligibleAreaIds(eligibleAreaIndices)
 								}));
 
 								pendingJoinAction = () => {
-									storeRTK.dispatch(joinAreasAction({
+									store.dispatch(joinAreasAction({
 										areaRowId: row.id,
 										areaIndex: Math.min(areaIndex, targetIndex),
 										mergeInto: targetIndex > areaIndex ? 1 : -1
@@ -331,7 +331,7 @@ export const handleAreaDragFromCorner = (
 
 			// Effacer l'aperçu de fusion si Alt n'est pas enfoncé
 			if (!isAltDown) {
-				storeRTK.dispatch(setJoinAreasPreview({
+				store.dispatch(setJoinAreasPreview({
 					areaId: null,
 					from: null,
 					eligibleAreaIds: []
@@ -356,7 +356,7 @@ export const handleAreaDragFromCorner = (
 			}
 
 			// Nettoyer l'aperçu de fusion
-			storeRTK.dispatch(setJoinAreasPreview({
+			store.dispatch(setJoinAreasPreview({
 				areaId: null,
 				from: null,
 				eligibleAreaIds: []
@@ -377,7 +377,7 @@ export const handleAreaDragFromCorner = (
 	} catch (error) {
 		console.error("Error in handleAreaDragFromCorner:", error);
 		// En cas d'erreur, s'assurer que tout est nettoyé
-		storeRTK.dispatch(setJoinAreasPreview({
+		store.dispatch(setJoinAreasPreview({
 			areaId: null,
 			from: null,
 			eligibleAreaIds: []

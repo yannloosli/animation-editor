@@ -5,12 +5,11 @@ import styles from "~/area/components/Area.styles";
 import { AreaErrorBoundary } from "~/area/components/AreaErrorBoundary";
 import { useAreaKeyboardShortcuts } from "~/area/components/useAreaKeyboardShortcuts";
 import { handleAreaDragFromCorner } from "~/area/handlers/areaDragFromCorner";
-import { setAreaType } from "~/area/state/areaSlice";
 import { AreaIdContext } from "~/area/util/AreaIdContext";
 import { EditIcon } from "~/components/icons/EditIcon";
 import { PenIcon } from "~/components/icons/PenIcon";
 import { AREA_BORDER_WIDTH, AreaType } from "~/constants";
-import { closeContextMenu, openContextMenu } from "~/contextMenu/contextMenuSlice";
+import { openContextMenu } from "~/contextMenu/contextMenuSlice";
 import { isKeyDown } from "~/listener/keyboard";
 import { connectActionState, MapActionState } from "~/state/stateUtils";
 import { CardinalDirection, IntercardinalDirection } from "~/types";
@@ -120,14 +119,38 @@ export const AreaComponent: React.FC<Props> = (props) => {
 		dispatch(openContextMenu({
 			name: "Area type",
 			options: areaTypeOptions.map((option) => ({
-				id: option.type,
+				id: `area_type_${option.type}`,
 				label: option.label,
-				onSelect: () => {
-					dispatch(setAreaType({ areaId: id, type: option.type }));
-					dispatch(closeContextMenu());
-				},
+				iconName: option.type === AreaType.FlowEditor ? 'edit' : 'pen',
 			})),
-			position: pos,
+			position: { x: pos.x, y: pos.y },
+			customContextMenu: { id }
+		}));
+	};
+
+	const handleContextMenu = (e: React.MouseEvent) => {
+		e.preventDefault();
+		const pos = Vec2.new(e.clientX, e.clientY);
+		dispatch(openContextMenu({
+			name: "Area Actions",
+			options: [
+				{
+					id: "area_copy",
+					label: "Copy",
+					iconName: "edit"
+				},
+				{
+					id: "area_paste",
+					label: "Paste",
+					iconName: "edit"
+				},
+				{
+					id: "area_delete",
+					label: "Delete",
+					iconName: "edit"
+				}
+			],
+			position: { x: pos.x, y: pos.y }
 		}));
 	};
 
@@ -138,6 +161,7 @@ export const AreaComponent: React.FC<Props> = (props) => {
 				style={viewport}
 				data-area-id={id}
 				data-area-type={type}
+				onContextMenu={handleContextMenu}
 			>
 				<div className={s("area__content")}>
 					<AreaErrorBoundary

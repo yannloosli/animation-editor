@@ -33,15 +33,8 @@ export const initialState: AreaReducerState = {
 	},
 	areas: {
 		"0": {
-			type: AreaType.Workspace as const,
-			state: {
-				compositionId: "default",
-				width: 800,
-				height: 600,
-				frameIndex: 0,
-				length: 100,
-				name: "Default Composition"
-			}
+			type: AreaType.Project as const,
+			state: {}
 		}
 	},
 	areaToOpen: null

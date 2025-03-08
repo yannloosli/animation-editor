@@ -13,10 +13,33 @@ export interface TimelineState {
 
 export const initialTimelineState: TimelineState = {};
 
-export function timelineReducer(state: TimelineState, action: Action): TimelineState {
+export const timelineReducer = (
+	state = initialTimelineState,
+	action?: Action | { type: string },
+): TimelineState => {
+	// Vérifier si l'action est définie
+	if (!action) {
+		return state;
+	}
+
+	// Gérer les actions redux-undo et autres actions sans payload
+	if (!('payload' in action)) {
+		return state;
+	}
+
+	// Vérifier que le timelineId est présent dans le payload
+	if (!action.payload || !action.payload.timelineId) {
+		console.warn('Timeline action missing timelineId:', action);
+		return state;
+	}
+
 	switch (action.type) {
-		case getType(timelineActions.setTimeline): {
+		case getType(timelineActions.addTimeline): {
 			const { timeline, timelineId } = action.payload;
+			if (!timeline) {
+				console.warn('addTimeline action missing timeline:', action);
+				return state;
+			}
 			return {
 				...state,
 				[timelineId]: timeline,
@@ -25,18 +48,36 @@ export function timelineReducer(state: TimelineState, action: Action): TimelineS
 
 		case getType(timelineActions.removeTimeline): {
 			const { timelineId } = action.payload;
-			return Object.keys(state).reduce<TimelineState>((obj, key) => {
-				if (key !== timelineId) {
-					obj[key] = state[key];
-				}
-				return obj;
-			}, {});
+			const newState = { ...state };
+			delete newState[timelineId];
+			return newState;
+		}
+
+		case getType(timelineActions.setTimeline): {
+			const { timeline, timelineId } = action.payload;
+			if (!timeline) {
+				console.warn('setTimeline action missing timeline:', action);
+				return state;
+			}
+			return {
+				...state,
+				[timelineId]: timeline,
+			};
 		}
 
 		case getType(timelineActions.setKeyframe): {
 			const { keyframe, timelineId } = action.payload;
+			if (!keyframe) {
+				console.warn('setKeyframe action missing keyframe:', action);
+				return state;
+			}
 
 			const timeline = state[timelineId];
+			if (!timeline) {
+				console.warn('Timeline not found:', timelineId);
+				return state;
+			}
+
 			const keyframes = [...timeline.keyframes];
 			const keyframeIds = keyframes.map((k) => k.id);
 
@@ -211,4 +252,4 @@ export function timelineReducer(state: TimelineState, action: Action): TimelineS
 		default:
 			return state;
 	}
-}
+};

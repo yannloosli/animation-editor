@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Dispatch } from "redux";
 import { CONTEXT_MENU_OPTION_HEIGHT, DEFAULT_CONTEXT_MENU_WIDTH } from "~/constants";
+import { ContextMenuIcon } from "~/contextMenu/ContextMenuIcon";
 import { ContextMenuState, SerializableContextMenuOption, closeContextMenu, handleContextMenuOptionSelect } from "~/contextMenu/contextMenuSlice";
 import styles from "~/contextMenu/normal/NormalContextMenu.styles";
 import { connectActionState } from "~/state/stateUtils";
@@ -161,8 +162,6 @@ const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) 
 						)}
 
 						{options.map((option, j) => {
-							const Icon = option.icon;
-
 							if (option.options) {
 								const active = stack[i + 1]?.fromIndex === j;
 								const eligible = active || i === stack.length - 1;
@@ -176,11 +175,9 @@ const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) 
 										onMouseOver={() => onListMouseOver(option.options!, i, j)}
 										onMouseOut={() => onListMouseOut(i)}
 									>
-										{Icon && (
-											<i className={s("option__icon")}>
-												<Icon />
-											</i>
-										)}
+										<i className={s("option__icon")}>
+											<ContextMenuIcon iconName={option.iconName} />
+										</i>
 										<div className={s("option__label")}>{option.label}</div>
 										{<div className={s("option__arrowRight")} />}
 									</div>
@@ -193,11 +190,9 @@ const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) 
 									key={j}
 									onClick={() => dispatch(handleContextMenuOptionSelect({ optionId: option.id }))}
 								>
-									{Icon && (
-										<i className={s("option__icon")}>
-											<Icon />
-										</i>
-									)}
+									<i className={s("option__icon")}>
+										<ContextMenuIcon iconName={option.iconName} />
+									</i>
 									<div className={s("option__label")}>{option.label}</div>
 								</button>
 							);

@@ -176,10 +176,42 @@ Ces états sont les plus simples car ils n'utilisent pas le système d'historiqu
 
 ```typescript
 // Ordre de migration recommandé :
-1. ToolState       // État des outils de l'éditeur
-2. ContextMenuState // État des menus contextuels
-3. AreaReducerState // État des zones de l'interface
+1. ToolState  (FAIT)     // État des outils de l'éditeur
+2. ContextMenuState (FAIT) // État des menus contextuels
+3. AreaReducerState (FAIT) // État des zones de l'interface
 ```
+
+### 1.5. Phase Intermédiaire - WorkspaceState (ActionBasedState)
+
+Le WorkspaceState est un état fondamental qui gère la vue et l'interaction avec l'espace de travail :
+
+```typescript
+// État actuel
+export interface WorkspaceAreaState {
+    compositionId: string;
+    pan: Vec2;
+    scale: number;
+    selectionRect: Rect | null;
+}
+
+// Migration recommandée :
+const workspaceSlice = createSlice({
+    name: 'workspace',
+    initialState: initialCompositionWorkspaceAreaState,
+    reducers: {
+        setFields: (state, action: PayloadAction<Partial<WorkspaceAreaState>>) => {
+            return { ...state, ...action.payload };
+        },
+        // Autres reducers spécifiques au workspace
+    }
+});
+```
+
+Cette phase est cruciale car :
+1. Le WorkspaceState est un composant central de l'interface utilisateur
+2. Il interagit avec les outils et la sélection
+3. Il est essentiel pour la manipulation des compositions
+4. Il doit être migré avant les états de sélection qui en dépendent
 
 ### 2. Deuxième Phase - États de Sélection (HistoryState)
 

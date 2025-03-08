@@ -17,7 +17,15 @@ export const initialFlowAreaState: FlowAreaState = {
 	dragPreview: null,
 };
 
-export const flowAreaReducer = (state = initialFlowAreaState, action: Action): FlowAreaState => {
+export const flowAreaReducer = (
+	state = initialFlowAreaState,
+	action: Action | { type: string },
+): FlowAreaState => {
+	// Gérer les actions redux-undo et autres actions sans payload
+	if (!('payload' in action)) {
+		return state;
+	}
+
 	switch (action.type) {
 		case getType(flowAreaActions.setFields): {
 			const { fields } = action.payload;

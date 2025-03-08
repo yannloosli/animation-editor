@@ -18,6 +18,11 @@ const toolSlice = createSlice({
     initialState,
     reducers: {
         setTool: (state, action: PayloadAction<{ tool: Tool }>) => {
+            if (!action.payload || !action.payload.tool) {
+                console.warn('setTool action missing tool:', action);
+                return state;
+            }
+
             const { tool } = action.payload;
             let toolGroupIndex = -1;
 
@@ -35,6 +40,10 @@ const toolSlice = createSlice({
             state.openGroupIndex = -1;
         },
         setOpenGroupIndex: (state, action: PayloadAction<{ index: number }>) => {
+            if (!action.payload || typeof action.payload.index !== 'number') {
+                console.warn('setOpenGroupIndex action missing index:', action);
+                return state;
+            }
             state.openGroupIndex = action.payload.index;
         },
     },

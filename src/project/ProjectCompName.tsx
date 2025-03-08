@@ -1,9 +1,11 @@
 import React, { useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { compositionActions } from "~/composition/compositionReducer";
 import { cssVariables } from "~/cssVariables";
 import { isKeyCodeOf } from "~/listener/keyboard";
 import { requestAction, RequestActionParams } from "~/listener/requestAction";
-import { connectActionState } from "~/state/stateUtils";
+import { ProjectState } from "~/project/projectReducer";
+import { RootState } from "~/state/store-init";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(({ css }) => ({
@@ -61,18 +63,18 @@ const s = compileStylesheetLabelled(({ css }) => ({
 	`,
 }));
 
-interface OwnProps {
+interface Props {
 	compositionId: string;
 }
-interface StateProps {
-	name: string;
-}
-type Props = OwnProps & StateProps;
 
-const ProjectCompLayerNameComponent: React.FC<Props> = (props) => {
-	const { compositionId, name } = props;
+export const ProjectCompLayerName: React.FC<Props> = ({ compositionId }) => {
+	const name = useSelector((state: RootState) => {
+		const project = state.project.present as ProjectState;
+		const composition = project.compositions[compositionId];
+		return composition?.name || "Composition";
+	});
+
 	const inputRef = useRef<HTMLInputElement>(null);
-
 	const [renaming, setRenaming] = useState(false);
 	const paramsRef = useRef<RequestActionParams | null>(null);
 
@@ -142,13 +144,3 @@ const ProjectCompLayerNameComponent: React.FC<Props> = (props) => {
 		</div>
 	);
 };
-
-const mapState: MapActionState<StateProps, OwnProps> = (
-	{ compositionState: { compositions } },
-	{ compositionId },
-) => {
-	const { name = "Composition" } = compositions[compositionId];
-	return { name };
-};
-
-export const ProjectCompLayerName = connectActionState(mapState)(ProjectCompLayerNameComponent);

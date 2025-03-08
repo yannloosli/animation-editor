@@ -38,6 +38,17 @@ const _emptySelection: FlowGraphSelection = { nodes: {} };
 
 export const initialFlowSelectionState: FlowSelectionState = {};
 
+// Créer un état initial compatible avec redux-undo
+export const createInitialUndoableState = () => ({
+	past: [],
+	present: initialFlowSelectionState,
+	future: [],
+	_latestUnfiltered: initialFlowSelectionState,
+	group: null,
+	index: 0,
+	limit: 50
+});
+
 function singleFlowGraphSelectionReducer(
 	state: FlowGraphSelection,
 	action: Action,
@@ -98,13 +109,27 @@ function singleFlowGraphSelectionReducer(
 
 export const flowSelectionReducer = (
 	state = initialFlowSelectionState,
-	action: Action,
+	action: Action | { type: string },
 ): FlowSelectionState => {
+	// Gérer les actions sans payload
+	if (!('payload' in action) || !action.payload) {
+		return state;
+	}
+
+	// Vérifier que graphId existe dans le payload
+	if (!('graphId' in action.payload)) {
+		return state;
+	}
+
 	const { graphId } = action.payload;
+	if (!graphId) {
+		return state;
+	}
+
 	const selection = state[graphId] || _emptySelection;
 
 	return {
 		...state,
-		[graphId]: singleFlowGraphSelectionReducer(selection, action),
+		[graphId]: singleFlowGraphSelectionReducer(selection, action as Action),
 	};
 };

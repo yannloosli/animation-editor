@@ -1,52 +1,43 @@
 import { connect, DispatchProp, InferableComponentEnhancerWithProps } from "react-redux";
 import { AreaType } from "~/constants";
 import { initialProjectState } from "~/project/projectReducer";
-import { HistoryState } from "~/state/history/historyReducer";
-import { storeRTK } from "~/state/store-init";
+import { store } from "~/state/store-init";
 import { ActionState, ApplicationState } from "~/state/store-types";
 import { AreaState } from "~/types/areaTypes";
 
 const getCurrentStateFromApplicationState = (state: ApplicationState): ActionState => {
 	return {
 		area: state.area.state,
-		compositionState: state.compositionState.list[state.compositionState.index].state,
-		compositionSelectionState: state.compositionSelectionState.list[state.compositionSelectionState.index].state,
-		flowState: state.flowState.list[state.flowState.index].state,
-		flowSelectionState: state.flowSelectionState.list[state.flowSelectionState.index].state,
+		compositionState: state.compositionState.present,
+		compositionSelectionState: state.compositionSelectionState.present,
+		flowState: state.flowState.present,
+		flowSelectionState: state.flowSelectionState.present,
 		contextMenu: state.contextMenu.state,
-		project: state.project.list[state.project.index].state,
-		shapeState: state.shapeState.list[state.shapeState.index].state,
-		shapeSelectionState: state.shapeSelectionState.list[state.shapeSelectionState.index].state,
-		timelineState: state.timelineState.list[state.timelineState.index].state,
-		timelineSelectionState: state.timelineSelectionState.list[state.timelineSelectionState.index].state,
-		tool: state.tool.state
+		project: state.project.present,
+		shapeState: state.shapeState.present,
+		shapeSelectionState: state.shapeSelectionState.present,
+		timelineState: state.timelineState.present,
+		timelineSelectionState: state.timelineSelectionState.present,
+		tool: state.tool.state,
+		workspace: state.workspace.state
 	};
 };
 
 export const getActionStateFromApplicationState = (state: ApplicationState): ActionState => {
-	const getHistoryState = <T>(historyState: HistoryState<T>): T => {
-		const shiftForward =
-			historyState.type === "selection" &&
-			historyState.indexDirection === -1 &&
-			historyState.list[historyState.index + 1]?.modifiedRelated &&
-			historyState.list[historyState.index + 1]?.allowIndexShift;
-
-		return historyState.list[historyState.index + (shiftForward ? 1 : 0)]?.state || {} as T;
-	};
-
 	return {
 		area: state.area.state,
-		compositionState: getHistoryState(state.compositionState),
-		compositionSelectionState: getHistoryState(state.compositionSelectionState),
-		flowState: getHistoryState(state.flowState),
-		flowSelectionState: getHistoryState(state.flowSelectionState),
+		compositionState: state.compositionState.present,
+		compositionSelectionState: state.compositionSelectionState.present,
+		flowState: state.flowState.present,
+		flowSelectionState: state.flowSelectionState.present,
 		contextMenu: state.contextMenu.state,
-		project: getHistoryState(state.project) || initialProjectState,
-		shapeState: getHistoryState(state.shapeState),
-		shapeSelectionState: getHistoryState(state.shapeSelectionState),
-		timelineState: getHistoryState(state.timelineState),
-		timelineSelectionState: getHistoryState(state.timelineSelectionState),
-		tool: state.tool.state
+		project: state.project.present || initialProjectState,
+		shapeState: state.shapeState.present,
+		shapeSelectionState: state.shapeSelectionState.present,
+		timelineState: state.timelineState.present,
+		timelineSelectionState: state.timelineSelectionState.present,
+		tool: state.tool.state,
+		workspace: state.workspace.state
 	};
 };
 
@@ -81,8 +72,8 @@ export function connectActionState<TStateProps = {}, TOwnProps = {}>(
 	);
 }
 
-export const getActionState = () => getActionStateFromApplicationState(storeRTK.getState());
-export const getCurrentState = () => getCurrentStateFromApplicationState(storeRTK.getState());
+export const getActionState = () => getActionStateFromApplicationState(store.getState() as ApplicationState);
+export const getCurrentState = () => getCurrentStateFromApplicationState(store.getState() as ApplicationState);
 
 export const areaActionStateFromState = <T extends AreaType>(
 	areaId: string,
@@ -96,8 +87,8 @@ export const getAreaActionState = <T extends AreaType>(areaId: string): AreaStat
 	return areaActionStateFromState<T>(areaId, actionState);
 };
 
-export const getActionId = () => storeRTK.getState().area.action?.id || null;
-export const getIsActionInProgress = () => !!(storeRTK.getState().area.action?.id || null);
+export const getActionId = () => store.getState().area.action?.id || null;
+export const getIsActionInProgress = () => !!(store.getState().area.action?.id || null);
 
-(window as any).getState = () => storeRTK.getState();
+(window as any).getState = () => store.getState();
 (window as any).getActionState = () => getActionState();

@@ -1,4 +1,4 @@
-import { storeRTK } from "~/state/store-init";
+import { store } from "~/state/store-init";
 import { Vec2 } from "~/util/math/vec2";
 import { registerContextMenuHandler } from "./contextMenuMiddleware";
 import { ContextMenuOption } from "./contextMenuReducer";
@@ -25,7 +25,7 @@ const createSerializableOption = (option: ContextMenuOption): SerializableContex
 export const contextMenuActions = {
 	openContextMenu: (name: string, options: ContextMenuOption[], position: Vec2) => {
 		const serializableOptions = options.map(createSerializableOption);
-		storeRTK.dispatch(rtkOpenContextMenu({ 
+		store.dispatch(rtkOpenContextMenu({ 
 			name, 
 			options: serializableOptions, 
 			position: { x: position.x, y: position.y }
@@ -33,7 +33,7 @@ export const contextMenuActions = {
 	},
 
 	openCustomContextMenu: (options: OpenCustomContextMenuOptions<any>) => {
-		storeRTK.dispatch(rtkOpenContextMenu({ 
+		store.dispatch(rtkOpenContextMenu({ 
 			name: "", 
 			options: [], 
 			position: { x: 0, y: 0 }
@@ -41,11 +41,11 @@ export const contextMenuActions = {
 	},
 
 	closeContextMenu: () => {
-		storeRTK.dispatch(rtkCloseContextMenu());
+		store.dispatch(rtkCloseContextMenu());
 	},
 
 	handleContextMenuOptionSelect: (payload: { optionId: string }) => {
-		storeRTK.dispatch({
+		store.dispatch({
 			type: "contextMenu/handleContextMenuOptionSelect",
 			payload
 		});
@@ -53,7 +53,7 @@ export const contextMenuActions = {
 };
 
 // Type pour le dispatch Redux
-type AppDispatch = typeof storeRTK.dispatch;
+type AppDispatch = typeof store.dispatch;
 
 export const createContextMenuActions = (dispatch: AppDispatch) => ({
 	openContextMenu: (name: string, options: ContextMenuOption[], position: Vec2) => {

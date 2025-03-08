@@ -1,8 +1,9 @@
-import { ActionType, createAction, getType } from "typesafe-actions";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Composition } from "~/composition/compositionTypes";
+import { Vec2 } from "~/util/math/vec2";
 
 export interface ProjectState {
-	compositions: string[];
+	compositions: { [compositionId: string]: Composition };
 	dragComp: null | {
 		compositionId: string;
 		position: Vec2;
@@ -14,63 +15,32 @@ export interface ProjectState {
 }
 
 export const initialProjectState: ProjectState = {
-	compositions: [],
+	compositions: {},
 	dragComp: null,
 	playback: null,
 };
 
-export const projectActions = {
-	addComposition: createAction("project/SET_COMP", (action) => {
-		return (composition: Composition) => action({ composition });
-	}),
-
-	removeComposition: createAction("project/REMOVE_COMP", (action) => {
-		return (compositionId: string) => action({ compositionId });
-	}),
-
-	setDragComposition: createAction("project/SET_DRAG_COMP", (action) => {
-		return (compositionId: string, position: Vec2) => action({ compositionId, position });
-	}),
-
-	clearDragComposition: createAction("project/CLEAR_DRAG_COMP", (action) => {
-		return () => action({});
-	}),
-};
-
-type Action = ActionType<typeof projectActions>;
-
-export const projectReducer = (state = initialProjectState, action: Action): ProjectState => {
-	switch (action.type) {
-		case getType(projectActions.addComposition): {
+const projectSlice = createSlice({
+	name: 'project',
+	initialState: initialProjectState,
+	reducers: {
+		addComposition: (state, action: PayloadAction<{ composition: Composition }>) => {
 			const { composition } = action.payload;
-			return {
-				...state,
-				compositions: [...state.compositions, composition.id],
-			};
-		}
-
-		case getType(projectActions.setDragComposition): {
-			const { compositionId, position } = action.payload;
-			return {
-				...state,
-				dragComp: { compositionId, position },
-			};
-		}
-
-		case getType(projectActions.removeComposition): {
+			state.compositions[composition.id] = composition;
+		},
+		removeComposition: (state, action: PayloadAction<{ compositionId: string }>) => {
 			const { compositionId } = action.payload;
-
-			return {
-				...state,
-				compositions: state.compositions.filter((c) => c !== compositionId),
-			};
+			delete state.compositions[compositionId];
+		},
+		setDragComposition: (state, action: PayloadAction<{ compositionId: string; position: Vec2 }>) => {
+			const { compositionId, position } = action.payload;
+			state.dragComp = { compositionId, position };
+		},
+		clearDragComposition: (state) => {
+			state.dragComp = null;
 		}
-
-		case getType(projectActions.clearDragComposition): {
-			return { ...state, dragComp: null };
-		}
-
-		default:
-			return state;
 	}
-};
+});
+
+export const projectActions = projectSlice.actions;
+export const projectReducer = projectSlice.reducer;

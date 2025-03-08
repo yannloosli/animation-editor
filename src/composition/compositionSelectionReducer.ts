@@ -130,13 +130,18 @@ const singleCompositionSelectionReducer = (
 
 export const compositionSelectionReducer = (
 	state = initialCompositionSelectionState,
-	action: Action,
+	action: Action | { type: string },
 ): CompositionSelectionState => {
+	// Gérer les actions redux-undo et autres actions sans payload
+	if (!('payload' in action) || !action.payload?.compositionId) {
+		return state;
+	}
+
 	const compositionId = action.payload.compositionId;
 	const selection = state[compositionId] || createNewCompSelection();
 
 	return {
 		...state,
-		[compositionId]: singleCompositionSelectionReducer(selection, action),
+		[compositionId]: singleCompositionSelectionReducer(selection, action as Action),
 	};
 };

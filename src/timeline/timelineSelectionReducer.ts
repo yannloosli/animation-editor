@@ -1,7 +1,6 @@
 import { ActionType, getType } from "typesafe-actions";
 import { timelineSelectionActions } from "~/timeline/timelineActions";
 import { KeySelectionMap } from "~/types";
-import { removeKeysFromMap } from "~/util/mapUtils";
 
 type Action = ActionType<typeof timelineSelectionActions>;
 
@@ -15,79 +14,68 @@ export type TimelineSelectionState = Partial<{
 
 export const initialTimelineSelectionState: TimelineSelectionState = {};
 
-export function timelineSelectionReducer(
-	state: TimelineSelectionState,
-	action: Action,
-): TimelineSelectionState {
+export const timelineSelectionReducer = (
+	state = initialTimelineSelectionState,
+	action: Action | { type: string },
+): TimelineSelectionState => {
+	// Gérer les actions redux-undo et autres actions sans payload
+	if (!('payload' in action)) {
+		return state;
+	}
+
 	switch (action.type) {
-		case getType(timelineSelectionActions.clear): {
+		case getType(timelineSelectionActions.clearTimelineSelection): {
 			const { timelineId } = action.payload;
-			return removeKeysFromMap(state, [timelineId]);
+			return {
+				...state,
+				[timelineId]: {},
+			};
 		}
 
-		case getType(timelineSelectionActions.toggleKeyframe): {
+		case getType(timelineSelectionActions.toggleKeyframeSelection): {
 			const { timelineId, keyframeId } = action.payload;
-
-			const newState = { ...state };
-
-			if (!newState[timelineId]) {
-				newState[timelineId] = { keyframes: {} };
-			}
-
-			const newTimeline = { ...newState[timelineId]! };
-
-			if (newTimeline.keyframes[keyframeId]) {
-				newTimeline.keyframes = Object.keys(newTimeline.keyframes).reduce<KeySelectionMap>(
-					(obj, key) => {
-						if (keyframeId !== key) {
-							obj[key] = true;
-						}
-						return obj;
-					},
-					{},
-				);
-				return newState;
-			}
+			const timelineSelection = state[timelineId] || {};
 
 			return {
-				...newState,
+				...state,
 				[timelineId]: {
-					...newTimeline,
-					keyframes: {
-						...newTimeline.keyframes,
-						[keyframeId]: true,
-					},
+					...timelineSelection,
+					[keyframeId]: !timelineSelection[keyframeId],
 				},
 			};
 		}
 
-		case getType(timelineSelectionActions.addKeyframes): {
+		case getType(timelineSelectionActions.addKeyframesToSelection): {
 			const { timelineId, keyframeIds } = action.payload;
+			const timelineSelection = state[timelineId] || {};
+
+			const newSelection = { ...timelineSelection };
+			keyframeIds.forEach((id) => {
+				newSelection[id] = true;
+			});
+
 			return {
 				...state,
-				[timelineId]: {
-					keyframes: {
-						...state[timelineId]?.keyframes,
-						...keyframeIds.reduce<KeySelectionMap>((obj, key) => {
-							obj[key] = true;
-							return obj;
-						}, {}),
-					},
-				},
+				[timelineId]: newSelection,
 			};
 		}
 
-		case getType(timelineSelectionActions.removeKeyframes): {
+		case getType(timelineSelectionActions.removeKeyframesFromSelection): {
 			const { timelineId, keyframeIds } = action.payload;
+			const timelineSelection = state[timelineId] || {};
+
+			const newSelection = { ...timelineSelection };
+			keyframeIds.forEach((id) => {
+				delete newSelection[id];
+			});
+
 			return {
 				...state,
-				[timelineId]: {
-					keyframes: removeKeysFromMap(state[timelineId]?.keyframes || {}, keyframeIds),
-				},
+				[timelineId]: newSelection,
 			};
 		}
 
 		default:
 			return state;
 	}
-}
+};

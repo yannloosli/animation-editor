@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 export interface SerializableContextMenuOption {
     id: string;
     label: string;
-    icon?: string;
+    iconName?: string;
     default?: boolean;
     options?: SerializableContextMenuOption[];
 }
@@ -36,12 +36,18 @@ const contextMenuSlice = createSlice({
         openContextMenu: (state, action: PayloadAction<{ 
             name: string; 
             options: SerializableContextMenuOption[]; 
-            position: SerializablePosition; 
+            position: SerializablePosition;
+            customContextMenu?: any;
         }>) => {
+            if (!action.payload || !action.payload.name || !action.payload.options || !action.payload.position) {
+                console.warn('openContextMenu action missing required fields:', action);
+                return state;
+            }
             state.isOpen = true;
             state.name = action.payload.name;
             state.options = action.payload.options;
             state.position = action.payload.position;
+            state.customContextMenu = action.payload.customContextMenu || null;
         },
         closeContextMenu: (state) => {
             state.isOpen = false;
@@ -51,10 +57,17 @@ const contextMenuSlice = createSlice({
             state.customContextMenu = null;
         },
         openCustomContextMenu: (state, action: PayloadAction<any>) => {
+            if (!action.payload) {
+                console.warn('openCustomContextMenu action missing payload:', action);
+                return state;
+            }
             state.customContextMenu = action.payload;
         },
         handleContextMenuOptionSelect: (state, action: PayloadAction<{ optionId: string }>) => {
-            // Cette action sera interceptée par un middleware qui gérera l'exécution de l'action
+            if (!action.payload || !action.payload.optionId) {
+                console.warn('handleContextMenuOptionSelect action missing optionId:', action);
+                return state;
+            }
             state.isOpen = false;
         }
     }

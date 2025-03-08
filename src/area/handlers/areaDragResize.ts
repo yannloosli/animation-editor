@@ -3,7 +3,7 @@ import { computeAreaRowToMinSize } from "~/area/util/areaRowToMinSize";
 import { computeAreaToViewport } from "~/area/util/areaToViewport";
 import { getAreaRootViewport } from "~/area/util/getAreaViewport";
 import { AREA_MIN_CONTENT_WIDTH } from "~/constants";
-import { storeRTK } from "~/state/store-init";
+import { store } from "~/state/store-init";
 import { AreaRowLayout } from "~/types/areaTypes";
 import { capToRange, interpolate } from "~/util/math";
 import { Vec2 } from "~/util/math/vec2";
@@ -15,7 +15,7 @@ export const handleDragAreaResize = (
 	areaIndex: number, // 1 is the first separator
 ) => {
 	try {
-		const areaState = storeRTK.getState().area.state;
+		const areaState = store.getState().area.state;
 		const areaToViewport = computeAreaToViewport(
 			areaState.layout,
 			areaState.rootId,
@@ -79,7 +79,7 @@ export const handleDragAreaResize = (
 			rowAreas[areaIndex - 1] = sizes[0];
 			rowAreas[areaIndex] = sizes[1];
 
-			storeRTK.dispatch(setRowSizes({
+			store.dispatch(setRowSizes({
 				rowId: row.id,
 				sizes: rowAreas
 			}));

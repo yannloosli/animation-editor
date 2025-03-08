@@ -1,34 +1,37 @@
 import { combineReducers } from "redux";
 import areaReducer, { AreaReducerState, initialState as initialAreaState } from "~/area/state/areaSlice";
-import { compositionReducer, CompositionState, initialCompositionState } from "~/composition/compositionReducer";
-import { compositionSelectionReducer, CompositionSelectionState, initialCompositionSelectionState } from "~/composition/compositionSelectionReducer";
+import { compositionReducer, CompositionState } from "~/composition/compositionReducer";
+import { compositionSelectionReducer, CompositionSelectionState } from "~/composition/compositionSelectionReducer";
 import { contextMenuReducer } from "~/contextMenu/contextMenuReducer";
 import { ContextMenuState, initialState as initialContextMenuState } from "~/contextMenu/contextMenuSlice";
-import { flowReducer, FlowState, initialFlowState } from "~/flow/state/flowReducers";
-import { flowSelectionReducer, FlowSelectionState, initialFlowSelectionState } from "~/flow/state/flowSelectionReducer";
-import { initialProjectState, projectReducer, ProjectState } from "~/project/projectReducer";
-import { initialShapeState, shapeReducer, ShapeState } from "~/shape/shapeReducer";
-import { initialShapeSelectionState, shapeSelectionReducer, ShapeSelectionState } from "~/shape/shapeSelectionReducer";
-import { initialTimelineState, timelineReducer, TimelineState } from "~/timeline/timelineReducer";
-import { initialTimelineSelectionState, timelineSelectionReducer, TimelineSelectionState } from "~/timeline/timelineSelectionReducer";
+import { flowReducer, FlowState } from "~/flow/state/flowReducers";
+import { flowSelectionReducer, FlowSelectionState } from "~/flow/state/flowSelectionReducer";
+import { projectReducer, ProjectState } from "~/project/projectReducer";
+import { shapeReducer, ShapeState } from "~/shape/shapeReducer";
+import { shapeSelectionReducer, ShapeSelectionState } from "~/shape/shapeSelectionReducer";
+import timelineSelectionReducer, { TimelineSelectionState } from "~/timeline/timelineSelectionSlice";
+import timelineReducer, { TimelineState } from "~/timeline/timelineSlice";
 import toolReducer, { initialState as initialToolState, ToolState } from "~/toolbar/toolSlice";
+import { initialCompositionWorkspaceAreaState, WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
+import { workspaceReducer } from "~/workspace/workspaceSlice";
 import { ActionBasedState, createActionBasedReducer } from "./history/actionBasedReducer";
-import { createReducerWithHistory, HistoryState } from "./history/historyReducer";
+import { createSelectionUndoableConfig, createUndoableReducer, UndoableState } from "./undoConfig";
 
 declare global {
 	interface ApplicationState {
 		area: ActionBasedState<AreaReducerState>;
-		compositionState: HistoryState<CompositionState>;
-		compositionSelectionState: HistoryState<CompositionSelectionState>;
-		flowState: HistoryState<FlowState>;
-		flowSelectionState: HistoryState<FlowSelectionState>;
+		compositionState: UndoableState<CompositionState>;
+		compositionSelectionState: UndoableState<CompositionSelectionState>;
+		flowState: UndoableState<FlowState>;
+		flowSelectionState: UndoableState<FlowSelectionState>;
 		contextMenu: ActionBasedState<ContextMenuState>;
-		project: HistoryState<ProjectState>;
-		shapeState: HistoryState<ShapeState>;
-		shapeSelectionState: HistoryState<ShapeSelectionState>;
-		timelineState: HistoryState<TimelineState>;
-		timelineSelectionState: HistoryState<TimelineSelectionState>;
+		project: UndoableState<ProjectState>;
+		shapeState: UndoableState<ShapeState>;
+		shapeSelectionState: UndoableState<ShapeSelectionState>;
+		timelineState: UndoableState<TimelineState>;
+		timelineSelectionState: UndoableState<TimelineSelectionState>;
 		tool: ActionBasedState<ToolState>;
+		workspace: ActionBasedState<WorkspaceAreaState>;
 	}
 
 	interface ActionState {
@@ -44,6 +47,7 @@ declare global {
 		timelineState: TimelineState;
 		timelineSelectionState: TimelineSelectionState;
 		tool: ToolState;
+		workspace: WorkspaceAreaState;
 	}
 
 	type MapApplicationState<StateProps, OwnProps = {}> = (
@@ -58,21 +62,22 @@ declare global {
 }
 
 const rootReducer = combineReducers({
-	// États avec historique
-	compositionState: createReducerWithHistory(initialCompositionState, compositionReducer),
-	compositionSelectionState: createReducerWithHistory(initialCompositionSelectionState, compositionSelectionReducer, { selectionForKey: "compositionState" }),
-	flowState: createReducerWithHistory(initialFlowState, flowReducer),
-	flowSelectionState: createReducerWithHistory(initialFlowSelectionState, flowSelectionReducer, { selectionForKey: "flowState" }),
-	project: createReducerWithHistory(initialProjectState, projectReducer),
-	shapeState: createReducerWithHistory(initialShapeState, shapeReducer),
-	shapeSelectionState: createReducerWithHistory(initialShapeSelectionState, shapeSelectionReducer, { selectionForKey: "shapeState" }),
-	timelineState: createReducerWithHistory(initialTimelineState, timelineReducer),
-	timelineSelectionState: createReducerWithHistory(initialTimelineSelectionState, timelineSelectionReducer, { selectionForKey: "timelineState" }),
+	// États avec historique utilisant redux-undo
+	compositionState: createUndoableReducer(compositionReducer),
+	compositionSelectionState: createUndoableReducer(compositionSelectionReducer, createSelectionUndoableConfig("compositionState")),
+	flowState: createUndoableReducer(flowReducer),
+	flowSelectionState: createUndoableReducer(flowSelectionReducer, createSelectionUndoableConfig("flowState")),
+	project: createUndoableReducer(projectReducer),
+	shapeState: createUndoableReducer(shapeReducer),
+	shapeSelectionState: createUndoableReducer(shapeSelectionReducer, createSelectionUndoableConfig("shapeState")),
+	timelineState: createUndoableReducer(timelineReducer),
+	timelineSelectionState: createUndoableReducer(timelineSelectionReducer, createSelectionUndoableConfig("timelineState")),
 
 	// États basés sur les actions
 	area: createActionBasedReducer(initialAreaState, areaReducer),
 	contextMenu: createActionBasedReducer(initialContextMenuState, contextMenuReducer),
 	tool: createActionBasedReducer(initialToolState, toolReducer),
+	workspace: createActionBasedReducer(initialCompositionWorkspaceAreaState, workspaceReducer),
 });
 
 export default rootReducer;

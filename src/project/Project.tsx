@@ -1,41 +1,37 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import ProjectStyles from "~/project/Project.styles";
 import { ProjectComp } from "~/project/ProjectComp";
 import { createProjectContextMenu } from "~/project/projectContextMenu";
-import { connectActionState } from "~/state/stateUtils";
-import { separateLeftRightMouse } from "~/util/mouse";
+import { RootState } from "~/state/store-init";
+import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(ProjectStyles);
 
-interface OwnProps {}
-interface StateProps {
-	compositionIds: string[];
-}
-type Props = OwnProps & StateProps;
+export const Project: React.FC = () => {
+	const compositionIds = useSelector((state: RootState) => 
+		Object.keys((state.project.present as any).compositions)
+	);
 
-const ProjectComponent: React.FC<Props> = (props) => {
-	const onRightClick = (e: React.MouseEvent) => {
-		createProjectContextMenu(Vec2.fromEvent(e), {});
+	const onRightClick = (e: React.MouseEvent<HTMLDivElement>) => {
+		createProjectContextMenu(Vec2.fromEvent(e as unknown as MouseEvent), {});
 	};
 
 	return (
 		<div
 			className={s("container")}
-			onMouseDown={separateLeftRightMouse({ right: onRightClick })}
+			onContextMenu={(e) => {
+				e.preventDefault();
+				onRightClick(e);
+			}}
 		>
 			<div className={s("header")} />
 			<div className={s("compWrapper")}>
-				{props.compositionIds.map((compositionId) => (
+				{compositionIds.map((compositionId) => (
 					<ProjectComp key={compositionId} compositionId={compositionId} />
 				))}
 			</div>
 		</div>
 	);
 };
-
-const mapState: MapActionState<StateProps, OwnProps> = ({ project }) => ({
-	compositionIds: project.compositions,
-});
-
-export const Project = connectActionState(mapState)(ProjectComponent);

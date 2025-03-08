@@ -37,30 +37,30 @@ export const cssVariables = {
 
 export const cssCursors = {
 	arrowBold: {
-		up: `url("/static/cursors/arrow_n.png") 12 10, default`,
-		left: `url("/static/cursors/arrow_w.png") 12 10, default`,
-		right: `url("/static/cursors/arrow_e.png") 12 10, default`,
-		down: `url("/static/cursors/arrow_s.png") 12 10, default`,
+		up: `url("static/cursors/arrow_n.png") 12 10, default`,
+		left: `url("static/cursors/arrow_w.png") 12 10, default`,
+		right: `url("static/cursors/arrow_e.png") 12 10, default`,
+		down: `url("static/cursors/arrow_s.png") 12 10, default`,
 	},
 	moveTool: {
-		default: `url("/static/cursors/selection.png") 0 0, default`,
-		moveSelection: `url("/static/cursors/selection_move.png") 0 0, default`,
+		default: `url("static/cursors/selection.png") 0 0, default`,
+		moveSelection: `url("static/cursors/selection_move.png") 0 0, default`,
 	},
 	penTool: {
-		default: `url("/static/cursors/pen_default.png") 0 0, default`,
-		addPoint: `url("/static/cursors/pen_add.png") 0 0, default`,
-		removePoint: `url("/static/cursors/pen_remove.png") 0 0, default`,
-		moveSelection: `url("/static/cursors/selection_move.png") 0 0, default`,
-		closePath: `url("/static/cursors/pen_select_point.png") 0 0, default`,
-		convertAnchor: `url("/static/cursors/convert_anchor.png") 0 0, default`,
-		newControlPoints: `url("/static/cursors/new_control_points.png") 0 0, default`,
+		default: `url("static/cursors/pen_default.png") 0 0, default`,
+		addPoint: `url("static/cursors/pen_add.png") 0 0, default`,
+		removePoint: `url("static/cursors/pen_remove.png") 0 0, default`,
+		moveSelection: `url("static/cursors/selection_move.png") 0 0, default`,
+		closePath: `url("static/cursors/pen_select_point.png") 0 0, default`,
+		convertAnchor: `url("static/cursors/convert_anchor.png") 0 0, default`,
+		newControlPoints: `url("static/cursors/new_control_points.png") 0 0, default`,
 	},
 	zoom: {
-		zoomIn: `url("/static/cursors/zoom_in.png") 6 6, default`,
-		zoomOut: `url("/static/cursors/zoom_out.png") 6 6, default`,
+		zoomIn: `url("static/cursors/zoom_in.png") 6 6, default`,
+		zoomOut: `url("static/cursors/zoom_out.png") 6 6, default`,
 	},
 	grab: {
-		default: `url("/static/cursors/grab.png") 8 8, default`,
+		default: `url("static/cursors/grab.png") 8 8, default`,
 	},
 };
 

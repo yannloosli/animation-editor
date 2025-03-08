@@ -4,16 +4,16 @@ import { getFlowNodeDefaultInputs, getFlowNodeDefaultOutputs } from "~/flow/flow
 import { getFlowNodeDefaultState } from "~/flow/flowNodeState";
 import { FlowGraph, FlowNode, FlowNodeInput } from "~/flow/flowTypes";
 import {
-	getExpressionNodeInputDefaultValue,
-	removeFlowNodeAndReferencesToIt,
-	removeReferencesToFlowNode,
+    getExpressionNodeInputDefaultValue,
+    removeFlowNodeAndReferencesToIt,
+    removeReferencesToFlowNode,
 } from "~/flow/flowUtils";
 import { flowActions as actions } from "~/flow/state/flowActions";
 import {
-	createMapNumberId,
-	mergeItemInMap,
-	modifyItemsInMap,
-	removeKeysFromMap,
+    createMapNumberId,
+    mergeItemInMap,
+    modifyItemsInMap,
+    removeKeysFromMap,
 } from "~/util/mapUtils";
 
 type FlowAction = ActionType<typeof actions>;
@@ -32,7 +32,15 @@ export const initialFlowState: FlowState = {
 	nodes: {},
 };
 
-export function flowReducer(state: FlowState, action: FlowAction): FlowState {
+export function flowReducer(
+	state = initialFlowState,
+	action: FlowAction | { type: string },
+): FlowState {
+	// Gérer les actions redux-undo et autres actions sans payload
+	if (!('payload' in action)) {
+		return state;
+	}
+
 	switch (action.type) {
 		case getType(actions.setGraph): {
 			const { graph } = action.payload;

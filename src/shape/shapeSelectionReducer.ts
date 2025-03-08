@@ -38,13 +38,28 @@ export const shapeSelectionActions = {
 	clearShapeSelection: createAction("sh_sel/CLEAR_SELECTION", (action) => {
 		return (shapeId: string) => action({ shapeId });
 	}),
+
+	setShapeSelection: createAction("sh_sel/SET_SHAPE_SELECTION", (action) => {
+		return (shapeIds: string[]) => action({ shapeIds });
+	}),
+
+	addShapeToSelection: createAction("sh_sel/ADD_SHAPE_TO_SELECTION", (action) => {
+		return (shapeId: string) => action({ shapeId });
+	}),
+
+	removeShapeFromSelection: createAction("sh_sel/REMOVE_SHAPE_FROM_SELECTION", (action) => {
+		return (shapeId: string) => action({ shapeId });
+	}),
 };
 
 export interface ShapeSelectionState {
 	[shapeId: string]: ShapeSelection;
+	selectedShapeIds: string[];
 }
 
-export const initialShapeSelectionState: ShapeSelectionState = {};
+export const initialShapeSelectionState: ShapeSelectionState = {
+	selectedShapeIds: [],
+};
 
 const createNewShapeSelection = (): ShapeSelection => ({
 	nodes: {},
@@ -132,24 +147,43 @@ const singleShapeSelectionReducer = (state: ShapeSelection, action: Action): Sha
 };
 
 export const shapeSelectionReducer = (
-	state: ShapeSelectionState = initialShapeSelectionState,
-	action: Action,
+	state = initialShapeSelectionState,
+	action: Action | { type: string },
 ): ShapeSelectionState => {
-	const shapeId = action.payload.shapeId;
-	const selection = state[shapeId] || createNewShapeSelection();
-
-	if (!action.type.startsWith("sh_sel/")) {
+	// Gérer les actions redux-undo et autres actions sans payload
+	if (!('payload' in action)) {
 		return state;
 	}
 
 	switch (action.type) {
-		case getType(shapeSelectionActions.clearShapeSelection): {
-			return removeKeysFromMap(state, [action.payload.shapeId]);
+		case getType(shapeSelectionActions.setShapeSelection): {
+			const { shapeIds } = action.payload;
+			return {
+				selectedShapeIds: shapeIds,
+			};
 		}
-	}
 
-	return {
-		...state,
-		[shapeId]: singleShapeSelectionReducer(selection, action),
-	};
+		case getType(shapeSelectionActions.clearShapeSelection): {
+			return {
+				selectedShapeIds: [],
+			};
+		}
+
+		case getType(shapeSelectionActions.addShapeToSelection): {
+			const { shapeId } = action.payload;
+			return {
+				selectedShapeIds: [...state.selectedShapeIds, shapeId],
+			};
+		}
+
+		case getType(shapeSelectionActions.removeShapeFromSelection): {
+			const { shapeId } = action.payload;
+			return {
+				selectedShapeIds: state.selectedShapeIds.filter(id => id !== shapeId),
+			};
+		}
+
+		default:
+			return state;
+	}
 };
