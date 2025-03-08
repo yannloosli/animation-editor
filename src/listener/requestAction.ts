@@ -4,7 +4,6 @@ import { Diff } from "~/diff/diffs";
 import { addListener as _addListener, removeListener } from "~/listener/addListener";
 import { sendDiffsToSubscribers } from "~/listener/diffListener";
 import { historyActions } from "~/state/history/historyActions";
-import { HistoryState } from "~/state/history/historyReducer";
 import { getActionId, getActionState, getCurrentState } from "~/state/stateUtils";
 import { store } from "~/state/store-init";
 import { Action } from "~/types";
@@ -77,12 +76,6 @@ const performRequestedAction = (
 	const diffs: Diff[] = [];
 	const allDiffs: Diff[] = [];
 	const addedButNotPerformedDiffs: Diff[] = [];
-
-	// The diffs to perform to reverse the performed to reverse the diffs
-	// that have been performed by the current action.
-	//
-	// If none are specified, the performed diffs are performed again in
-	// reverse order.
 	const reverseDiffs: Diff[] = [];
 
 	const cancelAction = () => {
@@ -99,7 +92,10 @@ const performRequestedAction = (
 	cancelTokens.push(escToken);
 
 	const dispatch: RequestActionParams["dispatch"] = (action, ...args) => {
-		console.log("dispatch called with action:", action);
+
+		// Si l'action ou une des actions du batch a skipHistory, dispatch directement
+		const shouldSkipHistory = (a: Action) => a.payload?.skipHistory === true;
+
 		if (Array.isArray(action)) {
 			if (args.length) {
 				console.warn(
@@ -107,31 +103,53 @@ const performRequestedAction = (
 				);
 			}
 
-			store.dispatch(historyActions.dispatchBatchToAction(actionId, action, history));
+			const actions = action;
+			if (actions.some(shouldSkipHistory)) {
+				// Dispatch chaque action individuellement
+				actions.forEach(a => {
+					if (shouldSkipHistory(a)) {
+						store.dispatch(a);
+					} else {
+						store.dispatch(historyActions.dispatchToAction(actionId, a, history));
+					}
+				});
+			} else {
+				store.dispatch(historyActions.dispatchBatchToAction(actionId, actions, history));
+			}
 			return;
 		}
 
 		if (args.length) {
-			console.log("Dispatching batch action");
-			store.dispatch(
-				historyActions.dispatchBatchToAction(actionId, [action, ...args], history),
-			);
+			const actions = [action, ...args];
+			if (actions.some(shouldSkipHistory)) {
+				// Dispatch chaque action individuellement
+				actions.forEach(a => {
+					if (shouldSkipHistory(a)) {
+						store.dispatch(a);
+					} else {
+						store.dispatch(historyActions.dispatchToAction(actionId, a, history));
+					}
+				});
+			} else {
+				store.dispatch(historyActions.dispatchBatchToAction(actionId, actions, history));
+			}
 			return;
 		}
 
-		console.log("Dispatching single action");
-		store.dispatch(historyActions.dispatchToAction(actionId, action, history));
+		// Action unique
+		if (shouldSkipHistory(action)) {
+			store.dispatch(action);
+		} else {
+			store.dispatch(historyActions.dispatchToAction(actionId, action, history));
+		}
 	};
 
 	const params: RequestActionParams = {
 		done,
-
 		dispatch,
-
 		dispatchToAreaState: (areaId, action) => {
 			dispatch(areaActions.dispatchToAreaState(areaId, action));
 		},
-
 		submitAction: (name = "Unknown action", options = {}) => {
 			const { allowIndexShift = false } = options;
 
@@ -179,46 +197,24 @@ const performRequestedAction = (
 				sendDiffsToSubscribers(getActionState(), diffs);
 			}
 
-			const modifiedKeys: string[] = [];
-			{
-				const state: any = store.getState();
-				const keys = Object.keys(state) as Array<keyof ApplicationState>;
-				for (let i = 0; i < keys.length; i += 1) {
-					const key = keys[i];
-					if (!state[key].list) {
-						continue;
-					}
-
-					const s = state[key] as HistoryState<any>;
-					if (s.action && s.action.state !== s.list[s.index].state) {
-						modifiedKeys.push(key);
-					}
-				}
-			}
-
 			store.dispatch(
 				historyActions.submitAction(
 					actionId,
 					name,
 					history,
-					modifiedKeys,
+					[],
 					allowIndexShift,
 					[...diffs, ...addedButNotPerformedDiffs],
 				),
 			);
 			onComplete();
 		},
-
 		cancelAction,
-
 		addListener,
-
 		removeListener,
-
 		execOnComplete: (cb) => {
 			onCompleteCallback = cb;
 		},
-
 		addDiff: (fn, options = { perform: true }) => {
 			const result = fn(diffFactory);
 			const diffsToAdd = Array.isArray(result) ? result : [result];
@@ -226,20 +222,16 @@ const performRequestedAction = (
 			if (options.perform) {
 				diffs.push(...diffsToAdd);
 				allDiffs.push(...diffsToAdd);
-				// The diffs are not performed when added. Added diffs are performed when
-				// the action is submitted.
 			} else {
 				addedButNotPerformedDiffs.push(...diffsToAdd);
 			}
 		},
-
 		performDiff: (fn) => {
 			const result = fn(diffFactory);
 			const diffsToPerform = Array.isArray(result) ? result : [result];
 			allDiffs.push(...diffsToPerform);
 			sendDiffsToSubscribers(getActionState(), diffsToPerform);
 		},
-
 		addReverseDiff: (fn) => {
 			const result = fn(diffFactory);
 			const diffsToAdd = Array.isArray(result) ? result : [result];

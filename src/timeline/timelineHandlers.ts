@@ -5,27 +5,27 @@ import { compositionActions } from "~/composition/compositionReducer";
 import { compSelectionActions } from "~/composition/compositionSelectionReducer";
 import { CompoundProperty, Layer, Property } from "~/composition/compositionTypes";
 import {
-	getTimelineIdsReferencedByComposition,
-	reduceLayerPropertiesAndGroups,
+    getTimelineIdsReferencedByComposition,
+    reduceLayerPropertiesAndGroups,
 } from "~/composition/compositionUtils";
 import {
-	compSelectionFromState,
-	didCompSelectionChange,
+    compSelectionFromState,
+    didCompSelectionChange,
 } from "~/composition/util/compSelectionUtils";
 import {
-	AreaType,
-	TIMELINE_BETWEEN_LAYERS,
-	TIMELINE_ITEM_HEIGHT,
-	TIMELINE_LAYER_HEIGHT,
+    AreaType,
+    TIMELINE_BETWEEN_LAYERS,
+    TIMELINE_ITEM_HEIGHT,
+    TIMELINE_LAYER_HEIGHT,
 } from "~/constants";
 import { createArrayModifierFlowGraph, createLayerFlowGraph } from "~/flow/graph/createFlowGraph";
 import { flowActions } from "~/flow/state/flowActions";
 import { isKeyDown } from "~/listener/keyboard";
 import {
-	requestAction,
-	RequestActionCallback,
-	RequestActionParams,
-	ShouldAddToStackFn,
+    requestAction,
+    RequestActionCallback,
+    RequestActionParams,
+    ShouldAddToStackFn,
 } from "~/listener/requestAction";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
@@ -34,13 +34,13 @@ import { timelineActions, timelineSelectionActions } from "~/timeline/timelineAc
 import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
 import { createTimelineContextMenu } from "~/timeline/timelineContextMenu";
 import {
-	createTimelineForLayerProperty,
-	getTimelineValueAtIndex,
-	graphEditorGlobalToNormal,
+    createTimelineForLayerProperty,
+    getTimelineValueAtIndex,
+    graphEditorGlobalToNormal,
 } from "~/timeline/timelineUtils";
 import {
-	getTimelineLayerListHeight,
-	getTimelineTrackYPositions,
+    getTimelineLayerListHeight,
+    getTimelineTrackYPositions,
 } from "~/trackEditor/trackEditorUtils";
 import { PropertyGroupName } from "~/types";
 import { Area } from "~/types/areaTypes";

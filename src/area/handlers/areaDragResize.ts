@@ -1,12 +1,12 @@
-import { areaActions } from "~/area/state/areaActions";
+import { setRowSizes } from "~/area/state/areaSlice";
 import { computeAreaRowToMinSize } from "~/area/util/areaRowToMinSize";
 import { computeAreaToViewport } from "~/area/util/areaToViewport";
 import { getAreaRootViewport } from "~/area/util/getAreaViewport";
 import { AREA_MIN_CONTENT_WIDTH } from "~/constants";
-import { requestAction } from "~/listener/requestAction";
-import { getActionState } from "~/state/stateUtils";
+import { storeRTK } from "~/state/store-init";
 import { AreaRowLayout } from "~/types/areaTypes";
 import { capToRange, interpolate } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 
 export const handleDragAreaResize = (
 	_e: React.MouseEvent,
@@ -14,8 +14,8 @@ export const handleDragAreaResize = (
 	horizontal: boolean,
 	areaIndex: number, // 1 is the first separator
 ) => {
-	requestAction({}, (params) => {
-		const areaState = getActionState().area;
+	try {
+		const areaState = storeRTK.getState().area.state;
 		const areaToViewport = computeAreaToViewport(
 			areaState.layout,
 			areaState.rootId,
@@ -46,7 +46,7 @@ export const handleDragAreaResize = (
 
 		const sizeToShare = a0.size + a1.size;
 
-		const sharedViewport: Rect = {
+		const sharedViewport = {
 			width: horizontal ? v0.width + v1.width : v0.width,
 			height: !horizontal ? v0.height + v1.height : v0.height,
 			left: v0.left,
@@ -59,11 +59,10 @@ export const handleDragAreaResize = (
 
 		if (tMin0 + tMin1 >= 0.99) {
 			// There's basically no space available to resize
-			params.cancelAction();
 			return;
 		}
 
-		params.addListener.repeated("mousemove", (e) => {
+		const onMouseMove = (e: MouseEvent) => {
 			const vec = Vec2.fromEvent(e);
 
 			const t0 = horizontal ? sharedViewport.left : sharedViewport.top;
@@ -80,13 +79,20 @@ export const handleDragAreaResize = (
 			rowAreas[areaIndex - 1] = sizes[0];
 			rowAreas[areaIndex] = sizes[1];
 
-			params.performDiff((diff) => diff.resizeAreas());
-			params.dispatch(areaActions.setRowSizes(row.id, rowAreas));
-		});
+			storeRTK.dispatch(setRowSizes({
+				rowId: row.id,
+				sizes: rowAreas
+			}));
+		};
 
-		params.addListener.once("mouseup", () => {
-			params.addDiff((diff) => diff.resizeAreas());
-			params.submitAction("Resize areas");
-		});
-	});
+		const onMouseUp = () => {
+			window.removeEventListener('mousemove', onMouseMove);
+			window.removeEventListener('mouseup', onMouseUp);
+		};
+
+		window.addEventListener('mousemove', onMouseMove);
+		window.addEventListener('mouseup', onMouseUp);
+	} catch (error) {
+		console.error("Error in handleDragAreaResize:", error);
+	}
 };

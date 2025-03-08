@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { Dispatch } from "redux";
 import { ConvertAnchorIcon } from "~/components/icons/ConvertAnchorIcon";
 import { EllipseIcon } from "~/components/icons/EllipseIcon";
 import { FillIcon } from "~/components/icons/FillIcon";
@@ -9,9 +10,8 @@ import { RectangleIcon } from "~/components/icons/RectangleIcon";
 import { SelectionIcon } from "~/components/icons/SelectionIcon";
 import { Tool, toolGroups, toolToKey, toolToLabel } from "~/constants";
 import { connectActionState } from "~/state/stateUtils";
-import { store } from "~/state/store-init";
 import styles from "~/toolbar/Toolbar.styles";
-import { setOpenGroupIndex, setTool, ToolState } from "~/toolbar/toolSlice";
+import { initialState, setOpenGroupIndex, setTool, ToolState } from "~/toolbar/toolSlice";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(styles);
@@ -30,19 +30,29 @@ export const toolToIconMap: Record<Tool, () => JSX.Element> = {
 interface StateProps {
 	toolState: ToolState;
 }
-type Props = StateProps;
 
-const ToolbarComponent: React.FC<Props> = (props) => {
+interface DispatchProps {
+	dispatch: Dispatch;
+}
+
+type Props = StateProps & DispatchProps;
+
+const ToolbarComponent: React.FC<Props> = ({ toolState, dispatch }) => {
+	if (!toolState) {
+		console.error('Toolbar received undefined toolState');
+		return null;
+	}
+
 	const onGroupItemClick = useRef<((tool: Tool) => void) | null>(null);
 	const group = useRef<HTMLDivElement>(null);
 	const cleanupRef = useRef<(() => void) | null>(null);
 
 	const onItemClick = (tool: Tool) => {
-		store.dispatch(setTool({ tool }));
+		dispatch(setTool({ tool }));
 	};
 
 	const onGroupClick = (index: number) => {
-		store.dispatch(setOpenGroupIndex({ index }));
+		dispatch(setOpenGroupIndex({ index }));
 
 		// Nettoyer le listener précédent s'il existe
 		if (cleanupRef.current) {
@@ -50,8 +60,8 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 		}
 
 		onGroupItemClick.current = (tool: Tool) => {
-			store.dispatch(setTool({ tool }));
-			store.dispatch(setOpenGroupIndex({ index: -1 }));
+			dispatch(setTool({ tool }));
+			dispatch(setOpenGroupIndex({ index: -1 }));
 		};
 
 		const handleClickOutside = (e: MouseEvent) => {
@@ -59,7 +69,7 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 				group.current !== e.target &&
 				!group.current?.contains(e.target as HTMLDivElement)
 			) {
-				store.dispatch(setOpenGroupIndex({ index: -1 }));
+				dispatch(setOpenGroupIndex({ index: -1 }));
 			}
 		};
 
@@ -74,14 +84,14 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 			<div className={s("dragArea", { left: true })} />
 			<div className={s("list")}>
 				{toolGroups.map((tools, i) => {
-					const active = props.toolState.selected === props.toolState.selectedInGroup[i];
+					const active = toolState.selected === toolState.selectedInGroup[i];
 					return (
 						<div key={i} className={s("group", { active })}>
 							<button
 								className={s("group__visibleTool")}
-								onMouseDown={() => onItemClick(props.toolState.selectedInGroup[i])}
+								onMouseDown={() => onItemClick(toolState.selectedInGroup[i])}
 							>
-								{toolToIconMap[props.toolState.selectedInGroup[i]]()}
+								{toolToIconMap[toolState.selectedInGroup[i]]()}
 							</button>
 							<button
 								className={s("group__openDropdown", { active })}
@@ -92,7 +102,7 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 								}}
 							/>
 
-							{props.toolState.openGroupIndex === i && (
+							{toolState.openGroupIndex === i && (
 								<div
 									ref={group}
 									className={s("dropdown")}
@@ -137,6 +147,12 @@ const ToolbarComponent: React.FC<Props> = (props) => {
 	);
 };
 
-export const Toolbar = connectActionState<StateProps>(({ tool }) => ({ toolState: tool }))(
-	ToolbarComponent,
-);
+const mapStateToProps = (state: ActionState): StateProps => {
+	if (!state.tool) {
+		console.error('Toolbar mapStateToProps received undefined tool state');
+		return { toolState: initialState };
+	}
+	return { toolState: state.tool };
+};
+
+export const Toolbar = connectActionState(mapStateToProps)(ToolbarComponent);

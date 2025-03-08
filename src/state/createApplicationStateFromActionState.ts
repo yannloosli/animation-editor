@@ -45,7 +45,7 @@ export const createApplicationStateFromActionState = (
 			actionState.timelineSelectionState,
 			"selection",
 		),
-		tool: actionState.tool,
+		tool: toActionBasedState(actionState.tool),
 	};
 
 	return state;

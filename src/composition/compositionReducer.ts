@@ -1,15 +1,15 @@
 import { ActionType, createAction, getType } from "typesafe-actions";
 import { CompositionSelectionState } from "~/composition/compositionSelectionReducer";
 import {
-	Composition,
-	CompoundProperty,
-	Layer,
-	Property,
-	PropertyGroup,
+    Composition,
+    CompoundProperty,
+    Layer,
+    Property,
+    PropertyGroup,
 } from "~/composition/compositionTypes";
 import {
-	reduceCompPropertiesAndGroups,
-	reduceLayerPropertiesAndGroups,
+    reduceCompPropertiesAndGroups,
+    reduceLayerPropertiesAndGroups,
 } from "~/composition/compositionUtils";
 import { layerFactory } from "~/composition/factories/layerFactory";
 import { modifierPropertyGroupFactory } from "~/composition/factories/modifierPropertyGroupFactory";
@@ -17,12 +17,12 @@ import { getLayerModifierPropertyGroupId } from "~/composition/util/compositionP
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import { LayerType, PropertyGroupName, RGBAColor, RGBColor, TransformBehavior } from "~/types";
 import {
-	addListToMap,
-	createGenMapIdFn,
-	mergeItemInMap,
-	modifyItemsInMap,
-	modifyItemsInUnionMap,
-	removeKeysFromMap,
+    addListToMap,
+    createGenMapIdFn,
+    mergeItemInMap,
+    modifyItemsInMap,
+    modifyItemsInUnionMap,
+    removeKeysFromMap,
 } from "~/util/mapUtils";
 
 export interface CompositionState {
@@ -41,7 +41,17 @@ export interface CompositionState {
 }
 
 export const initialCompositionState: CompositionState = {
-	compositions: {},
+	compositions: {
+		"default": {
+			id: "default",
+			name: "Default Composition",
+			layers: [],
+			width: 800,
+			height: 600,
+			length: 100,
+			frameIndex: 0
+		}
+	},
 	layers: {},
 	properties: {},
 	compositionLayerIdToComposition: {},

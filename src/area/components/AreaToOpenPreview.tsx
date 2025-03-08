@@ -1,29 +1,30 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
+import { Dispatch } from "redux";
 import { areaComponentRegistry } from "~/area/areaRegistry";
 import { AreaComponent } from "~/area/components/Area";
 import AreaRootStyles from "~/area/components/AreaRoot.styles";
 import { AREA_PLACEMENT_TRESHOLD } from "~/area/state/areaConstants";
-import { AreaReducerState } from "~/area/state/areaReducer";
+import { AreaReducerState } from "~/area/state/areaSlice";
 import {
-	getAreaToOpenPlacementInViewport,
-	getHoveredAreaId,
-	PlaceArea,
+    getAreaToOpenPlacementInViewport,
+    PlaceArea
 } from "~/area/util/areaUtils";
 import { AREA_BORDER_WIDTH } from "~/constants";
-import { useVec2TransitionState } from "~/hook/useNumberTransitionState";
-import { connectActionState } from "~/state/stateUtils";
+import { connectActionState, MapActionState } from "~/state/stateUtils";
 import { AreaToOpen } from "~/types/areaTypes";
 import { contractRect } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 interface RenderAreaToOpenProps {
 	viewport: Rect;
 	areaToOpen: AreaToOpen;
 	dimensions: Vec2;
+	dispatch: Dispatch;
 }
 
 const RenderAreaToOpen: React.FC<RenderAreaToOpenProps> = (props) => {
-	const { areaToOpen, viewport, dimensions } = props;
+	const { areaToOpen, viewport, dimensions, dispatch } = props;
 
 	const placement = useMemo(() => {
 		return getAreaToOpenPlacementInViewport(viewport, areaToOpen.position);
@@ -91,6 +92,7 @@ const RenderAreaToOpen: React.FC<RenderAreaToOpenProps> = (props) => {
 						height: dimensions.y,
 						width: dimensions.x,
 					}}
+					dispatch={dispatch}
 				/>
 			</div>
 			<div
@@ -105,58 +107,56 @@ const RenderAreaToOpen: React.FC<RenderAreaToOpenProps> = (props) => {
 				</svg>
 			</div>
 		</>
-	);
+	) as React.ReactElement;
 };
 
 const s = compileStylesheetLabelled(AreaRootStyles);
 
-interface OwnProps {
-	areaToViewport: { [key: string]: Rect };
-}
 interface StateProps {
 	areaState: AreaReducerState;
 }
-type Props = OwnProps & StateProps;
 
-const AreaToOpenPreviewComponent: React.FC<Props> = (props) => {
-	const { areaState } = props;
-	const { areaToOpen } = areaState;
+interface DispatchProps {
+	dispatch: Dispatch;
+}
 
-	const areaToOpenTargetId =
-		areaToOpen && getHoveredAreaId(areaToOpen.position, areaState, props.areaToViewport);
+interface Props extends StateProps, DispatchProps {
+	areaToViewport: { [areaId: string]: Rect };
+}
 
-	const areaToOpenTargetViewport = areaToOpenTargetId && props.areaToViewport[areaToOpenTargetId];
-
-	const [areaToOpenDimensions, setAreaToOpenDimensions] = useVec2TransitionState(
-		Vec2.new(100, 100),
-		{ duration: 250, bezier: [0.24, 0.02, 0.18, 0.97] },
-	);
-
-	useEffect(() => {
-		if (!areaToOpenTargetId) {
-			return;
-		}
-
-		const viewport = props.areaToViewport[areaToOpenTargetId];
-
-		setAreaToOpenDimensions(Vec2.new(viewport.width, viewport.height));
-	}, [areaToOpenTargetId]);
-
-	if (!areaToOpen || !areaToOpenTargetViewport) {
-		return null;
+const AreaToOpenPreviewComponent: React.FC<Props> = ({ areaState, areaToViewport, dispatch }) => {
+	if (!areaState) {
+		console.error('AreaToOpenPreview received undefined areaState');
+		return <></>;
 	}
 
+	const { areaToOpen } = areaState;
+
+	if (!areaToOpen) {
+		return <></>;
+	}
+
+	const { area, position } = areaToOpen;
+
 	return (
-		<RenderAreaToOpen
-			areaToOpen={areaToOpen}
-			dimensions={areaToOpenDimensions}
-			viewport={areaToOpenTargetViewport}
+		<div
+			style={{
+				position: "absolute",
+				left: position.x,
+				top: position.y,
+				width: 200,
+				height: 200,
+				backgroundColor: "rgba(0, 0, 0, 0.1)",
+				border: "1px solid rgba(0, 0, 0, 0.2)",
+				pointerEvents: "none",
+			}}
 		/>
-	);
+	) as React.ReactElement;
 };
 
-const mapStateToProps: MapActionState<StateProps> = ({ area }) => ({
+const mapStateToProps: MapActionState<StateProps & DispatchProps> = ({ area }, dispatch) => ({
 	areaState: area,
+	dispatch: dispatch as Dispatch,
 });
 
 export const AreaToOpenPreview = connectActionState(mapStateToProps)(AreaToOpenPreviewComponent);

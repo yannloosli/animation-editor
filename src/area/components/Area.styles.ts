@@ -1,6 +1,6 @@
-import { StyleParams } from "~/util/stylesheets";
-import { cssVariables, cssZIndex } from "~/cssVariables";
 import { AREA_BORDER_WIDTH } from "~/constants";
+import { cssVariables, cssZIndex } from "~/cssVariables";
+import { StyleParams } from "~/util/stylesheets";
 
 export default ({ css }: StyleParams) => ({
 	area: css`
@@ -26,30 +26,29 @@ export default ({ css }: StyleParams) => ({
 	`,
 
 	area__corner: css`
-		width: 10px;
-		height: 10px;
+		width: 24px;
+		height: 24px;
 		position: absolute;
 		z-index: 2;
-		cursor: crosshair;
 
 		&--nw {
-			top: ${AREA_BORDER_WIDTH}px;
-			left: ${AREA_BORDER_WIDTH}px;
+			top: 0;
+			left: 0;
 		}
 
 		&--ne {
-			top: ${AREA_BORDER_WIDTH}px;
-			right: ${AREA_BORDER_WIDTH}px;
+			top: 0;
+			right: 0;
 		}
 
 		&--sw {
-			bottom: ${AREA_BORDER_WIDTH}px;
-			left: ${AREA_BORDER_WIDTH}px;
+			bottom: 0;
+			left: 0;
 		}
 
 		&--se {
-			bottom: ${AREA_BORDER_WIDTH}px;
-			right: ${AREA_BORDER_WIDTH}px;
+			bottom: 0;
+			right: 0;
 		}
 	`,
 

@@ -1,15 +1,17 @@
 import "~/util/math/expressions";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Area } from "~/area/components/Area";
-import { connectActionState } from "~/state/stateUtils";
-import { computeAreaToViewport } from "~/area/util/areaToViewport";
-import { JoinAreaPreview } from "~/area/components/JoinAreaPreview";
-import { AreaRowSeparators } from "~/area/components/AreaRowSeparators";
-import { getAreaRootViewport, _setAreaViewport } from "~/area/util/getAreaViewport";
-import { AreaReducerState } from "~/area/state/areaReducer";
-import { AreaToOpenPreview } from "~/area/components/AreaToOpenPreview";
+import React, { useEffect, useRef, useState } from "react";
+import { Dispatch } from "redux";
+import { areaComponentRegistry } from "~/area/areaRegistry";
+import { AreaComponent } from "~/area/components/Area";
 import AreaRootStyles from "~/area/components/AreaRoot.styles";
+import { AreaRowSeparators } from "~/area/components/AreaRowSeparators";
+import { AreaToOpenPreview } from "~/area/components/AreaToOpenPreview";
+import { JoinAreaPreview } from "~/area/components/JoinAreaPreview";
+import { AreaReducerState } from "~/area/state/areaReducer";
+import { computeAreaToViewport } from "~/area/util/areaToViewport";
+import { _setAreaViewport, getAreaRootViewport } from "~/area/util/getAreaViewport";
+import { connectActionState, MapActionState } from "~/state/stateUtils";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(AreaRootStyles);
@@ -18,11 +20,17 @@ interface StateProps {
 	layout: AreaReducerState["layout"];
 	rootId: string;
 	joinPreview: AreaReducerState["joinPreview"];
+	areas: AreaReducerState["areas"];
 }
-type Props = StateProps;
+
+interface DispatchProps {
+	dispatch: Dispatch;
+}
+
+type Props = StateProps & DispatchProps;
 
 const AreaRootComponent: React.FC<Props> = (props) => {
-	const { joinPreview } = props;
+	const { joinPreview, areas, dispatch } = props;
 
 	const viewportMapRef = useRef<{ [areaId: string]: Rect }>({});
 
@@ -82,24 +90,35 @@ const AreaRootComponent: React.FC<Props> = (props) => {
 						);
 					}
 
-					return <Area key={id} viewport={areaToViewport[id]} id={id} />;
+					const area = areas[id];
+					return (
+						<AreaComponent
+							key={id}
+							viewport={areaToViewport[id]}
+							id={id}
+							state={area.state}
+							type={area.type}
+							raised={joinPreview?.eligibleAreaIds.includes(id) || false}
+							Component={areaComponentRegistry[area.type]}
+							dispatch={dispatch}
+						/>
+					);
 				})}
 			{joinPreview && joinPreview.areaId && (
-				<JoinAreaPreview
-					viewport={areaToViewport[joinPreview.areaId]}
-					movingInDirection={joinPreview.movingInDirection!}
-				/>
+				<JoinAreaPreview areaToViewport={areaToViewport} />
 			)}
 			<AreaToOpenPreview areaToViewport={areaToViewport} />
 			<div className={s("cursorCapture", { active: !!joinPreview })} />
 		</div>
-	);
+	) as React.ReactElement;
 };
 
-const mapStateToProps: MapActionState<StateProps> = ({ area }) => ({
+const mapStateToProps: MapActionState<StateProps & DispatchProps> = ({ area }, dispatch) => ({
 	joinPreview: area.joinPreview,
 	layout: area.layout,
 	rootId: area.rootId,
+	areas: area.areas,
+	dispatch: dispatch as Dispatch,
 });
 
 export const AreaRoot = connectActionState(mapStateToProps)(AreaRootComponent);

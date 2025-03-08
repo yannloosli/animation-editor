@@ -1,8 +1,8 @@
 import { Store } from "redux";
-import { AreaReducerState } from "~/area/state/areaReducer";
+import { AreaReducerState } from "~/area/state/areaSlice";
 import { CompositionState } from "~/composition/compositionReducer";
 import { CompositionSelectionState } from "~/composition/compositionSelectionReducer";
-import { ContextMenuState } from "~/contextMenu/contextMenuReducer";
+import { ContextMenuState } from "~/contextMenu/contextMenuSlice";
 import { FlowState } from "~/flow/state/flowReducers";
 import { FlowSelectionState } from "~/flow/state/flowSelectionReducer";
 import { ProjectState } from "~/project/projectReducer";
@@ -26,7 +26,7 @@ export type ApplicationState = {
     shapeSelectionState: HistoryState<ShapeSelectionState>;
     timelineState: HistoryState<TimelineState>;
     timelineSelectionState: HistoryState<TimelineSelectionState>;
-    tool: ToolState;
+    tool: ActionBasedState<ToolState>;
 };
 
 export type ActionState = {

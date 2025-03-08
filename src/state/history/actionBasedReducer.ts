@@ -20,7 +20,24 @@ export function createActionBasedReducer<S>(
 		action: null,
 	};
 
-	return (state: ActionBasedState<S> = initState, action: HistoryAction): ActionBasedState<S> => {
+	return (state: ActionBasedState<S> = initState, action: any): ActionBasedState<S> => {
+		// Traiter d'abord les actions normales
+		if (!action.type.startsWith('history/')) {
+			const newState = reducer(state.state, action);
+			if (newState === state.state) {
+				return state;
+			}
+			return {
+				...state,
+				state: newState,
+				action: state.action ? {
+					...state.action,
+					state: newState
+				} : null
+			};
+		}
+
+		// Ensuite traiter les actions d'historique
 		switch (action.type) {
 			case "history/START_ACTION": {
 				if (state.action) {

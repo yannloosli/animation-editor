@@ -1,13 +1,23 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Vec2 } from '~/util/math/vec2';
-import { ContextMenuOption } from './contextMenuReducer';
+
+export interface SerializableContextMenuOption {
+    id: string;
+    label: string;
+    icon?: string;
+    default?: boolean;
+    options?: SerializableContextMenuOption[];
+}
+
+export interface SerializablePosition {
+    x: number;
+    y: number;
+}
 
 export interface ContextMenuState {
     isOpen: boolean;
     name: string;
-    options: ContextMenuOption[];
-    position: Vec2;
-    close: (() => void) | null;
+    options: SerializableContextMenuOption[];
+    position: SerializablePosition;
     customContextMenu: null | any;
 }
 
@@ -15,8 +25,7 @@ export const initialState: ContextMenuState = {
     isOpen: false,
     name: "",
     options: [],
-    position: Vec2.new(0, 0),
-    close: null,
+    position: { x: 0, y: 0 },
     customContextMenu: null,
 };
 
@@ -24,30 +33,38 @@ const contextMenuSlice = createSlice({
     name: 'contextMenu',
     initialState,
     reducers: {
-        openContextMenu: (state, action: PayloadAction<{ name: string; options: ContextMenuOption[]; position: Vec2; close: () => void }>) => {
-            console.log("openContextMenu action:", action.payload);
+        openContextMenu: (state, action: PayloadAction<{ 
+            name: string; 
+            options: SerializableContextMenuOption[]; 
+            position: SerializablePosition; 
+        }>) => {
             state.isOpen = true;
             state.name = action.payload.name;
             state.options = action.payload.options;
             state.position = action.payload.position;
-            state.close = action.payload.close;
-            console.log("New state:", state);
         },
         closeContextMenu: (state) => {
-            console.log("closeContextMenu action");
             state.isOpen = false;
             state.name = "";
             state.options = [];
-            state.position = Vec2.new(0, 0);
-            state.close = null;
+            state.position = { x: 0, y: 0 };
             state.customContextMenu = null;
         },
         openCustomContextMenu: (state, action: PayloadAction<any>) => {
-            console.log("openCustomContextMenu action:", action.payload);
             state.customContextMenu = action.payload;
+        },
+        handleContextMenuOptionSelect: (state, action: PayloadAction<{ optionId: string }>) => {
+            // Cette action sera interceptée par un middleware qui gérera l'exécution de l'action
+            state.isOpen = false;
         }
     }
 });
 
-export const { openContextMenu, closeContextMenu, openCustomContextMenu } = contextMenuSlice.actions;
+export const { 
+    openContextMenu, 
+    closeContextMenu, 
+    openCustomContextMenu,
+    handleContextMenuOptionSelect 
+} = contextMenuSlice.actions;
+
 export default contextMenuSlice.reducer; 

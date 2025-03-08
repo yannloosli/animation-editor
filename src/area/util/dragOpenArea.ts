@@ -1,5 +1,5 @@
 import { areaOperations } from "~/area/areaOperations";
-import { areaActions } from "~/area/state/areaActions";
+import { setFields } from "~/area/state/areaSlice";
 import { computeAreaToViewport } from "~/area/util/areaToViewport";
 import { getAreaToOpenPlacementInViewport, getHoveredAreaId } from "~/area/util/areaUtils";
 import { getAreaRootViewport } from "~/area/util/getAreaViewport";
@@ -8,6 +8,7 @@ import { performOperation } from "~/state/operation";
 import { getActionState } from "~/state/stateUtils";
 import { Area } from "~/types/areaTypes";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
+import { Vec2 } from "~/util/math/vec2";
 
 interface Options {
 	area: Area;
@@ -49,11 +50,11 @@ export const dragOpenArea = (e: React.MouseEvent, options: Options) => {
 		},
 		mouseMove: (params, { mousePosition }) => {
 			position = mousePosition.global;
-			params.dispatch(areaActions.setFields({ areaToOpen: { area, position } }));
+			params.dispatch(setFields({ areaToOpen: { area, position } }));
 		},
 		mouseUp: (params, didMove) => {
 			if (!didMove) {
-				params.dispatch(areaActions.setFields({ areaToOpen: { area, position } }));
+				params.dispatch(setFields({ areaToOpen: { area, position } }));
 				return;
 			}
 			onDone(params);

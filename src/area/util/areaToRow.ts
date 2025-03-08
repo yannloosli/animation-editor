@@ -1,7 +1,7 @@
-import { AreaRowLayout } from "~/types/areaTypes";
 import { CardinalDirection } from "~/types";
+import { AreaRowLayout } from "~/types/areaTypes";
 
-const insertAtStart = (
+const shouldInsertAtStart = (
 	cornerParts: [CardinalDirection, CardinalDirection],
 	horizontal: boolean,
 ): boolean => {
@@ -18,19 +18,41 @@ export const areaToRow = (
 	horizontal: boolean,
 	cornerParts: [CardinalDirection, CardinalDirection],
 ): AreaRowLayout => {
-	const rowAreas: Array<AreaRowLayout["areas"][number]> = [{ size: 1, id: idForOldArea }];
+	// Vérifier les paramètres
+	if (!rowId || !idForOldArea || !idForNewArea) {
+		throw new Error('Missing required IDs');
+	}
 
-	rowAreas.splice(insertAtStart(cornerParts, horizontal) ? 0 : 1, 0, {
-		size: 0,
-		id: idForNewArea,
-	});
+	// Créer les areas avec des tailles égales
+	const rowAreas = [
+		{ size: 0.5, id: idForOldArea },
+		{ size: 0.5, id: idForNewArea }
+	];
 
+	// Déterminer l'ordre des areas en fonction des coins
+	const insertFirst = shouldInsertAtStart(cornerParts, horizontal);
+	if (insertFirst) {
+		rowAreas.reverse();
+	}
+
+	// Créer la nouvelle row avec le type explicite
 	const row: AreaRowLayout = {
-		type: "area_row",
+		type: "area_row" as const,
 		id: rowId,
 		areas: rowAreas,
-		orientation: horizontal ? "horizontal" : "vertical",
+		orientation: horizontal ? "horizontal" as const : "vertical" as const,
 	};
+
+	// Vérification finale de la structure
+	if (row.type !== "area_row") {
+		throw new Error('Invalid row type created');
+	}
+	if (!row.areas || row.areas.length !== 2) {
+		throw new Error('Invalid row areas created');
+	}
+	if (!row.orientation) {
+		throw new Error('Invalid row orientation');
+	}
 
 	return row;
 };

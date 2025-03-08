@@ -1,34 +1,54 @@
 import React from "react";
-import { _areaReactKeyRegistry, areaComponentRegistry } from "~/area/areaRegistry";
+import { Dispatch } from "redux";
+import { areaComponentRegistry } from "~/area/areaRegistry";
 import styles from "~/area/components/Area.styles";
 import { AreaErrorBoundary } from "~/area/components/AreaErrorBoundary";
 import { useAreaKeyboardShortcuts } from "~/area/components/useAreaKeyboardShortcuts";
 import { handleAreaDragFromCorner } from "~/area/handlers/areaDragFromCorner";
-import { areaActions } from "~/area/state/areaActions";
+import { setAreaType } from "~/area/state/areaSlice";
 import { AreaIdContext } from "~/area/util/AreaIdContext";
 import { EditIcon } from "~/components/icons/EditIcon";
 import { PenIcon } from "~/components/icons/PenIcon";
 import { AREA_BORDER_WIDTH, AreaType } from "~/constants";
-import { createContextMenuActions } from "~/contextMenu/contextMenuActions";
-import { connectActionState } from "~/state/stateUtils";
-import { store } from "~/state/store-init";
+import { closeContextMenu, openContextMenu } from "~/contextMenu/contextMenuSlice";
+import { isKeyDown } from "~/listener/keyboard";
+import { connectActionState, MapActionState } from "~/state/stateUtils";
+import { CardinalDirection, IntercardinalDirection } from "~/types";
 import { AreaComponentProps } from "~/types/areaTypes";
 import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(styles);
 
+const cornerDirections = {
+	nw: ["n", "w"],
+	ne: ["n", "e"],
+	sw: ["s", "w"],
+	se: ["s", "e"],
+} as const;
+
 interface OwnProps {
 	id: string;
-	viewport: Rect;
+	viewport: {
+		top: number;
+		left: number;
+		width: number;
+		height: number;
+	};
 }
+
 interface StateProps {
 	state: any;
 	type: AreaType;
 	raised: boolean;
 	Component: React.ComponentType<AreaComponentProps<any>>;
 }
-type Props = StateProps & OwnProps;
+
+interface DispatchProps {
+	dispatch: Dispatch;
+}
+
+type Props = StateProps & OwnProps & DispatchProps;
 
 const areaTypeOptions: Array<{ icon: React.ComponentType; type: AreaType; label: string }> = [
 	{
@@ -63,86 +83,101 @@ const typeToIndex = areaTypeOptions.reduce<{ [key: string]: number }>((obj, { ty
 	return obj;
 }, {});
 
+const getDirectionParts = (dir: string): [CardinalDirection, CardinalDirection] => {
+	const parts = dir.split("") as [CardinalDirection, CardinalDirection];
+	if (parts.length !== 2) {
+		throw new Error(`Invalid direction: ${dir}`);
+	}
+	return parts;
+};
+
 export const AreaComponent: React.FC<Props> = (props) => {
-	const { id, raised, viewport, Component, type } = props;
-
-	const { icon: Icon } = areaTypeOptions[typeToIndex[type]];
-
-	const openSelectArea = (_: React.MouseEvent) => {
-		console.log("openSelectArea called");
-		const pos = Vec2.new(viewport.left + 4, viewport.top + 4);
-		console.log("Position:", pos);
-		const contextMenuActions = createContextMenuActions(store.dispatch);
-		contextMenuActions.openContextMenu(
-			"Area type",
-			[
-				{
-					label: "Project",
-					type: AreaType.Project,
-				},
-				{
-					label: "Timeline",
-					type: AreaType.Timeline,
-				},
-				{
-					label: "Workspace",
-					type: AreaType.Workspace,
-				},
-				{
-					label: "Node Editor",
-					type: AreaType.FlowEditor,
-				},
-				{
-					label: "History",
-					type: AreaType.History,
-				},
-			].map((item) => ({
-				// icon: item.icon,
-				label: item.label,
-				onSelect: () => {
-					console.log("Option selected:", item.label);
-					store.dispatch(areaActions.setAreaType(id, item.type, {}));
-					contextMenuActions.closeContextMenu();
-				},
-			})),
-			pos,
-			() => contextMenuActions.closeContextMenu(),
-		);
-	};
-
-	const areaStateKey = _areaReactKeyRegistry[props.type];
-	const key = areaStateKey ? props.state[areaStateKey] : props.id;
+	const { viewport, id, state, type, raised, Component, dispatch } = props;
+	const [hoveredCorners, setHoveredCorners] = React.useState<Set<string>>(new Set());
 
 	useAreaKeyboardShortcuts(id, type, viewport);
 
+	// Gérer les changements d'état de la touche Alt
+	React.useEffect(() => {
+		const handleKeyChange = (e: KeyboardEvent) => {
+			if (e.key === "Alt" && hoveredCorners.size > 0) {
+				// Force un re-render pour mettre à jour le curseur
+				setHoveredCorners(new Set(hoveredCorners));
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyChange);
+		window.addEventListener("keyup", handleKeyChange);
+
+		return () => {
+			window.removeEventListener("keydown", handleKeyChange);
+			window.removeEventListener("keyup", handleKeyChange);
+		};
+	}, [hoveredCorners]);
+
+	const openSelectArea = (_: React.MouseEvent) => {
+		const pos = Vec2.new(viewport.left + 4, viewport.top + 4);
+		dispatch(openContextMenu({
+			name: "Area type",
+			options: areaTypeOptions.map((option) => ({
+				id: option.type,
+				label: option.label,
+				onSelect: () => {
+					dispatch(setAreaType({ areaId: id, type: option.type }));
+					dispatch(closeContextMenu());
+				},
+			})),
+			position: pos,
+		}));
+	};
+
 	return (
-		<div data-areaid={id} className={s("area", { raised })} style={viewport}>
-			{["ne", "nw", "se", "sw"].map((dir) => (
-				<div
-					key={dir}
-					className={s("area__corner", { [dir]: true })}
-					onMouseDown={(e) => handleAreaDragFromCorner(e, dir as "ne", id, viewport)}
-				/>
-			))}
-			<button className={s("selectAreaButton")} onMouseDown={openSelectArea}>
-				<Icon />
-			</button>
-			<div className={s("area__content")}>
-				<AreaIdContext.Provider value={props.id}>
+		<AreaIdContext.Provider value={id}>
+			<div
+				className={s("area", { raised })}
+				style={viewport}
+				data-area-id={id}
+				data-area-type={type}
+			>
+				<div className={s("area__content")}>
 					<AreaErrorBoundary
-						key={key}
 						component={Component}
-						areaId={props.id}
-						areaState={props.state}
+						areaId={id}
+						areaState={state}
 						left={viewport.left + AREA_BORDER_WIDTH}
 						top={viewport.top + AREA_BORDER_WIDTH}
 						width={viewport.width - AREA_BORDER_WIDTH * 2}
 						height={viewport.height - AREA_BORDER_WIDTH * 2}
 					/>
-				</AreaIdContext.Provider>
+				</div>
+				{Object.entries(cornerDirections).map(([dir, parts]) => (
+					<div
+						key={dir}
+						className={s("area__corner", { [dir]: true })}
+						style={{
+							cursor: hoveredCorners.has(dir) && isKeyDown("Alt") ? "alias" : "crosshair"
+						}}
+						onMouseDown={(e) => {
+							handleAreaDragFromCorner(e, dir as IntercardinalDirection, id, viewport);
+						}}
+						onMouseEnter={() => {
+							const newHoveredCorners = new Set(hoveredCorners);
+							newHoveredCorners.add(dir);
+							setHoveredCorners(newHoveredCorners);
+						}}
+						onMouseLeave={() => {
+							const newHoveredCorners = new Set(hoveredCorners);
+							newHoveredCorners.delete(dir);
+							setHoveredCorners(newHoveredCorners);
+						}}
+					/>
+				))}
+				<div className={s("selectAreaButton")} onClick={openSelectArea}>
+					<EditIcon />
+				</div>
 			</div>
-		</div>
-	);
+		</AreaIdContext.Provider>
+	) as React.ReactElement;
 };
 
 const mapStateToProps: MapActionState<StateProps, OwnProps> = (

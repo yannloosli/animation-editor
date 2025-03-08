@@ -1,13 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import { Dispatch } from "redux";
 import { CONTEXT_MENU_OPTION_HEIGHT, DEFAULT_CONTEXT_MENU_WIDTH } from "~/constants";
-import {
-    ContextMenuActionOption,
-    ContextMenuListOption,
-    ContextMenuOption
-} from "~/contextMenu/contextMenuReducer";
+import { ContextMenuState, SerializableContextMenuOption, closeContextMenu, handleContextMenuOptionSelect } from "~/contextMenu/contextMenuSlice";
 import styles from "~/contextMenu/normal/NormalContextMenu.styles";
-import { RootState } from "~/state/store-init";
+import { connectActionState } from "~/state/stateUtils";
 import { boundingRectOfRects, isVecInRect } from "~/util/math";
 import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheet } from "~/util/stylesheets";
@@ -17,29 +13,35 @@ const s = compileStylesheet(styles);
 const CLOSE_MENU_BUFFER = 100;
 const REDUCE_STACK_BUFFER = 64;
 
-const NormalContextMenuComponent: React.FC = () => {
-	const props = useSelector((state: RootState) => state.contextMenu);
-	console.log("NormalContextMenu props:", props);
+interface StateProps {
+    contextMenu: ContextMenuState;
+}
 
+interface DispatchProps {
+    dispatch: Dispatch;
+}
+
+type Props = StateProps & DispatchProps;
+
+const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) => {
 	const [rect, setRect] = useState<Rect | null>(null);
 	const [reduceStackRect, setReduceStackRect] = useState<Rect | null>(null);
 	const [stack, setStack] = useState<
-		Array<{ position: Vec2; options: ContextMenuOption[]; fromIndex: number }>
+		Array<{ position: Vec2; options: SerializableContextMenuOption[]; fromIndex: number }>
 	>([]);
 
 	const mouseOverOptionListener = useRef<number | null>(null);
 
 	useEffect(() => {
-		console.log("NormalContextMenu useEffect - props changed:", props);
-		if (!props.isOpen) {
+		if (!contextMenu.isOpen) {
 			setStack([]);
 			return;
 		}
 
-		let position = props.position;
+		let position = Vec2.new(contextMenu.position.x, contextMenu.position.y);
 
-		for (let i = 0; i < props.options.length; i += 1) {
-			if (props.options[i].default) {
+		for (let i = 0; i < contextMenu.options.length; i += 1) {
+			if (contextMenu.options[i].default) {
 				position = position.add(
 					Vec2.new(
 						-(DEFAULT_CONTEXT_MENU_WIDTH - 40),
@@ -50,8 +52,8 @@ const NormalContextMenuComponent: React.FC = () => {
 			}
 		}
 
-		setStack([{ position, options: props.options, fromIndex: -1 }]);
-	}, [props.isOpen]);
+		setStack([{ position, options: contextMenu.options, fromIndex: -1 }]);
+	}, [contextMenu.isOpen]);
 
 	useEffect(() => {
 		setTimeout(() => {
@@ -74,7 +76,7 @@ const NormalContextMenuComponent: React.FC = () => {
 		});
 	}, [stack]);
 
-	if (!props.isOpen) {
+	if (!contextMenu.isOpen) {
 		return null;
 	}
 
@@ -97,11 +99,11 @@ const NormalContextMenuComponent: React.FC = () => {
 			y < rect.top - CLOSE_MENU_BUFFER ||
 			y > rect.top + rect.height + CLOSE_MENU_BUFFER
 		) {
-			props.close?.();
+			dispatch(closeContextMenu());
 		}
 	};
 
-	const onListMouseOver = (options: ContextMenuOption[], i: number, j: number) => {
+	const onListMouseOver = (options: SerializableContextMenuOption[], i: number, j: number) => {
 		if (i !== stack.length - 1) {
 			return;
 		}
@@ -140,7 +142,7 @@ const NormalContextMenuComponent: React.FC = () => {
 			<div
 				className={s("background")}
 				onMouseMove={onMouseMove}
-				onMouseDown={() => props.close?.()}
+				onMouseDown={() => dispatch(closeContextMenu())}
 			/>
 			{stack.map(({ options, position }, i) => {
 				return (
@@ -153,7 +155,7 @@ const NormalContextMenuComponent: React.FC = () => {
 					>
 						{i === 0 && (
 							<>
-								<div className={s("name")}>{props.name}</div>
+								<div className={s("name")}>{contextMenu.name}</div>
 								<div className={s("separator")} />
 							</>
 						)}
@@ -161,8 +163,7 @@ const NormalContextMenuComponent: React.FC = () => {
 						{options.map((option, j) => {
 							const Icon = option.icon;
 
-							if ((option as ContextMenuListOption).options) {
-								const { options } = option as ContextMenuListOption;
+							if (option.options) {
 								const active = stack[i + 1]?.fromIndex === j;
 								const eligible = active || i === stack.length - 1;
 
@@ -172,7 +173,7 @@ const NormalContextMenuComponent: React.FC = () => {
 										data-option={`${i}-${j}`}
 										className={s("option", { active, eligible })}
 										onMouseMove={(e) => e.stopPropagation()}
-										onMouseOver={() => onListMouseOver(options, i, j)}
+										onMouseOver={() => onListMouseOver(option.options!, i, j)}
 										onMouseOut={() => onListMouseOut(i)}
 									>
 										{Icon && (
@@ -190,7 +191,7 @@ const NormalContextMenuComponent: React.FC = () => {
 								<button
 									className={s("option", { eligible: i === stack.length - 1 })}
 									key={j}
-									onClick={(option as ContextMenuActionOption).onSelect}
+									onClick={() => dispatch(handleContextMenuOptionSelect({ optionId: option.id }))}
 								>
 									{Icon && (
 										<i className={s("option__icon")}>
@@ -208,4 +209,8 @@ const NormalContextMenuComponent: React.FC = () => {
 	);
 };
 
-export const NormalContextMenu = NormalContextMenuComponent;
+const mapStateToProps = (state: ActionState): StateProps => ({
+    contextMenu: state.contextMenu
+});
+
+export const NormalContextMenu = connectActionState(mapStateToProps)(NormalContextMenuComponent);
