@@ -14,6 +14,7 @@ import toolReducer, { initialState as initialToolState, ToolState } from "~/tool
 import { initialCompositionWorkspaceAreaState, WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 import { workspaceReducer } from "~/workspace/workspaceSlice";
 import { ActionBasedState, createActionBasedReducer } from "./history/actionBasedReducer";
+import historyReducer from "./history/historySlice";
 import { createSelectionUndoableConfig, createUndoableReducer, UndoableState } from "./undoConfig";
 
 declare global {
@@ -31,6 +32,7 @@ declare global {
 		timelineSelectionState: UndoableState<TimelineSelectionState>;
 		tool: ActionBasedState<ToolState>;
 		workspace: ActionBasedState<WorkspaceAreaState>;
+		history: any;
 	}
 
 	interface ActionState {
@@ -77,6 +79,9 @@ const rootReducer = combineReducers({
 	contextMenu: createActionBasedReducer(initialContextMenuState, contextMenuReducer),
 	tool: createActionBasedReducer(initialToolState, toolReducer),
 	workspace: createActionBasedReducer(initialCompositionWorkspaceAreaState, workspaceReducer),
+
+	// Nouvel état d'historique
+	history: historyReducer,
 });
 
 export default rootReducer;

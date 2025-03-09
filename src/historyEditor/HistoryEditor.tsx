@@ -1,6 +1,8 @@
 import React from "react";
-import { connect } from "react-redux";
+import { useSelector } from "react-redux";
 import styles from "~/historyEditor/HistoryEditor.styles";
+import { HistoryItem } from "~/state/history/historySlice";
+import { RootState } from "~/state/store-types";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(styles);
@@ -46,7 +48,7 @@ const RedoIcon = () => (
 
 const ArrowDownRightIcon = () => (
 	<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-		<path d="M12.5 21.5H21.6913V26L32 19.4667L21.6913 12.9333V17.4333H13.2181V2H9.20471V18.1667C9.20471 20.56 10.1277 21.5 12.5 21.5Z" />
+		<path d="M24 8L8 24M24 24H8V8" stroke="currentColor" strokeWidth="2" />
 	</svg>
 );
 
@@ -54,29 +56,20 @@ interface State {
 	loaded: boolean;
 }
 
-class HistoryEditor extends React.Component<ApplicationState, State> {
-	public readonly state: State = {
-		loaded: false,
-	};
+export const HistoryEditor: React.FC = () => {
+	const [loaded, setLoaded] = React.useState(false);
+	const scrollContainer = React.useRef<HTMLDivElement>(null);
+	const currentEl = React.useRef<HTMLDivElement>(null);
 
-	private scrollContainer = React.createRef<HTMLDivElement>();
-	private currentEl = React.createRef<HTMLDivElement>();
+	const { list, index } = useSelector((state: RootState) => state.history);
 
-	public shouldComponentUpdate(prevProps: ApplicationState) {
-		if (this.props.flowState.index !== prevProps.flowState.index) {
-			return true;
-		}
+	React.useEffect(() => {
+		setLoaded(true);
+	}, []);
 
-		return false;
-	}
-
-	public componentDidMount() {
-		this.setState({ loaded: true });
-	}
-
-	public componentDidUpdate() {
-		const scroll = this.scrollContainer.current;
-		const target = this.currentEl.current;
+	React.useEffect(() => {
+		const scroll = scrollContainer.current;
+		const target = currentEl.current;
 
 		if (!scroll || !target) {
 			return;
@@ -87,64 +80,51 @@ class HistoryEditor extends React.Component<ApplicationState, State> {
 
 		const scrollY = targetTop - elTop + scroll.scrollTop;
 		scroll.scrollTop = scrollY - height / 2;
-	}
+	}, [index]);
 
-	public render() {
-		const { list, index } = this.props.flowState;
+	const undo = list.slice(0, index);
+	const redo = list.slice(index + 1);
 
-		const undo = list.slice(0, index);
-		const redo = list.slice(index + 1);
-
-		return (
-			<div className={s("container")} ref={this.scrollContainer}>
-				<div className={s("stack")}>
-					<i className={s("stackIcon", { undo: true })}>
-						<UndoIcon />
-					</i>
-					<ul className={s("list")}>
-						{undo.map((item, i) => (
-							<li key={i} className={s("item")}>
-								{/* <div className={s("savedIndicator", { active: item.saved })} /> */}
-								<span className={s("itemIcon")}>
-									<EditIcon />
-								</span>
-								&nbsp;({i + 1})&nbsp;{item.name}
-							</li>
-						))}
-					</ul>
-				</div>
-				<div className={s("currentItem")} ref={this.currentEl}>
-					<span className={s("itemIcon")}>
-						<ArrowDownRightIcon />
-					</span>
-					{/* <div
-            className={s("savedIndicator", {
-              active: fields.saved && fields.undo[fields.undo.length - 1].state === fields.current,
-            })}
-          /> */}
-					&nbsp;({index + 1})&nbsp;{list[index].name}
-				</div>
-				<div className={s("stack")}>
-					<i className={s("stackIcon", { redo: true })}>
-						<RedoIcon />
-					</i>
-					<ul className={s("list")}>
-						{redo.map((item, i) => (
-							<li key={i} className={s("item", { redo: true })}>
-								{/* <div className={s("savedIndicator", { active: item.saved })} /> */}
-								<span className={s("itemIcon", { redo: true })}>
-									<EditIcon />
-								</span>{" "}
-								{item.name}
-							</li>
-						))}
-					</ul>
-				</div>
+	return (
+		<div className={s("container")} ref={scrollContainer}>
+			<div className={s("stack")}>
+				<i className={s("stackIcon", { undo: true })}>
+					<UndoIcon />
+				</i>
+				<ul className={s("list")}>
+					{undo.map((item: HistoryItem, i: number) => (
+						<li key={i} className={s("item")}>
+							<span className={s("itemIcon")}>
+								<EditIcon />
+							</span>
+							&nbsp;({i + 1})&nbsp;{item.name}
+						</li>
+					))}
+				</ul>
 			</div>
-		);
-	}
-}
+			<div className={s("currentItem")} ref={currentEl}>
+				<span className={s("itemIcon")}>
+					<ArrowDownRightIcon />
+				</span>
+				&nbsp;({index + 1})&nbsp;{list[index]?.name || "Initial state"}
+			</div>
+			<div className={s("stack")}>
+				<i className={s("stackIcon", { redo: true })}>
+					<RedoIcon />
+				</i>
+				<ul className={s("list")}>
+					{redo.map((item: HistoryItem, i: number) => (
+						<li key={i} className={s("item", { redo: true })}>
+							<span className={s("itemIcon", { redo: true })}>
+								<EditIcon />
+							</span>
+							{item.name}
+						</li>
+					))}
+				</ul>
+			</div>
+		</div>
+	);
+};
 
-const mapStateToProps = (state: ApplicationState) => state;
-
-export default connect(mapStateToProps)(HistoryEditor);
+export default HistoryEditor;

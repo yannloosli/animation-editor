@@ -1,4 +1,4 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, Middleware } from "@reduxjs/toolkit";
 import { registerAreaTypeHandlers } from "~/area/handlers/areaTypeHandlers";
 import { initialState as initialAreaState } from "~/area/state/areaSlice";
 import { initialCompositionState } from "~/composition/compositionReducer";
@@ -17,7 +17,142 @@ import { initialTimelineSelectionState } from "~/timeline/timelineSelectionReduc
 import { initialState as initialToolState } from "~/toolbar/toolSlice";
 import { initialCompositionWorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 import { workspaceMiddleware } from "~/workspace/workspaceMiddleware";
-import { ApplicationState } from "./store-types";
+import type { ApplicationState } from "./store-types";
+
+// État initial par défaut
+const defaultInitialState: ApplicationState = {
+    area: { state: initialAreaState, action: null },
+    compositionState: { 
+        past: [],
+        present: initialCompositionState,
+        future: [],
+        _latestUnfiltered: initialCompositionState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    compositionSelectionState: { 
+        past: [],
+        present: initialCompositionSelectionState,
+        future: [],
+        _latestUnfiltered: initialCompositionSelectionState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    flowState: { 
+        past: [],
+        present: initialFlowState,
+        future: [],
+        _latestUnfiltered: initialFlowState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    flowSelectionState: { 
+        past: [],
+        present: initialFlowSelectionState,
+        future: [],
+        _latestUnfiltered: initialFlowSelectionState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    contextMenu: { state: initialContextMenuState, action: null },
+    project: {
+        past: [],
+        present: {
+            compositions: {
+                default: {
+                    id: "default",
+                    name: "Default Composition",
+                    layers: [],
+                    width: 800,
+                    height: 600,
+                    length: 100,
+                    frameIndex: 0
+                }
+            },
+            dragComp: null,
+            playback: null,
+            selectedCompositionId: "default"
+        },
+        future: [],
+        _latestUnfiltered: {
+            compositions: {
+                default: {
+                    id: "default",
+                    name: "Default Composition",
+                    layers: [],
+                    width: 800,
+                    height: 600,
+                    length: 100,
+                    frameIndex: 0
+                }
+            },
+            dragComp: null,
+            playback: null,
+            selectedCompositionId: "default"
+        },
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    shapeState: { 
+        past: [],
+        present: initialShapeState,
+        future: [],
+        _latestUnfiltered: initialShapeState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    shapeSelectionState: { 
+        past: [],
+        present: initialShapeSelectionState,
+        future: [],
+        _latestUnfiltered: initialShapeSelectionState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    timelineState: { 
+        past: [],
+        present: initialTimelineState,
+        future: [],
+        _latestUnfiltered: initialTimelineState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    timelineSelectionState: { 
+        past: [],
+        present: initialTimelineSelectionState,
+        future: [],
+        _latestUnfiltered: initialTimelineSelectionState,
+        group: null,
+        index: 0,
+        limit: 50
+    },
+    tool: { state: initialToolState, action: null },
+    workspace: { 
+        state: {
+            ...initialCompositionWorkspaceAreaState,
+            pan: {
+                x: initialCompositionWorkspaceAreaState.pan.x,
+                y: initialCompositionWorkspaceAreaState.pan.y
+            }
+        }, 
+        action: null 
+    },
+    history: {
+        type: "normal",
+        list: [],
+        index: -1,
+        indexDirection: 1,
+        action: null
+    }
+};
 
 // Récupérer l'état initial sauvegardé
 let initialState: ApplicationState | undefined;
@@ -26,130 +161,7 @@ const savedActionState = getSavedActionState();
 if (savedActionState) {
     initialState = createApplicationStateFromActionState(savedActionState);
 } else {
-    initialState = {
-        area: { state: initialAreaState, action: null },
-        compositionState: { 
-            past: [],
-            present: initialCompositionState,
-            future: [],
-            _latestUnfiltered: initialCompositionState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        compositionSelectionState: { 
-            past: [],
-            present: initialCompositionSelectionState,
-            future: [],
-            _latestUnfiltered: initialCompositionSelectionState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        flowState: { 
-            past: [],
-            present: initialFlowState,
-            future: [],
-            _latestUnfiltered: initialFlowState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        flowSelectionState: { 
-            past: [],
-            present: initialFlowSelectionState,
-            future: [],
-            _latestUnfiltered: initialFlowSelectionState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        contextMenu: { state: initialContextMenuState, action: null },
-        project: { 
-            past: [],
-            present: {
-                compositions: {
-                    default: {
-                        id: "default",
-                        name: "Default Composition",
-                        layers: [],
-                        width: 800,
-                        height: 600,
-                        length: 100,
-                        frameIndex: 0
-                    }
-                },
-                dragComp: null,
-                playback: null
-            },
-            future: [],
-            _latestUnfiltered: {
-                compositions: {
-                    default: {
-                        id: "default",
-                        name: "Default Composition",
-                        layers: [],
-                        width: 800,
-                        height: 600,
-                        length: 100,
-                        frameIndex: 0
-                    }
-                },
-                dragComp: null,
-                playback: null
-            },
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        shapeState: { 
-            past: [],
-            present: initialShapeState,
-            future: [],
-            _latestUnfiltered: initialShapeState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        shapeSelectionState: { 
-            past: [],
-            present: initialShapeSelectionState,
-            future: [],
-            _latestUnfiltered: initialShapeSelectionState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        timelineState: { 
-            past: [],
-            present: initialTimelineState,
-            future: [],
-            _latestUnfiltered: initialTimelineState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        timelineSelectionState: { 
-            past: [],
-            present: initialTimelineSelectionState,
-            future: [],
-            _latestUnfiltered: initialTimelineSelectionState,
-            group: null,
-            index: 0,
-            limit: 50
-        },
-        tool: { state: initialToolState, action: null },
-        workspace: { 
-            state: {
-                ...initialCompositionWorkspaceAreaState,
-                pan: {
-                    x: initialCompositionWorkspaceAreaState.pan.x,
-                    y: initialCompositionWorkspaceAreaState.pan.y
-                }
-            }, 
-            action: null 
-        }
-    };
+    initialState = defaultInitialState;
 }
 
 // Configuration commune pour la sérialisation
@@ -170,30 +182,14 @@ const serializableCheckConfig = {
     ]
 };
 
-// Enregistrer les gestionnaires de type d'area
-registerAreaTypeHandlers();
-
-// Créer le store RTK avec le middleware de compatibilité
+// Créer le store
 export const store = configureStore({
     reducer: rootReducer,
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: false,
+        }).concat(contextMenuMiddleware as Middleware, workspaceMiddleware as Middleware),
     preloadedState: initialState,
-    middleware: (getDefaultMiddleware) => {
-        const middleware = getDefaultMiddleware({
-            serializableCheck: {
-                ...serializableCheckConfig,
-                warnAfter: 128
-            },
-            immutableCheck: {
-                warnAfter: 128
-            }
-        });
-
-        return [
-            contextMenuMiddleware as any,
-            ...middleware,
-            workspaceMiddleware as any
-        ];
-    }
 });
 
 // Vérification de l'état initial du store
@@ -202,3 +198,6 @@ console.log('Initial store state:', store.getState());
 // Types pour TypeScript
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+// Enregistrer les gestionnaires d'événements pour les types de zones
+registerAreaTypeHandlers();

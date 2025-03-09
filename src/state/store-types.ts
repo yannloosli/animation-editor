@@ -15,6 +15,7 @@ import { TimelineSelectionState } from "~/timeline/timelineSelectionReducer";
 import { ToolState } from "~/toolbar/toolSlice";
 import { WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 import { ActionBasedState } from "./history/actionBasedReducer";
+import { HistoryState } from "./history/historySlice";
 
 // Type pour les actions de base de redux-undo
 export interface UndoableAction {
@@ -40,6 +41,7 @@ export type ApplicationState = {
     timelineSelectionState: StateWithHistory<TimelineSelectionState>;
     tool: ActionBasedState<ToolState>;
     workspace: ActionBasedState<WorkspaceAreaState>;
+    history: HistoryState;
 };
 
 export type ActionState = {
@@ -57,6 +59,8 @@ export type ActionState = {
     tool: ToolState;
     workspace: WorkspaceAreaState;
 };
+
+export type RootState = ApplicationState;
 
 export type StoreType = Store<ApplicationState>;
 export type AppDispatch = Dispatch<AnyAction>; 
