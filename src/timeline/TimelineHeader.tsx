@@ -1,27 +1,25 @@
 import React from "react";
+import { useDispatch } from "react-redux";
 import { dispatchToAreaState } from "~/area/state/areaSlice";
-import { requestAction } from "~/listener/requestAction";
-import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
-import TimelineHeaderStyles from "~/timeline/TimelineHeader.styles";
+import { toggleGraphEditorOpen } from "~/timeline/timelineAreaSlice";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
+import TimelineHeaderStyles from "./TimelineHeader.styles";
 
 const s = compileStylesheetLabelled(TimelineHeaderStyles);
 
-interface Props {
+interface OwnProps {
 	areaId: string;
 }
 
-export const TimelineHeader: React.FC<Props> = (props) => {
-	const onToggleGraphEditor = () => {
-		requestAction({ history: false }, (params) => {
-			params.dispatch(
-				dispatchToAreaState(
-					props.areaId,
-					timelineAreaActions.toggleGraphEditorOpen(),
-				),
-			);
-			params.submitAction();
-		});
+export const TimelineHeader: React.FC<OwnProps> = (props) => {
+	const { areaId } = props;
+	const dispatch = useDispatch();
+
+	const onGraphEditorToggleClick = () => {
+		dispatch(dispatchToAreaState({
+			areaId,
+			action: toggleGraphEditorOpen(),
+		}));
 	};
 
 	return (
@@ -40,7 +38,7 @@ export const TimelineHeader: React.FC<Props> = (props) => {
 			<button
 				className={s("graphEditorToggle")}
 				onMouseDown={(e) => e.stopPropagation()}
-				onClick={onToggleGraphEditor}
+				onClick={onGraphEditorToggleClick}
 			>
 				Graph Editor
 			</button>

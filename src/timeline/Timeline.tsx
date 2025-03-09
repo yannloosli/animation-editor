@@ -9,7 +9,7 @@ import { connectActionState } from "~/state/stateUtils";
 import { TimelineLayerParentPickWhipPreview } from "~/timeline/layer/TimelineLayerParentPickWhipPreview";
 import { TimelineScrubber } from "~/timeline/scrubber/TimelineScrubber";
 import styles from "~/timeline/Timeline.styles";
-import { timelineAreaActions, TimelineAreaState } from "~/timeline/timelineAreaReducer";
+import { setViewBounds, TimelineAreaState } from "~/timeline/timelineAreaSlice";
 import { timelineHandlers } from "~/timeline/timelineHandlers";
 import { TimelineHeader } from "~/timeline/TimelineHeader";
 import { TimelineLayerList } from "~/timeline/TimelineLayerList";
@@ -214,7 +214,7 @@ const TimelineComponent: React.FC<Props> = (props) => {
 									params.dispatch(
 										dispatchToAreaState({
 											areaId: props.areaId,
-											action: timelineAreaActions.setViewBounds(viewBounds),
+											action: setViewBounds(viewBounds),
 										}),
 									);
 								},

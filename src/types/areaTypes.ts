@@ -1,6 +1,7 @@
 import { AreaType } from "~/constants";
 import { FlowAreaState } from "~/flow/state/flowAreaReducer";
-import { TimelineAreaState } from "~/timeline/timelineAreaReducer";
+import { TimelineAreaState } from "~/timeline/timelineAreaSlice";
+import { Vec2 } from "~/util/math/vec2";
 import { WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 
 export interface AreaToOpen {

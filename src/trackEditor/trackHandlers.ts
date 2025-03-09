@@ -18,7 +18,7 @@ import { RequestActionParams } from "~/listener/requestAction";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { timelineActions, timelineSelectionActions } from "~/timeline/timelineActions";
-import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
+import { setFields } from "~/timeline/timelineAreaSlice";
 import {
     getTimelineSelection,
     graphEditorGlobalToNormal,
@@ -666,7 +666,7 @@ export const trackHandlers = {
 
 				params.dispatchToAreaState(
 					options.timelineAreaId,
-					timelineAreaActions.setFields({ trackDragSelectRect }),
+					setFields({ trackDragSelectRect }),
 				);
 			},
 			mouseUp: (params, hasMoved) => {
@@ -788,7 +788,7 @@ export const trackHandlers = {
 
 				params.dispatchToAreaState(
 					options.timelineAreaId,
-					timelineAreaActions.setFields({ trackDragSelectRect: null }),
+					setFields({ trackDragSelectRect: null }),
 				);
 				params.submitAction("Select keyframes");
 			},

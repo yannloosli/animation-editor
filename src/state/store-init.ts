@@ -1,8 +1,6 @@
 import { configureStore, Middleware } from "@reduxjs/toolkit";
 import { registerAreaTypeHandlers } from "~/area/handlers/areaTypeHandlers";
-import { areaCompatibilityMiddleware } from "~/area/state/areaMiddleware";
 import { areaSlice } from "~/area/state/areaSlice";
-import { compositionCompatibilityMiddleware } from "~/composition/compositionCompatibilityMiddleware";
 import { initialCompositionSelectionState } from "~/composition/compositionSelectionSlice";
 import { contextMenuMiddleware } from "~/contextMenu/contextMenuMiddleware";
 import { initialState as initialContextMenuState } from "~/contextMenu/contextMenuSlice";
@@ -18,7 +16,6 @@ import { initialTimelineState } from "~/timeline/timelineReducer";
 import { initialTimelineSelectionState } from "~/timeline/timelineSelectionReducer";
 import { initialState as initialToolState } from "~/toolbar/toolSlice";
 import { initialCompositionWorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
-import { workspaceMiddleware } from "~/workspace/workspaceMiddleware";
 import type { ApplicationState } from "./store-types";
 
 // État initial par défaut
@@ -231,10 +228,7 @@ export const store = configureStore({
         }).concat(
             debugMiddleware,
             contextMenuMiddleware as Middleware,
-            workspaceMiddleware as Middleware,
             shapeCompatibilityMiddleware as Middleware,
-            compositionCompatibilityMiddleware as Middleware,
-            areaCompatibilityMiddleware as Middleware,
         ),
     preloadedState: initialState,
 });

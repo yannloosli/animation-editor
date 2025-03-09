@@ -40,8 +40,7 @@ import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { timelineOperations } from "~/timeline/operations/timelineOperations";
 import { timelineActions, timelineSelectionActions } from "~/timeline/timelineActions";
-import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
-import { setViewBounds } from "~/timeline/timelineAreaSlice";
+import { setFields, setPanY, setViewBounds } from "~/timeline/timelineAreaSlice";
 import { createTimelineContextMenu } from "~/timeline/timelineContextMenu";
 import {
     createTimelineForLayerProperty,
@@ -261,7 +260,7 @@ export const timelineHandlers = {
 				dispatch(
 					dispatchToAreaState({
 						areaId,
-						action: timelineAreaActions.setPanY(yPan),
+						action: setPanY(yPan),
 					}),
 				);
 			}
@@ -276,7 +275,7 @@ export const timelineHandlers = {
 				dispatch(
 					dispatchToAreaState({
 						areaId,
-						action: timelineAreaActions.setViewBounds(newBounds),
+						action: setViewBounds(newBounds),
 					}),
 				);
 			}
@@ -325,7 +324,7 @@ export const timelineHandlers = {
 			dispatch(
 				dispatchToAreaState({
 					areaId,
-					action: timelineAreaActions.setViewBounds(newBounds),
+					action: setViewBounds(newBounds),
 				}),
 			);
 			submitAction();
@@ -362,7 +361,7 @@ export const timelineHandlers = {
 					dispatch(
 						dispatchToAreaState({
 							areaId,
-							action: timelineAreaActions.setPanY(yPan),
+							action: setPanY(yPan),
 						}),
 					);
 				}
@@ -376,7 +375,7 @@ export const timelineHandlers = {
 				dispatch(
 					dispatchToAreaState({
 						areaId,
-						action: timelineAreaActions.setViewBounds(newBounds),
+						action: setViewBounds(newBounds),
 					}),
 				);
 			};
@@ -664,7 +663,7 @@ export const timelineHandlers = {
 
 				params.dispatchToAreaState(
 					areaId,
-					timelineAreaActions.setFields({
+					setFields({
 						moveLayers: getInsertBelowLayerIndex(mousePosition.global),
 					}),
 				);
@@ -686,7 +685,7 @@ export const timelineHandlers = {
 				if (moveLayersState) {
 					params.dispatchToAreaState(
 						areaId,
-						timelineAreaActions.setFields({ moveLayers: null }),
+						setFields({ moveLayers: null }),
 					);
 
 					if (moveLayersState.type === "invalid") {
@@ -1067,7 +1066,7 @@ export const timelineHandlers = {
 			dispatch(
 				dispatchToAreaState({
 					areaId,
-					action: timelineAreaActions.setFields({
+					action: setFields({
 						pickWhipLayerParent: {
 							fromId: layerId,
 							to: Vec2.fromEvent(e.nativeEvent),
@@ -1093,7 +1092,7 @@ export const timelineHandlers = {
 			dispatch(
 				dispatchToAreaState({
 					areaId,
-					action: timelineAreaActions.setFields({
+					action: setFields({
 						pickWhipLayerParent: null,
 					}),
 				}),

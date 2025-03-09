@@ -4,8 +4,9 @@ import { AreaType } from "~/constants";
 import { layerOperations } from "~/layer/layerOperations";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
-import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
+import { setFields } from "~/timeline/timelineAreaSlice";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
+import { Vec2 } from "~/util/math/vec2";
 
 export const layerHandlers = {
 	onLayerParentWhipMouseDown: (e: React.MouseEvent, areaId: string, layerId: string) => {
@@ -20,10 +21,10 @@ export const layerHandlers = {
 			mouseMove: (params, { mousePosition }) => {
 				params.dispatchToAreaState(
 					areaId,
-					timelineAreaActions.setFields({
+					setFields({
 						pickWhipLayerParent: {
 							fromId: layerId,
-							to: mousePosition.global.subXY(1, 3),
+							to: Vec2.new(mousePosition.global.x - 1, mousePosition.global.y - 3),
 						},
 					}),
 				);
@@ -57,7 +58,7 @@ export const layerHandlers = {
 				op.submit();
 				params.dispatchToAreaState(
 					areaId,
-					timelineAreaActions.setFields({
+					setFields({
 						pickWhipLayerParent: null,
 					}),
 				);

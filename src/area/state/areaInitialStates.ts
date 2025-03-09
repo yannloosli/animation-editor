@@ -1,6 +1,6 @@
 import { AreaType } from "~/constants";
 import { initialFlowAreaState } from "~/flow/state/flowAreaReducer";
-import { initialTimelineAreaState } from "~/timeline/timelineAreaReducer";
+import { initialState as initialTimelineAreaState } from "~/timeline/timelineAreaSlice";
 import { AreaState } from "~/types/areaTypes";
 import { initialCompositionWorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 

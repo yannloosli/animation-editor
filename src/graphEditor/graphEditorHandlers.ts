@@ -6,7 +6,7 @@ import { isKeyDown } from "~/listener/keyboard";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { timelineActions, timelineSelectionActions } from "~/timeline/timelineActions";
-import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
+import { setFields } from "~/timeline/timelineAreaSlice";
 import { Timeline, TimelineKeyframe } from "~/timeline/timelineTypes";
 import { getTimelineSelection } from "~/timeline/timelineUtils";
 import { Rect } from "~/types/types";
@@ -94,7 +94,7 @@ export const graphEditorHandlers = {
 				params.dispatch(
 					dispatchToAreaState({
 						areaId: options.areaId,
-						action: timelineAreaActions.setFields({ dragSelectRect }),
+						action: setFields({ dragSelectRect }),
 					}),
 				);
 			},
@@ -128,7 +128,7 @@ export const graphEditorHandlers = {
 				op.add(
 					dispatchToAreaState({
 						areaId: options.areaId,
-						action: timelineAreaActions.setFields({ dragSelectRect: null }),
+						action: setFields({ dragSelectRect: null }),
 					}),
 				);
 				op.submit();
