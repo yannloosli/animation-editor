@@ -23,6 +23,22 @@ import { CompositionError, LayerDimension } from "~/types";
 import { Area } from "~/types/areaTypes";
 import { Vec2 } from "~/util/math/vec2";
 
+
+// Fonction utilitaire pour calculer la position finale
+function calculatePosition(
+	panX: number,
+	panY: number,
+	stageWidth: number,
+	stageHeight: number,
+	compositionWidth: number,
+	compositionHeight: number
+): { x: number; y: number } {
+	return {
+		x: panX + (stageWidth / 2 - compositionWidth / 2),
+		y: panY + (stageHeight / 2 - compositionHeight / 2)
+	};
+}
+
 const compositionManagersByAreaId: Partial<Record<string, CompositionManager>> = {};
 
 export const getCompositionManagerByAreaId = (areaId: string) => {
@@ -149,7 +165,7 @@ export const manageTopLevelComposition = (
 		antialias: true,
 	});
 
-	const getHalfStage = () => Vec2.new(canvas.width, canvas.height).scale(0.5);
+	const getHalfStage = (): Vec2 => Vec2.new(canvas.width, canvas.height).scale(0.5);
 
 	const compContainer = new PIXI.Container();
 	const interactionContainer = new PIXI.Container();
@@ -199,16 +215,21 @@ export const manageTopLevelComposition = (
 		if (!composition) return;
 
 		const area = prevState.area.areas[areaId] as Area<AreaType.Workspace>;
-		const { scale = 1, pan: _pan = Vec2.ORIGIN } = area ? area.state : {};
-
-		// Calculer le décalage initial pour centrer la composition
-		const halfComposition = Vec2.new(composition.width, composition.height).scale(0.5);
-		const initialOffset = getHalfStage().sub(halfComposition);
-		const pan = _pan.add(initialOffset);
+		const { scale = 1, pan: _rawPan = { x: 0, y: 0 } } = area ? area.state : {};
+		
+		// Calculer la position finale
+		const finalPosition = calculatePosition(
+			_rawPan.x,
+			_rawPan.y,
+			canvas.width,
+			canvas.height,
+			composition.width,
+			composition.height
+		);
 
 		compContainer.scale.set(scale, scale);
-		compContainer.position.set(pan.x, pan.y);
-		interactionContainer.position.set(pan.x, pan.y);
+		compContainer.position.set(finalPosition.x, finalPosition.y);
+		interactionContainer.position.set(finalPosition.x, finalPosition.y);
 
 		background.beginFill(0x555555);
 		background.drawRect(0, 0, composition.width, composition.height);

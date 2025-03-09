@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { areaStateReducerRegistry } from "~/area/areaRegistry";
-import { areaInitialStates } from "~/area/state/areaInitialStates";
 import { computeAreaToParentRow } from "~/area/util/areaToParentRow";
 import { joinAreas as joinAreasUtil } from "~/area/util/joinArea";
 import { AreaType } from "~/constants";
@@ -271,20 +270,31 @@ const areaSlice = createSlice({
 
 		setAreaType: (
 			state,
-			action: PayloadAction<{
-				areaId: string;
-				type: AreaType;
-				initialState?: any;
-			}>,
+			action: PayloadAction<{ areaId: string; areaType: AreaType }>
 		) => {
-			const { areaId, type, initialState: customInitialState } = action.payload;
-			const area = state.areas[areaId];
-
-			state.areas[areaId] = {
-				...area,
-				type,
-				state: customInitialState || areaInitialStates[type],
-			};
+			const { areaId, areaType } = action.payload;
+			console.log('setAreaType reducer called with:', { areaId, areaType });
+			console.log('Current areas state:', state.areas);
+			if (state.areas[areaId]) {
+				console.log('Found area, updating type from', state.areas[areaId].type, 'to', areaType);
+				state.areas[areaId].type = areaType;
+				
+				// Initialiser l'état en fonction du type
+				if (areaType === AreaType.Workspace) {
+					state.areas[areaId].state = {
+						compositionId: 'default',
+						pan: { x: 0, y: 0 },  // Stocker un objet simple au lieu d'un Vec2
+						zoom: 1
+					};
+				} else {
+					state.areas[areaId].state = {};
+				}
+				
+				console.log('Updated area:', state.areas[areaId]);
+			} else {
+				console.warn('Area not found:', areaId);
+				console.log('Available areas:', Object.keys(state.areas));
+			}
 		},
 
 		dispatchToAreaState: (

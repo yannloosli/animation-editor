@@ -1,12 +1,13 @@
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { compositionActions } from "~/composition/compositionReducer";
 import { compSelectionActions } from "~/composition/compositionSelectionReducer";
 import { Property, PropertyGroup } from "~/composition/compositionTypes";
 import {
-	findLayerProperty,
-	findLayerTopLevelPropertyGroup,
-	getChildPropertyIdsRecursive,
-	getParentPropertyInLayer,
-	reduceLayerPropertiesAndGroups,
+    findLayerProperty,
+    findLayerTopLevelPropertyGroup,
+    getChildPropertyIdsRecursive,
+    getParentPropertyInLayer,
+    reduceLayerPropertiesAndGroups,
 } from "~/composition/compositionUtils";
 import { createShapeLayerShapeGroup } from "~/composition/factories/shapeLayerPathPropertiesFactory";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
@@ -17,24 +18,24 @@ import { propertyOperations } from "~/property/propertyOperations";
 import { shapeActions } from "~/shape/shapeReducer";
 import { shapeSelectionActions } from "~/shape/shapeSelectionReducer";
 import {
-	FullShapePathItem,
-	ShapeControlPoint,
-	ShapeEdge,
-	ShapeGraph,
-	ShapeNode,
-	ShapePath,
-	ShapePathItem,
+    FullShapePathItem,
+    ShapeControlPoint,
+    ShapeEdge,
+    ShapeGraph,
+    ShapeNode,
+    ShapePath,
+    ShapePathItem,
 } from "~/shape/shapeTypes";
 import {
-	getLayerPathPropertyId,
-	getPathTargetObjectFromContext,
-	getShapeContinuePathFrom,
-	getShapeLayerDirectlySelectedPaths,
-	getShapeLayerPathIds,
-	getShapeLayerSelectedPathIds,
-	getShapePathClosePathNodeId,
-	getShapeSelectionFromState,
-	pathIdToCurves,
+    getLayerPathPropertyId,
+    getPathTargetObjectFromContext,
+    getShapeContinuePathFrom,
+    getShapeLayerDirectlySelectedPaths,
+    getShapeLayerPathIds,
+    getShapeLayerSelectedPathIds,
+    getShapePathClosePathNodeId,
+    getShapeSelectionFromState,
+    pathIdToCurves,
 } from "~/shape/shapeUtils";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
@@ -42,26 +43,28 @@ import { LayerType, PropertyGroupName, PropertyName, ToDispatch } from "~/types"
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
 import { createGenMapIdFn, createMapNumberId } from "~/util/mapUtils";
 import {
-	completeCubicBezier,
-	interpolateCubicBezier,
-	isVecInRect,
-	projectVecTo45DegAngle,
-	rectOfTwoVecs,
-	splitLine,
+    completeCubicBezier,
+    interpolateCubicBezier,
+    isVecInRect,
+    projectVecTo45DegAngle,
+    rectOfTwoVecs,
+    splitLine,
 } from "~/util/math";
 import { pathBoundingRect, pathControlPointsBoundingRect } from "~/util/math/boundingRect";
 import { splitCubicBezier } from "~/util/math/splitCubicBezier";
+import { Rect } from "~/util/math/types";
+import { Vec2 } from "~/util/math/vec2";
 import { constructPenToolContext, PenToolContext } from "~/workspace/penTool/penToolContext";
 import { penToolMoveObjects, penToolMovePathIds } from "~/workspace/penTool/penToolMoveObjects";
-import { workspaceAreaActions } from "~/workspace/workspaceAreaReducer";
+import { clearSelectionRect, setSelectionRect } from "~/workspace/workspaceSlice";
 import { globalToWorkspacePosition } from "~/workspace/workspaceUtils";
 
 export const penToolHandlers = {
 	/**
 	 * Move tool mouse down with a single selected shape layer
 	 */
-	moveToolMouseDown: (e: React.MouseEvent, layerId: string, areaId: string, viewport: Rect) => {
-		const ctx = constructPenToolContext(Vec2.fromEvent(e), layerId, areaId, viewport);
+	moveToolMouseDown: (e: ReactMouseEvent<Element>, layerId: string, areaId: string, viewport: Rect) => {
+		const ctx = constructPenToolContext(Vec2.new(e.clientX, e.clientY), layerId, areaId, viewport);
 
 		const { compositionState, compositionSelectionState } = getActionState();
 
@@ -375,17 +378,19 @@ export const penToolHandlers = {
 			beforeMove: () => {},
 			mouseMove: (params, { mousePosition, initialMousePosition }) => {
 				selectionRect = rectOfTwoVecs(mousePosition.normal, initialMousePosition.normal);
-				params.dispatchToAreaState(
-					ctx.areaId,
-					workspaceAreaActions.setFields({ selectionRect }),
-				);
+				params.dispatch(setSelectionRect({
+					x: selectionRect.left,
+					y: selectionRect.top,
+					width: selectionRect.width,
+					height: selectionRect.height
+				}));
 			},
 			mouseUp: (params, hasMoved) => {
 				const pathIds = getShapeLayerSelectedPathIds(
-					layerId,
-					compositionState,
-					compositionSelectionState,
-				);
+							layerId,
+							compositionState,
+							compositionSelectionState,
+						);
 
 				if (hasMoved) {
 					const rect = selectionRect!;
@@ -465,10 +470,7 @@ export const penToolHandlers = {
 					}
 
 					params.dispatch(toDispatch);
-					params.dispatchToAreaState(
-						ctx.areaId,
-						workspaceAreaActions.setFields({ selectionRect: null }),
-					);
+					params.dispatch(clearSelectionRect());
 					params.addDiff((diff) => diff.compositionSelection(compositionId));
 					params.submitAction("Modify selection");
 					return;
@@ -537,7 +539,7 @@ export const penToolHandlers = {
 		});
 	},
 
-	onMouseDown: (e: React.MouseEvent, areaId: string, viewport: Rect) => {
+	onMouseDown: (e: ReactMouseEvent<Element>, areaId: string, viewport: Rect) => {
 		// See if a single shape layer is selected
 		//
 		// If multiple (shape) layers are selected, we create a new shape layer.
@@ -557,7 +559,7 @@ export const penToolHandlers = {
 
 		if (selectedShapeLayers.length === 1) {
 			const ctx = constructPenToolContext(
-				Vec2.fromEvent(e),
+				Vec2.new(e.clientX, e.clientY),
 				selectedShapeLayers[0],
 				areaId,
 				viewport,
@@ -2242,7 +2244,7 @@ export const penToolHandlers = {
 		});
 	},
 
-	mouseDownCreateShapeLayer: (e: React.MouseEvent, areaId: string, viewport: Rect) => {
+	mouseDownCreateShapeLayer: (e: ReactMouseEvent<Element>, areaId: string, viewport: Rect) => {
 		const { compositionId, pan, scale } = getAreaActionState<AreaType.Workspace>(areaId);
 
 		const layerId = createMapNumberId(getActionState().compositionState.layers);

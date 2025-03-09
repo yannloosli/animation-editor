@@ -7,12 +7,11 @@ import { useAreaKeyboardShortcuts } from "~/area/components/useAreaKeyboardShort
 import { handleAreaDragFromCorner } from "~/area/handlers/areaDragFromCorner";
 import { AreaIdContext } from "~/area/util/AreaIdContext";
 import { EditIcon } from "~/components/icons/EditIcon";
-import { PenIcon } from "~/components/icons/PenIcon";
 import { AREA_BORDER_WIDTH, AreaType } from "~/constants";
 import { openContextMenu } from "~/contextMenu/contextMenuSlice";
 import { isKeyDown } from "~/listener/keyboard";
 import { connectActionState, MapActionState } from "~/state/stateUtils";
-import { CardinalDirection, IntercardinalDirection } from "~/types";
+import { IntercardinalDirection } from "~/types";
 import { AreaComponentProps } from "~/types/areaTypes";
 import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
@@ -20,11 +19,21 @@ import { compileStylesheetLabelled } from "~/util/stylesheets";
 const s = compileStylesheetLabelled(styles);
 
 const cornerDirections = {
-	nw: ["n", "w"],
 	ne: ["n", "e"],
-	sw: ["s", "w"],
 	se: ["s", "e"],
+	sw: ["s", "w"],
+	nw: ["n", "w"],
 } as const;
+
+const areaTypeOptions = Object.values(AreaType).map(type => {
+	const option = {
+		id: `area-type-${type}`,
+		label: type,
+		iconName: type === AreaType.FlowEditor ? 'edit' : 'pen'
+	};
+	console.log('Creating area type option:', option);
+	return option;
+});
 
 interface OwnProps {
 	id: string;
@@ -37,57 +46,22 @@ interface OwnProps {
 }
 
 interface StateProps {
-	state: any;
 	type: AreaType;
+	state: any;
 	raised: boolean;
 	Component: React.ComponentType<AreaComponentProps<any>>;
 }
 
-interface DispatchProps {
-	dispatch: Dispatch;
-}
+type Props = OwnProps & StateProps & { dispatch: Dispatch };
 
-type Props = StateProps & OwnProps & DispatchProps;
-
-const areaTypeOptions: Array<{ icon: React.ComponentType; type: AreaType; label: string }> = [
-	{
-		icon: PenIcon,
-		type: AreaType.Project,
-		label: "Project",
-	},
-	{
-		icon: PenIcon,
-		type: AreaType.Timeline,
-		label: "Timeline",
-	},
-	{
-		icon: PenIcon,
-		type: AreaType.Workspace,
-		label: "Workspace",
-	},
-	{
-		icon: EditIcon,
-		type: AreaType.FlowEditor,
-		label: "Node Editor",
-	},
-	{
-		icon: EditIcon,
-		type: AreaType.History,
-		label: "History",
-	},
-];
-
-const typeToIndex = areaTypeOptions.reduce<{ [key: string]: number }>((obj, { type }, i) => {
-	obj[type] = i;
-	return obj;
-}, {});
-
-const getDirectionParts = (dir: string): [CardinalDirection, CardinalDirection] => {
-	const parts = dir.split("") as [CardinalDirection, CardinalDirection];
-	if (parts.length !== 2) {
-		throw new Error(`Invalid direction: ${dir}`);
-	}
-	return parts;
+const mapState: MapActionState<StateProps, OwnProps> = (state, ownProps) => {
+	const area = state.area.areas[ownProps.id];
+	return {
+		type: area.type,
+		state: area.state,
+		raised: false,
+		Component: areaComponentRegistry[area.type],
+	};
 };
 
 export const AreaComponent: React.FC<Props> = (props) => {
@@ -114,17 +88,16 @@ export const AreaComponent: React.FC<Props> = (props) => {
 		};
 	}, [hoveredCorners]);
 
-	const openSelectArea = (_: React.MouseEvent) => {
+	const openSelectArea = (e: React.MouseEvent) => {
+		e.preventDefault();
 		const pos = Vec2.new(viewport.left + 4, viewport.top + 4);
+		console.log('Opening area type menu with options:', areaTypeOptions);
+		console.log('Area ID:', id);
 		dispatch(openContextMenu({
 			name: "Area type",
-			options: areaTypeOptions.map((option) => ({
-				id: `area_type_${option.type}`,
-				label: option.label,
-				iconName: option.type === AreaType.FlowEditor ? 'edit' : 'pen',
-			})),
+			options: areaTypeOptions,
 			position: { x: pos.x, y: pos.y },
-			customContextMenu: { id }
+			areaId: id
 		}));
 	};
 
@@ -204,23 +177,4 @@ export const AreaComponent: React.FC<Props> = (props) => {
 	) as React.ReactElement;
 };
 
-const mapStateToProps: MapActionState<StateProps, OwnProps> = (
-	{ area: { joinPreview, areas } },
-	{ id },
-) => {
-	const isEligibleForJoin = joinPreview && joinPreview.eligibleAreaIds.indexOf(id) !== -1;
-	const isBeingJoined = joinPreview && joinPreview.areaId === id;
-
-	const component = areaComponentRegistry[areas[id].type] as React.ComponentType<
-		AreaComponentProps<any>
-	>;
-
-	return {
-		type: areas[id].type,
-		state: areas[id].state,
-		raised: !!(isEligibleForJoin || isBeingJoined),
-		Component: component,
-	};
-};
-
-export const Area = connectActionState(mapStateToProps)(AreaComponent);
+export const Area = connectActionState(mapState)(AreaComponent);

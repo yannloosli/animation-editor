@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { registerAreaTypeHandlers } from "~/area/handlers/areaTypeHandlers";
 import { initialState as initialAreaState } from "~/area/state/areaSlice";
 import { initialCompositionState } from "~/composition/compositionReducer";
 import { initialCompositionSelectionState } from "~/composition/compositionSelectionReducer";
@@ -169,6 +170,9 @@ const serializableCheckConfig = {
     ]
 };
 
+// Enregistrer les gestionnaires de type d'area
+registerAreaTypeHandlers();
+
 // Créer le store RTK avec le middleware de compatibilité
 export const store = configureStore({
     reducer: rootReducer,
@@ -184,9 +188,11 @@ export const store = configureStore({
             }
         });
 
-        return middleware
-            .concat(contextMenuMiddleware as any)
-            .concat(workspaceMiddleware as any);
+        return [
+            contextMenuMiddleware as any,
+            ...middleware,
+            workspaceMiddleware as any
+        ];
     }
 });
 

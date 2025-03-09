@@ -1,3 +1,4 @@
+import { AnyAction, Dispatch } from "@reduxjs/toolkit";
 import { Store } from "redux";
 import { StateWithHistory } from "redux-undo";
 import { AreaReducerState } from "~/area/state/areaSlice";
@@ -57,4 +58,5 @@ export type ActionState = {
     workspace: WorkspaceAreaState;
 };
 
-export type StoreType = Store<ApplicationState>; 
+export type StoreType = Store<ApplicationState>;
+export type AppDispatch = Dispatch<AnyAction>; 

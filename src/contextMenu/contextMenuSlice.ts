@@ -19,6 +19,7 @@ export interface ContextMenuState {
     options: SerializableContextMenuOption[];
     position: SerializablePosition;
     customContextMenu: null | any;
+    areaId: string | null;
 }
 
 export const initialState: ContextMenuState = {
@@ -27,6 +28,7 @@ export const initialState: ContextMenuState = {
     options: [],
     position: { x: 0, y: 0 },
     customContextMenu: null,
+    areaId: null,
 };
 
 const contextMenuSlice = createSlice({
@@ -38,6 +40,7 @@ const contextMenuSlice = createSlice({
             options: SerializableContextMenuOption[]; 
             position: SerializablePosition;
             customContextMenu?: any;
+            areaId?: string;
         }>) => {
             if (!action.payload || !action.payload.name || !action.payload.options || !action.payload.position) {
                 console.warn('openContextMenu action missing required fields:', action);
@@ -48,6 +51,7 @@ const contextMenuSlice = createSlice({
             state.options = action.payload.options;
             state.position = action.payload.position;
             state.customContextMenu = action.payload.customContextMenu || null;
+            state.areaId = action.payload.areaId || null;
         },
         closeContextMenu: (state) => {
             state.isOpen = false;
@@ -55,6 +59,7 @@ const contextMenuSlice = createSlice({
             state.options = [];
             state.position = { x: 0, y: 0 };
             state.customContextMenu = null;
+            state.areaId = null;
         },
         openCustomContextMenu: (state, action: PayloadAction<any>) => {
             if (!action.payload) {
@@ -68,7 +73,13 @@ const contextMenuSlice = createSlice({
                 console.warn('handleContextMenuOptionSelect action missing optionId:', action);
                 return state;
             }
+            const areaId = state.areaId;
             state.isOpen = false;
+            state.name = "";
+            state.options = [];
+            state.position = { x: 0, y: 0 };
+            state.customContextMenu = null;
+            state.areaId = areaId;
         }
     }
 });
