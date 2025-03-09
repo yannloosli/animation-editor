@@ -1,4 +1,4 @@
-import { compositionActions } from "~/composition/compositionReducer";
+import { createLayer } from "~/composition/compositionSlice";
 import { requestAction } from "~/listener/requestAction";
 import { getDragCompositionEligibleTargets } from "~/project/dragCompositionEligibleTargets";
 import { projectActions } from "~/project/projectReducer";
@@ -6,15 +6,17 @@ import { getActionState } from "~/state/stateUtils";
 import { LayerType } from "~/types";
 import { createMapNumberId } from "~/util/mapUtils";
 import { getDistance, isVecInRect } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 
 export const dragProjectComp = (e: React.MouseEvent, compositionId: string) => {
-	const initialPosition = Vec2.fromEvent(e);
+	const initialPosition = Vec2.fromEvent(e.nativeEvent);
 
 	requestAction({ history: true }, (params) => {
 		let hasMoved = false;
 		let vec: Vec2 = initialPosition;
 
-		params.addListener.repeated("mousemove", (e) => {
+		params.addListener.repeated("mousemove", (e: MouseEvent | KeyboardEvent) => {
+			if (!(e instanceof MouseEvent)) return;
 			const mousePosition = Vec2.fromEvent(e);
 			vec = mousePosition;
 
@@ -25,7 +27,10 @@ export const dragProjectComp = (e: React.MouseEvent, compositionId: string) => {
 				hasMoved = true;
 			}
 
-			params.dispatch(projectActions.setDragComposition(compositionId, mousePosition));
+			params.dispatch(projectActions.setDragComposition({
+				compositionId,
+				position: mousePosition
+			}));
 		});
 
 		const targetGroups = getDragCompositionEligibleTargets();
@@ -66,10 +71,14 @@ export const dragProjectComp = (e: React.MouseEvent, compositionId: string) => {
 			const { compositionState } = getActionState();
 			const expectedLayerId = createMapNumberId(compositionState.layers);
 			params.dispatch(
-				compositionActions.createLayer(targetCompositionId, LayerType.Composition, {
-					compositionLayerReferenceId: compositionId,
-					insertLayerIndex,
-				}),
+				createLayer({
+					compositionId: targetCompositionId,
+					type: LayerType.Composition,
+					options: {
+						compositionLayerReferenceId: compositionId,
+						insertLayerIndex
+					}
+				})
 			);
 			params.dispatch(projectActions.clearDragComposition());
 			params.addDiff((diff) => diff.addLayer(expectedLayerId));

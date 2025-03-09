@@ -1,7 +1,7 @@
-import { AreaReducerState } from "~/area/state/areaReducer";
-import { AreaLayout, AreaRowLayout } from "~/types/areaTypes";
-import { AREA_MIN_CONTENT_WIDTH } from "~/constants";
+import { AreaReducerState } from "~/area/types";
 import { computeAreaRowToMinSize } from "~/area/util/areaRowToMinSize";
+import { AREA_MIN_CONTENT_WIDTH } from "~/constants";
+import { AreaLayout, AreaRowLayout } from "~/types/areaTypes";
 
 export const computeAreaToViewport = (
 	areaLayout: AreaReducerState["layout"],

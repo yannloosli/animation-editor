@@ -1,6 +1,6 @@
 import React, { useContext, useRef, useState } from "react";
 import { AreaIdContext } from "~/area/util/AreaIdContext";
-import { compositionActions } from "~/composition/compositionReducer";
+import { setLayerName } from "~/composition/compositionSlice";
 import { reduceLayerPropertiesAndGroups } from "~/composition/compositionUtils";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import { cssVariables } from "~/cssVariables";
@@ -113,7 +113,10 @@ const TimelineLayerNameComponent: React.FC<Props> = (props) => {
 				return;
 			}
 
-			params.dispatch(compositionActions.setLayerName(props.layerId, value));
+			params.dispatch(setLayerName({
+				layerId: props.layerId,
+				name: value
+			}));
 			params.submitAction("Rename layer");
 		};
 

@@ -1,8 +1,8 @@
 declare type Ctx = CanvasRenderingContext2D;
 
 declare interface Rect {
-	top: number;
-	left: number;
+	x: number;
+	y: number;
 	width: number;
 	height: number;
 }

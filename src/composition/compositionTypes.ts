@@ -1,9 +1,10 @@
+import { EllipseState } from "~/composition/types/ellipseTypes";
 import {
-	CompoundPropertyName,
-	KeySelectionMap,
-	LayerType,
-	PropertyGroupName,
-	PropertyName,
+    CompoundPropertyName,
+    KeySelectionMap,
+    LayerType,
+    PropertyGroupName,
+    PropertyName,
 } from "~/types";
 
 export interface Composition {
@@ -51,6 +52,7 @@ export interface Layer {
 	collapsed: boolean;
 	parentLayerId: string;
 	viewProperties: string[];
+	ellipse?: EllipseState;
 }
 
 export interface PropertyGroup {

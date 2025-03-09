@@ -1,5 +1,5 @@
+import { AreaReducerState } from "~/area/types";
 import { computeAreaToViewport } from "~/area/util/areaToViewport";
-import { AreaReducerState } from "~/area/state/areaReducer";
 
 describe("computeAreaToViewport", () => {
 	it("creates a valid viewport", () => {

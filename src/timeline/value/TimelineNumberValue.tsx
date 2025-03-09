@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { NumberInput } from "~/components/common/NumberInput";
 import { LinkIcon } from "~/components/icons/LinkIcon";
-import { compositionActions } from "~/composition/compositionReducer";
+import { compositionSlice } from "~/composition/compositionSlice";
 import { Composition, CompoundProperty, Property } from "~/composition/compositionTypes";
 import { DiffFactoryFn } from "~/diff/diffFactory";
 import { requestAction, RequestActionParams } from "~/listener/requestAction";
@@ -13,9 +13,9 @@ import { timelineActions } from "~/timeline/timelineActions";
 import { timelineHandlers } from "~/timeline/timelineHandlers";
 import { TimelineKeyframe } from "~/timeline/timelineTypes";
 import {
-	createTimelineKeyframe,
-	getTimelineValueAtIndex,
-	splitKeyframesAtIndex,
+    createTimelineKeyframe,
+    getTimelineValueAtIndex,
+    splitKeyframesAtIndex,
 } from "~/timeline/timelineUtils";
 import { PropertyName } from "~/types";
 import { separateLeftRightMouse } from "~/util/mouse";
@@ -108,7 +108,7 @@ const usePropertyNumberInput = (
 					}
 
 					if (!timeline) {
-						op.add(compositionActions.setPropertyValue(propertyId, value));
+						op.add(compositionSlice.actions.setPropertyValue({ propertyId, value }));
 						return;
 					}
 

@@ -1,4 +1,4 @@
-import { AreaReducerState } from "~/area/state/areaReducer";
+import { AreaReducerState } from "~/area/types";
 
 export const computeAreaRowToMinSize = (rootId: string, areaLayout: AreaReducerState["layout"]) => {
 	const rowToMinSize: { [areaId: string]: { width: number; height: number } } = {};

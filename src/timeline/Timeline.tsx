@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { areaActions } from "~/area/state/areaActions";
+import { dispatchToAreaState } from "~/area/state/areaSlice";
 import { useCompositionPlayback } from "~/composition/compositionPlayback";
 import { TIMELINE_SEPARATOR_WIDTH, TRACKPAD_ZOOM_DELTA_FAC } from "~/constants";
 import { GraphEditor } from "~/graphEditor/GraphEditor";
@@ -17,6 +17,7 @@ import { TimelineViewBounds } from "~/timeline/TimelineViewBounds";
 import { TrackEditor } from "~/trackEditor/TrackEditor";
 import { AreaComponentProps } from "~/types/areaTypes";
 import { capToRange, isVecInRect, splitRect } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 import { separateLeftRightMouse } from "~/util/mouse";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 import { parseWheelEvent } from "~/util/wheelEvent";
@@ -32,7 +33,14 @@ type Props = OwnProps & StateProps;
 const TimelineComponent: React.FC<Props> = (props) => {
 	const [t, setT] = useState(0.3);
 
-	let [viewportLeft, viewportRight] = splitRect("horizontal", props, t, TIMELINE_SEPARATOR_WIDTH);
+	const viewportRect: Rect = {
+		x: props.left,
+		y: props.top,
+		width: props.width,
+		height: props.height
+	};
+
+	let [viewportLeft, viewportRight] = splitRect("horizontal", viewportRect, t, TIMELINE_SEPARATOR_WIDTH);
 
 	const zoomTarget = useRef<HTMLDivElement>(null);
 	const panTarget = useRef<HTMLDivElement>(null);
@@ -96,7 +104,7 @@ const TimelineComponent: React.FC<Props> = (props) => {
 					: false;
 
 				timelineHandlers.onWheelPan(e as any, props.areaId, {
-					compositionId,
+					compositionId: props.areaState.compositionId,
 					viewport: viewportRight,
 					compositionLength,
 					viewBounds,
@@ -204,10 +212,10 @@ const TimelineComponent: React.FC<Props> = (props) => {
 								addListener: params.addListener,
 								update: (viewBounds) => {
 									params.dispatch(
-										areaActions.dispatchToAreaState(
-											props.areaId,
-											timelineAreaActions.setViewBounds(viewBounds),
-										),
+										dispatchToAreaState({
+											areaId: props.areaId,
+											action: timelineAreaActions.setViewBounds(viewBounds),
+										}),
 									);
 								},
 								submit: () => params.submitAction(),

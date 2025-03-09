@@ -1,34 +1,38 @@
-import { compositionActions } from "~/composition/compositionReducer";
 import { compSelectionActions } from "~/composition/compositionSelectionReducer";
+import {
+    setPropertyValue
+} from "~/composition/compositionSlice";
 import { Property } from "~/composition/compositionTypes";
 import {
-	compUtil,
-	getTimelineIdsReferencedByComposition,
-	reduceCompProperties,
+    compUtil,
+    getTimelineIdsReferencedByComposition,
+    reduceCompProperties,
 } from "~/composition/compositionUtils";
 import { createParentLayerViewportMatrices } from "~/composition/layer/constructLayerMatrix";
 import { constructLayerPropertyMap } from "~/composition/layer/layerPropertyMap";
 import { getCompositionManagerByAreaId } from "~/composition/manager/compositionManager";
 import { createPropertyManager } from "~/composition/manager/property/propertyManager";
 import {
-	compSelectionFromState,
-	didCompSelectionChange,
+    compSelectionFromState,
+    didCompSelectionChange,
 } from "~/composition/util/compSelectionUtils";
 import { AreaType } from "~/constants";
 import { isKeyDown } from "~/listener/keyboard";
 import { requestAction } from "~/listener/requestAction";
 import { getShapeLayerSelectedPathIds, getSingleSelectedShapeLayerId } from "~/shape/shapeUtils";
+import { toVec2 } from "~/shared/viewport/viewportWheelHandlers";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { timelineActions, timelineSelectionActions } from "~/timeline/timelineActions";
 import {
-	createTimelineKeyframe,
-	getTimelineValueAtIndex,
-	splitKeyframesAtIndex,
+    createTimelineKeyframe,
+    getTimelineValueAtIndex,
+    splitKeyframesAtIndex,
 } from "~/timeline/timelineUtils";
 import { PropertyName } from "~/types";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
 import { reduceIds } from "~/util/mapUtils";
+import { Vec2 } from "~/util/math/vec2";
 import { moveToolUtil } from "~/workspace/moveTool/moveToolUtil";
 import { penToolHandlers } from "~/workspace/penTool/penTool";
 
@@ -64,7 +68,7 @@ export const moveToolHandlers = {
 			throw new Error(`Did not find composition manager for area '${areaId}'.`);
 		}
 
-		const viewportMousePosition = Vec2.fromEvent(e).sub(Vec2.new(viewport.left, viewport.top));
+		const viewportMousePosition = Vec2.new(e.nativeEvent.clientX, e.nativeEvent.clientY).sub(Vec2.new(viewport.x, viewport.y));
 		const layerId = compositionManager.layers.getLayerAtPoint(
 			actionState,
 			viewportMousePosition,
@@ -159,8 +163,8 @@ export const moveToolHandlers = {
 			);
 			const globalToNormal = (vec: Vec2) => {
 				return vec
-					.subXY(viewport.left, viewport.top)
-					.sub(pan.addX(viewport.width / 2).addY(viewport.height / 2))
+					.subXY(viewport.x, viewport.y)
+					.sub(toVec2(pan).add(Vec2.new(viewport.width / 2, viewport.height / 2)))
 					.apply((vec) => matrices.position.applyInverse(vec));
 			};
 			return globalToNormal;
@@ -263,7 +267,7 @@ export const moveToolHandlers = {
 						const property = compositionState.properties[propertyId] as Property;
 
 						if (!property.timelineId) {
-							op.add(compositionActions.setPropertyValue(propertyId, value));
+							op.add(setPropertyValue({ propertyId, value }));
 							continue;
 						}
 

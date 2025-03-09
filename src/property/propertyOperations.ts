@@ -1,4 +1,4 @@
-import { compositionActions } from "~/composition/compositionReducer";
+import { removeProperty as removePropertyAction, removePropertyFromGroup } from "~/composition/compositionSlice";
 import { flowOperations } from "~/flow/flowOperations";
 import { timelineOperations } from "~/timeline/operations/timelineOperations";
 import { Operation, PropertyGroupName } from "~/types";
@@ -21,7 +21,7 @@ const removeDataRelatedToProperty = (op: Operation, propertyId: string) => {
 };
 
 const removeProperty = (op: Operation, propertyId: string) => {
-	op.add(compositionActions.removeProperty(propertyId));
+	op.add(removePropertyAction({ propertyId }));
 	removeDataRelatedToProperty(op, propertyId);
 };
 
@@ -46,7 +46,7 @@ const removePropertyFromGroupRecursive = (
 	}
 
 	removeProperty(op, propertyId);
-	op.add(compositionActions.removePropertyFromGroup(groupId, propertyId));
+	op.add(removePropertyFromGroup({ groupId, propertyId }));
 };
 
 export const propertyOperations = {

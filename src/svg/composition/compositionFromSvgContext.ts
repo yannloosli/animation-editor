@@ -1,4 +1,4 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { RequestActionParams } from "~/listener/requestAction";
 import { createOperation } from "~/state/operation";
 import { Operation } from "~/types";

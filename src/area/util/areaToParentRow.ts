@@ -1,4 +1,4 @@
-import { AreaReducerState } from "~/area/state/areaReducer";
+import { AreaReducerState } from "~/area/types";
 
 export const computeAreaToParentRow = (areaState: AreaReducerState) => {
 	const areaToParentRow: { [key: string]: string } = {};

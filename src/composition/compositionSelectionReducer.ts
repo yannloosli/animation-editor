@@ -98,6 +98,7 @@ const singleCompositionSelectionReducer = (
 		}
 
 		case getType(compSelectionActions.clearCompositionSelection): {
+			console.log("[DEBUG] CLEAR_COMP_SELECTION triggered", action.payload);
 			return { ...state, properties: {}, layers: {} };
 		}
 

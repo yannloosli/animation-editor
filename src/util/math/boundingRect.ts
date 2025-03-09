@@ -3,8 +3,9 @@
  */
 
 import { boundingRectOfRects, rectOfTwoVecs } from "~/util/math";
+import { Rect as MathRect } from "./types";
 
-export function cubicBezierBoundingRect(bezier: CubicBezier): Rect {
+export function cubicBezierBoundingRect(bezier: CubicBezier): MathRect {
 	const [p0, p1, p2, p3] = bezier;
 
 	const x0 = p0.x;
@@ -89,27 +90,27 @@ export function cubicBezierBoundingRect(bezier: CubicBezier): Rect {
 	const xmax = Math.max.apply(0, xvalues);
 	const ymax = Math.max.apply(0, yvalues);
 
-	const rect: Rect = {
-		left: xmin,
-		top: ymin,
+	const rect: MathRect = {
+		x: xmin,
+		y: ymin,
 		width: xmax - xmin,
 		height: ymax - ymin,
 	};
 	return rect;
 }
 
-function lineBoundingRect(line: Line) {
+function lineBoundingRect(line: Line): MathRect {
 	return rectOfTwoVecs(line[0], line[1]);
 }
 
-function curveBoundingRect(curve: Curve) {
+function curveBoundingRect(curve: Curve): MathRect {
 	if (curve.length === 2) {
 		return lineBoundingRect(curve);
 	}
 	return cubicBezierBoundingRect(curve);
 }
 
-export function pathControlPointsBoundingRect(curves: Curve[]) {
+export function pathControlPointsBoundingRect(curves: Curve[]): MathRect {
 	const xvalues: number[] = [];
 	const yvalues: number[] = [];
 
@@ -125,16 +126,16 @@ export function pathControlPointsBoundingRect(curves: Curve[]) {
 	const xmax = Math.max.apply(0, xvalues);
 	const ymax = Math.max.apply(0, yvalues);
 
-	const rect: Rect = {
-		left: xmin,
-		top: ymin,
+	const rect: MathRect = {
+		x: xmin,
+		y: ymin,
 		width: xmax - xmin,
 		height: ymax - ymin,
 	};
 	return rect;
 }
 
-export function pathBoundingRect(curves: Curve[]): Rect | null {
+export function pathBoundingRect(curves: Curve[]): MathRect | null {
 	const rects = curves.map((curve) => curveBoundingRect(curve));
 	return boundingRectOfRects(rects);
 }

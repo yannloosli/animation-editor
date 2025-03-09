@@ -1,4 +1,4 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { CompoundProperty, Property, PropertyGroup } from "~/composition/compositionTypes";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import { getActionState } from "~/state/stateUtils";

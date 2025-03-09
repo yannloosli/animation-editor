@@ -1,27 +1,34 @@
 import Bezier from "bezier-easing";
-import {v4 as uuid} from "uuid";
-import { CompositionState } from "~/composition/compositionReducer";
+import { v4 as uuid } from "uuid";
 import { CompositionSelectionState } from "~/composition/compositionSelectionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { CompoundProperty } from "~/composition/compositionTypes";
 import { reduceCompProperties } from "~/composition/compositionUtils";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import {
-	TIMELINE_CANVAS_END_START_BUFFER,
-	TIMELINE_CP_TX_MAX,
-	TIMELINE_CP_TX_MIN,
+    TIMELINE_CANVAS_END_START_BUFFER,
+    TIMELINE_CP_TX_MAX,
+    TIMELINE_CP_TX_MIN,
 } from "~/constants";
 import { getActionState } from "~/state/stateUtils";
 import { TimelineSelection, TimelineSelectionState } from "~/timeline/timelineSelectionReducer";
 import { Timeline, TimelineKeyframe, TimelineKeyframeControlPoint } from "~/timeline/timelineTypes";
 import {
-	capToRange,
-	getDistance,
-	interpolate,
-	interpolateCubicBezier,
-	translateToRange,
+    capToRange,
+    getDistance,
+    interpolate,
+    interpolateCubicBezier,
+    translateToRange,
 } from "~/util/math";
 import { intersectCubicBezierLine } from "~/util/math/intersection/intersectBezier3Line";
 import { splitCubicBezier } from "~/util/math/splitCubicBezier";
+import { Vec2 } from "~/util/math/vec2";
+
+interface TrackEditorOptions {
+	compositionLength: number;
+	viewBounds: [number, number];
+	viewport: Rect;
+}
 
 const isFlatBezier = (bezier: CubicBezier) => {
 	const y = bezier[0].y;
@@ -214,48 +221,18 @@ export const timelineNormalToGlobalX = (
 	return (
 		translateToRange(t * renderWidth, tMin * renderWidth, tMax * renderWidth, canvasWidth) +
 		TIMELINE_CANVAS_END_START_BUFFER +
-		viewport.left
+		viewport.x
 	);
 };
 
-export const graphEditorGlobalToNormal = (
-	value: number,
-	options: {
-		viewBounds: [number, number];
-		viewport: Rect;
-		compositionLength: number;
-	},
-): number => {
-	const canvasWidth = options.viewport.width - TIMELINE_CANVAS_END_START_BUFFER * 2;
-	const canvasLeft = options.viewport.left + TIMELINE_CANVAS_END_START_BUFFER;
-
-	const xt = (value - canvasLeft) / canvasWidth;
-
-	const [xMin, xMax] = options.viewBounds;
-	const x = (xMin + (xMax - xMin) * xt) * options.compositionLength;
-
-	return x;
+export const graphEditorGlobalToNormal = (value: number, options: TrackEditorOptions): number => {
+	return value - options.viewport.x;
 };
 
-export const trackEditorGlobalToNormal = (
-	vec: Vec2,
-	options: {
-		compositionLength: number;
-		viewBounds: [number, number];
-		viewport: Rect;
-	},
-): Vec2 => {
-	const { viewBounds, viewport } = options;
-
-	const canvasWidth = viewport.width - TIMELINE_CANVAS_END_START_BUFFER * 2;
-	const canvasLeft = viewport.left + TIMELINE_CANVAS_END_START_BUFFER;
-
-	const pos = vec.subY(viewport.top).subX(canvasLeft);
-	const xt = pos.x / canvasWidth;
-	const [xMin, xMax] = viewBounds;
-	pos.x = (xMin + (xMax - xMin) * xt) * options.compositionLength;
-
-	return pos;
+export const trackEditorGlobalToNormal = (vec: Vec2, options: TrackEditorOptions): Vec2 => {
+	const x = vec.x - options.viewport.x;
+	const y = vec.y - options.viewport.y;
+	return Vec2.new(x, y);
 };
 
 const _applyNewControlPointShift = (_timeline: Timeline): Timeline => {
@@ -532,10 +509,10 @@ export const applyTimelineIndexAndValueShifts = (
 };
 
 const _emptyTimelineSelection: TimelineSelection = { keyframes: {} };
-export function getTimelineSelection(timelineId: string): TimelineSelection {
-	const selection = getActionState().timelineSelectionState;
-	return selection[timelineId] || _emptyTimelineSelection;
-}
+export const getTimelineSelection = (timelineId: string): TimelineSelection => {
+	const { timelineSelectionState } = getActionState();
+	return timelineSelectionState[timelineId] || { keyframes: {} };
+};
 
 export const timelineSelectionFromState = (
 	timelineId: string,

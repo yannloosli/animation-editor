@@ -1,4 +1,11 @@
-import { compositionActions } from "~/composition/compositionReducer";
+import {
+    clearViewProperties,
+    setLayerCollapsed,
+    setLayerViewProperties,
+    setPropertyGroupViewProperties,
+    setPropertyTimelineId,
+    setPropertyValue
+} from "~/composition/compositionSlice";
 import { Property, PropertyGroup } from "~/composition/compositionTypes";
 import { reduceCompProperties } from "~/composition/compositionUtils";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
@@ -7,9 +14,9 @@ import { getActionState } from "~/state/stateUtils";
 import { timelineActions } from "~/timeline/timelineActions";
 import { TimelineKeyframeControlPoint } from "~/timeline/timelineTypes";
 import {
-	createTimelineForLayerProperty,
-	getTimelineValueAtIndex,
-	timelineSelectionFromState,
+    createTimelineForLayerProperty,
+    getTimelineValueAtIndex,
+    timelineSelectionFromState,
 } from "~/timeline/timelineUtils";
 import { CompoundPropertyName, Operation, PropertyGroupName, PropertyName } from "~/types";
 import { areSetsEqual } from "~/util/setUtils";
@@ -37,8 +44,14 @@ const removeTimelineFromProperty = (op: Operation, propertyId: string) => {
 
 	op.add(
 		timelineActions.removeTimeline(property.timelineId),
-		compositionActions.setPropertyValue(propertyId, value),
-		compositionActions.setPropertyTimelineId(propertyId, ""),
+		setPropertyValue({
+			propertyId,
+			value
+		}),
+		setPropertyTimelineId({
+			propertyId,
+			timelineId: ""
+		}),
 	);
 	op.addDiff((diff) => diff.togglePropertyAnimated(propertyId));
 };
@@ -127,7 +140,7 @@ const viewTransformProperties = (
 	const composition = compositionState.compositions[compositionId];
 	const selection = compSelectionFromState(compositionId, compositionSelectionState);
 
-	let layerIds = composition.layers.filter((layerId) => selection.layers[layerId]);
+	let layerIds = composition.layers.filter((layerId: string) => selection.layers[layerId]);
 
 	if (layerIds.length === 0) {
 		// If none are selected, all are selected
@@ -140,7 +153,7 @@ const viewTransformProperties = (
 
 	for (const layerId of layerIds) {
 		const layer = compositionState.layers[layerId];
-		const transformGroupId = layer.properties.find((propertyId) => {
+		const transformGroupId = layer.properties.find((propertyId: string) => {
 			const group = compositionState.properties[propertyId];
 			return group.name === PropertyGroupName.Transform;
 		})!;
@@ -154,13 +167,28 @@ const viewTransformProperties = (
 				const property = compositionState.properties[propertyId] as Property;
 				if (nameSet.has(property.name)) {
 					toggled.push(propertyId);
-					op.add(compositionActions.toggleLayerViewProperty(layerId, propertyId));
+					const newViewProperties = [...layer.viewProperties];
+					const index = newViewProperties.indexOf(propertyId);
+					if (index === -1) {
+						newViewProperties.push(propertyId);
+					} else {
+						newViewProperties.splice(index, 1);
+					}
+					op.add(setLayerViewProperties({
+						layerId,
+						propertyIds: newViewProperties
+					}));
 				}
 			}
 
 			if (areSetsEqual(new Set(active), new Set(toggled))) {
-				op.add(compositionActions.clearViewProperties(layerId));
-				op.add(compositionActions.setLayerCollapsed(layerId, true));
+				op.add(clearViewProperties({
+					layerId
+				}));
+				op.add(setLayerCollapsed({
+					layerId,
+					collapsed: true
+				}));
 			}
 			return;
 		}
@@ -174,15 +202,26 @@ const viewTransformProperties = (
 			}
 		}
 
-		op.add(compositionActions.clearViewProperties(layerId));
+		op.add(clearViewProperties({
+			layerId
+		}));
 
 		if (areSetsEqual(new Set(propertyIds), new Set(layer.viewProperties))) {
 			op.add(
-				compositionActions.setLayerCollapsed(layerId, true),
-				compositionActions.setLayerViewProperties(layerId, []),
+				setLayerCollapsed({
+					layerId,
+					collapsed: true
+				}),
+				setLayerViewProperties({
+					layerId,
+					propertyIds: []
+				}),
 			);
 		} else {
-			op.add(compositionActions.setLayerViewProperties(layerId, propertyIds));
+			op.add(setLayerViewProperties({
+				layerId,
+				propertyIds
+			}));
 		}
 	}
 };
@@ -193,7 +232,7 @@ const viewAnimatedProperties = (op: Operation, compositionId: string): void => {
 	const composition = compositionState.compositions[compositionId];
 	const selection = compSelectionFromState(compositionId, compositionSelectionState);
 
-	let layerIds = composition.layers.filter((layerId) => selection.layers[layerId]);
+	let layerIds = composition.layers.filter((layerId: string) => selection.layers[layerId]);
 
 	if (layerIds.length === 0) {
 		// If none are selected, all are selected
@@ -245,44 +284,11 @@ const viewAnimatedProperties = (op: Operation, compositionId: string): void => {
 		(propertyId) => compositionState.properties[propertyId].type === "group",
 	);
 
-	let equal = true;
 	for (const groupId of groupIds) {
-		const curr = new Set(groupToVisibleProperties[groupId] || []);
-		const prev = new Set(
-			(compositionState.properties[groupId] as PropertyGroup).viewProperties,
-		);
-
-		if (!areSetsEqual(curr, prev)) {
-			equal = false;
-			break;
-		}
-	}
-
-	// Reset view properties
-	for (const layerId of layerIds) {
-		op.add(compositionActions.clearViewProperties(layerId));
-	}
-
-	if (!equal) {
-		// Open appropriate ones
-		const groupIds = Object.keys(groupToVisibleProperties);
-		for (const groupId of groupIds) {
-			op.add(
-				compositionActions.setPropertyGroupViewProperties(
-					groupId,
-					groupToVisibleProperties[groupId],
-				),
-			);
-		}
-
-		for (const layerId of layerIds) {
-			const layer = compositionState.layers[layerId];
-			const viewProperties = layer.properties.filter((groupId) => {
-				const visible = groupToVisibleProperties[groupId] || [];
-				return visible.length > 0;
-			});
-			op.add(compositionActions.setLayerViewProperties(layerId, viewProperties));
-		}
+		op.add(setPropertyGroupViewProperties({
+			groupId,
+			propertyIds: groupToVisibleProperties[groupId] || []
+		}));
 	}
 };
 
@@ -298,7 +304,10 @@ const addTimelineToProperty = (op: Operation, propertyId: string) => {
 	);
 	op.add(
 		timelineActions.setTimeline(timeline.id, timeline),
-		compositionActions.setPropertyTimelineId(propertyId, timeline.id),
+		setPropertyTimelineId({
+			propertyId,
+			timelineId: timeline.id
+		}),
 	);
 	op.addDiff((diff) => diff.togglePropertyAnimated(propertyId));
 };

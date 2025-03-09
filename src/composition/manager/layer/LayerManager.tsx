@@ -1,8 +1,8 @@
 import * as PIXI from "pixi.js";
 import { getArrayModifierLayerDimensions } from "~/composition/arrayModifier";
 import {
-	createLayerInstances,
-	updateLayerInstanceTransforms,
+    createLayerInstances,
+    updateLayerInstanceTransforms,
 } from "~/composition/layer/layerInstances";
 import { constructLayerPropertyMap, LayerPropertyMap } from "~/composition/layer/layerPropertyMap";
 import { manageComposition } from "~/composition/manager/compositionManager";
@@ -17,12 +17,13 @@ import { Diff } from "~/diff/diffs";
 import { applyPixiLayerTransform, getPixiLayerMatrix } from "~/render/pixi/pixiLayerTransform";
 import { getLayerChildLayers } from "~/shared/layer/layerParentSort";
 import {
-	LayerDimension,
-	LayerType,
-	Performable,
-	PropertyName,
-	TransformPropertyName,
+    LayerDimension,
+    LayerType,
+    Performable,
+    PropertyName,
+    TransformPropertyName,
 } from "~/types";
+import { Vec2 } from "~/util/math/vec2";
 
 export interface LayerPixiContainers {
 	transformContainer: PIXI.Container;
@@ -83,16 +84,16 @@ export class LayerManager {
 	}
 
 	public addLayer(actionState: ActionState, layerId: string) {
+		console.log("[LAYER] Adding layer:", layerId);
+		
 		if (this.layerContainers[layerId]) {
-			// Layer is already present.
-			//
-			// Warn about this happening.
 			console.warn(`Added already present layer '${layerId}'.`);
 			return;
 		}
 
 		const { compositionState } = actionState;
 		const layer = compositionState.layers[layerId];
+		console.log("[LAYER] Layer data:", layer);
 
 		const transformContainer = new PIXI.Container();
 		const instanceContainer = new PIXI.Container();
@@ -105,21 +106,25 @@ export class LayerManager {
 			childLayerContainer,
 			instanceContainer,
 		};
+		console.log("[LAYER] Created containers");
 
-		// The layer's transform affects both its own content and the content
-		// of its child layers, so we add both to the transform container.
 		transformContainer.addChild(ownContentContainer);
 		transformContainer.addChild(childLayerContainer);
 
 		if (layer.type !== LayerType.Composition) {
-			this.graphicManager.getLayerGraphic(actionState, layer);
+			console.log("[LAYER] Getting layer graphic");
+			const graphic = this.graphicManager.getLayerGraphic(actionState, layer);
+			ownContentContainer.addChild(graphic);
+			console.log("[LAYER] Added graphic to ownContentContainer");
 		}
 
+		console.log("[LAYER] Getting hit test graphic");
 		const hitTestGraphic = this.hitTestManager.getGraphic(actionState, layerId);
 		transformContainer.addChild(hitTestGraphic);
 
 		const { store } = this.propertyManager;
 		const map = constructLayerPropertyMap(layerId, actionState.compositionState);
+		console.log("[LAYER] Property map:", map);
 
 		applyPixiLayerTransform(transformContainer, map, store.getPropertyValue);
 
@@ -127,8 +132,8 @@ export class LayerManager {
 		if (layer.parentLayerId) {
 			parentContainer = this.getLayerChildLayerContainer(layer.parentLayerId);
 		}
+		console.log("[LAYER] Adding to parent container");
 
-		// Add the layer to the parent container
 		parentContainer.addChild(transformContainer);
 		this.options.compositionContainer.addChild(instanceContainer);
 
@@ -139,6 +144,7 @@ export class LayerManager {
 		this.layerToVisible[layerId] = true;
 
 		if (layer.type !== LayerType.Composition) {
+			console.log("[LAYER] Creating layer instances");
 			createLayerInstances(
 				actionState,
 				this.parentDimensions,
@@ -171,6 +177,8 @@ export class LayerManager {
 			});
 			this.subCompositions[layerId] = { manager, layerId: layerId };
 		}
+		
+		console.log("[LAYER] Layer added successfully");
 	}
 
 	public removeLayer(layerId: string) {

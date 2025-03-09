@@ -1,5 +1,5 @@
 import { AREA_PLACEMENT_TRESHOLD } from "~/area/state/areaConstants";
-import { AreaReducerState } from "~/area/state/areaReducer";
+import { AreaReducerState } from "~/area/types";
 import { isVecInRect } from "~/util/math";
 
 export const getHoveredAreaId = (

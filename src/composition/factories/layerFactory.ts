@@ -1,32 +1,33 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import {
-	CompoundProperty,
-	CreateLayerPropertyGroup,
-	CreatePropertyOptions,
-	Layer,
-	Property,
-	PropertyGroup,
+    CompoundProperty,
+    CreateLayerPropertyGroup,
+    CreatePropertyOptions,
+    Layer,
+    Property,
+    PropertyGroup,
 } from "~/composition/compositionTypes";
 import { compositionLayerPropertiesFactory } from "~/composition/factories/compositionLayerPropertiesFactory";
 import {
-	ellipseLayerPropertiesFactory,
-	EllipseProperties,
+    ellipseLayerPropertiesFactory,
+    EllipseProperties,
 } from "~/composition/factories/ellipseLayerPropertiesFactory";
 import {
-	lineLayerPropertiesFactory,
-	LineProperties,
+    lineLayerPropertiesFactory,
+    LineProperties,
 } from "~/composition/factories/lineLayerPropertiesFactory";
 import { modifierPropertyGroupFactory } from "~/composition/factories/modifierPropertyGroupFactory";
 import {
-	rectLayerPropertiesFactory,
-	RectProperties,
+    rectLayerPropertiesFactory,
+    RectProperties,
 } from "~/composition/factories/rectLayerPropertiesFactory";
 import {
-	createShapeLayerProperties,
-	ShapeProperties,
+    createShapeLayerProperties,
+    ShapeProperties,
 } from "~/composition/factories/shapeLayerPropertiesFactory";
 import { transformPropertiesFactory } from "~/composition/factories/transformPropertiesFactory";
 import { getLayerTypeName } from "~/composition/layer/layerUtils";
+import { EllipseState } from "~/composition/types/ellipseTypes";
 import { LayerTransform, LayerType } from "~/types";
 import { createGenMapIdFn, createMapNumberId } from "~/util/mapUtils";
 import { getNonDuplicateName } from "~/util/names";
@@ -125,6 +126,12 @@ export const layerFactory = <T extends LayerType>(options: Options<T>) => {
 		collapsed: true,
 		parentLayerId: "",
 		viewProperties: [],
+		...(type === LayerType.Ellipse ? {
+			ellipse: {
+				radius: 50,
+				center: { x: 0, y: 0 },
+			} as EllipseState,
+		} : {}),
 	};
 
 	return {

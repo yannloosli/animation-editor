@@ -1,22 +1,22 @@
-import { CompositionState } from "~/composition/compositionReducer";
 import { CompositionSelectionState } from "~/composition/compositionSelectionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { Property, PropertyGroup } from "~/composition/compositionTypes";
 import {
-	reduceLayerProperties,
-	reduceLayerPropertiesAndGroups,
+    reduceLayerProperties,
+    reduceLayerPropertiesAndGroups,
 } from "~/composition/compositionUtils";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import { ShapeState } from "~/shape/shapeReducer";
 import { ShapeSelectionState } from "~/shape/shapeSelectionReducer";
 import { ShapePath, ShapePathItem, ShapeSelection } from "~/shape/shapeTypes";
 import {
-	FillRule,
-	LayerType,
-	LineCap,
-	LineJoin,
-	PropertyGroupName,
-	PropertyName,
-	RGBAColor,
+    FillRule,
+    LayerType,
+    LineCap,
+    LineJoin,
+    PropertyGroupName,
+    PropertyName,
+    RGBAColor,
 } from "~/types";
 import { completeCubicBezier, expandRect, getDistance, isVecInRect, rectOfVecs } from "~/util/math";
 import { closestPointOnPath } from "~/util/math/closestPoint";

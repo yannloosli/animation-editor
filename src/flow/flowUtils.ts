@@ -1,4 +1,4 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { FlowNodeType } from "~/flow/flowTypes";
 import { FlowState } from "~/flow/state/flowReducers";
 import { FlowGraphSelection, FlowSelectionState } from "~/flow/state/flowSelectionReducer";

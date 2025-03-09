@@ -1,5 +1,5 @@
 import { compositionConstants } from "~/composition/compositionConstants";
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { CompoundProperty, PropertyGroup } from "~/composition/compositionTypes";
 import { CompoundPropertyName, PropertyGroupName, PropertyName } from "~/types";
 

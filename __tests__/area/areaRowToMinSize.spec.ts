@@ -1,5 +1,5 @@
+import { AreaReducerState } from "~/area/types";
 import { computeAreaRowToMinSize } from "~/area/util/areaRowToMinSize";
-import { AreaReducerState } from "~/area/state/areaReducer";
 
 describe("computeAreaRowToMinSize", () => {
 	it("works", () => {

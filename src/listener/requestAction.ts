@@ -1,4 +1,4 @@
-import { areaActions } from "~/area/state/areaActions";
+import { dispatchToAreaState } from "~/area/state/areaSlice";
 import { keys } from "~/constants";
 import { diffFactory, DiffFactoryFn } from "~/diff/diffFactory";
 import { Diff } from "~/diff/diffs";
@@ -178,7 +178,10 @@ const performRequestedAction = (
 		done,
 		dispatch,
 		dispatchToAreaState: (areaId, action) => {
-			dispatch(areaActions.dispatchToAreaState(areaId, action));
+			dispatch(dispatchToAreaState({
+				areaId,
+				action
+			}));
 		},
 		submitAction: (name = "Unknown action", options = {}) => {
 			const { allowIndexShift = false } = options;

@@ -1,8 +1,19 @@
-import { areaActions } from "~/area/state/areaActions";
 import { areaInitialStates } from "~/area/state/areaInitialStates";
+import { dispatchToAreaState } from "~/area/state/areaSlice";
 import { dragOpenArea } from "~/area/util/dragOpenArea";
-import { compositionActions } from "~/composition/compositionReducer";
-import { compSelectionActions } from "~/composition/compositionSelectionReducer";
+import * as selectionActions from "~/composition/compositionSelectionSlice";
+import {
+    moveLayers,
+    moveModifier,
+    setFrameIndex,
+    setLayerCollapsed,
+    setLayerGraphId,
+    setLayerParentLayerId,
+    setPropertyGraphId,
+    setPropertyMaintainProportions,
+    setPropertyTimelineId,
+    setPropertyValue
+} from "~/composition/compositionSlice";
 import { CompoundProperty, Layer, Property } from "~/composition/compositionTypes";
 import {
     getTimelineIdsReferencedByComposition,
@@ -15,23 +26,22 @@ import {
 import {
     AreaType,
     TIMELINE_BETWEEN_LAYERS,
-    TIMELINE_ITEM_HEIGHT,
-    TIMELINE_LAYER_HEIGHT,
+    TIMELINE_LAYER_HEIGHT
 } from "~/constants";
 import { createArrayModifierFlowGraph, createLayerFlowGraph } from "~/flow/graph/createFlowGraph";
 import { flowActions } from "~/flow/state/flowActions";
 import { isKeyDown } from "~/listener/keyboard";
 import {
     requestAction,
-    RequestActionCallback,
     RequestActionParams,
-    ShouldAddToStackFn,
+    ShouldAddToStackFn
 } from "~/listener/requestAction";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { timelineOperations } from "~/timeline/operations/timelineOperations";
 import { timelineActions, timelineSelectionActions } from "~/timeline/timelineActions";
 import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
+import { setViewBounds } from "~/timeline/timelineAreaSlice";
 import { createTimelineContextMenu } from "~/timeline/timelineContextMenu";
 import {
     createTimelineForLayerProperty,
@@ -39,16 +49,114 @@ import {
     graphEditorGlobalToNormal,
 } from "~/timeline/timelineUtils";
 import {
-    getTimelineLayerListHeight,
-    getTimelineTrackYPositions,
+    getTimelineTrackYPositions
 } from "~/trackEditor/trackEditorUtils";
 import { PropertyGroupName } from "~/types";
 import { Area } from "~/types/areaTypes";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
 import { animate } from "~/util/animation/animate";
 import { capToRange, interpolate } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
+import { parseWheelEvent } from "~/util/wheelEvent";
 
 const ZOOM_FAC = 0.4;
+
+interface TimelineActionParams extends RequestActionParams {
+    compositionId: string;
+    layerId: string;
+    type?: "above" | "below";
+}
+
+const handleLayerMove = (params: TimelineActionParams) => {
+    const { compositionId, layerId, type } = params;
+    const action = selectionActions.addLayerToSelection({
+        compositionId,
+        layerId
+    });
+    params.dispatch(action);
+
+    if (type) {
+        const moveAction = moveLayers({
+            compositionId,
+            moveInfo: {
+                layerId,
+                type
+            },
+            selectionState: getActionState().compositionSelectionState
+        });
+        params.dispatch(moveAction);
+    }
+};
+
+const handleLayerSelect = (params: TimelineActionParams) => {
+    const { compositionId, layerId } = params;
+    const action = selectionActions.addLayerToSelection({
+        compositionId,
+        layerId
+    });
+    params.dispatch(action);
+};
+
+const handleLayerDeselect = (params: TimelineActionParams) => {
+    const { compositionId, layerId } = params;
+    const action = selectionActions.removeLayersFromSelection({
+        compositionId,
+        layerIds: [layerId]
+    });
+    params.dispatch(action);
+};
+
+const clearCompositionSelection = (params: TimelineActionParams) => {
+    const { compositionId } = params;
+    const { compositionState } = getActionState();
+
+    const action = selectionActions.clearCompositionSelection({
+        compositionId
+    });
+    params.dispatch(action);
+
+    const timelineIds = getTimelineIdsReferencedByComposition(
+        compositionId,
+        compositionState,
+    );
+    const timelineActions = timelineIds.map((timelineId) => timelineSelectionActions.clear(timelineId));
+    params.dispatch(timelineActions);
+};
+
+const deselectLayerProperties = (params: TimelineActionParams) => {
+    const { compositionId, layerId } = params;
+    const { compositionState, compositionSelectionState } = getActionState();
+    const compositionSelection = compSelectionFromState(compositionId, compositionSelectionState);
+
+    const propertyIds = reduceLayerPropertiesAndGroups<string[]>(
+        layerId,
+        compositionState,
+        (acc, property) => {
+            acc.push(property.id);
+            return acc;
+        },
+        [],
+    ).filter((propertyId) => compositionSelection.properties[propertyId]);
+
+    const timelineIds = propertyIds.reduce<string[]>((acc, propertyId) => {
+        const property = compositionState.properties[propertyId];
+
+        if (property.type === "property" && property.timelineId) {
+            acc.push(property.timelineId);
+        }
+
+        return acc;
+    }, []);
+
+    const action = selectionActions.removePropertiesFromSelection({
+        compositionId,
+        propertyIds
+    });
+    params.dispatch(action);
+
+    const timelineActions = timelineIds.map((timelineId) => timelineSelectionActions.clear(timelineId));
+    params.dispatch(timelineActions);
+};
 
 export const timelineHandlers = {
 	onScrubMouseDown: (
@@ -63,16 +171,20 @@ export const timelineHandlers = {
 		const { compositionId } = options;
 
 		const composition = getActionState().compositionState.compositions[compositionId];
-		const initialPosition = Vec2.fromEvent(e);
+		const initialPosition = Vec2.fromEvent(e.nativeEvent);
 
 		let frameIndex = composition.frameIndex;
 
-		const fn: RequestActionCallback = (params) => {
-			const onMove = (e?: MouseEvent) => {
-				const pos = e ? Vec2.fromEvent(e) : initialPosition;
+		requestAction({ history: true }, (params) => {
+			const onMove = (e?: MouseEvent | KeyboardEvent) => {
+				if (!e || !(e instanceof MouseEvent)) return;
+				const pos = Vec2.fromEvent(e);
 				const x = graphEditorGlobalToNormal(pos.x, options);
 				frameIndex = capToRange(0, composition.length - 1, Math.round(x));
-				params.dispatch(compositionActions.setFrameIndex(composition.id, frameIndex));
+				params.dispatch(setFrameIndex({
+					compositionId: composition.id,
+					frameIndex
+				}));
 				params.performDiff((diff) => diff.frameIndex(compositionId, frameIndex));
 			};
 			params.addListener.repeated("mousemove", onMove);
@@ -82,8 +194,7 @@ export const timelineHandlers = {
 				params.addDiff((diff) => diff.frameIndex(compositionId, frameIndex));
 				params.submitAction("Move scrubber");
 			});
-		};
-		requestAction({ history: true }, fn);
+		});
 	},
 
 	onZoomClick: (
@@ -97,7 +208,7 @@ export const timelineHandlers = {
 	): void => {
 		const { viewBounds, width, left } = options;
 
-		const mousePos = Vec2.fromEvent(e).subX(left);
+		const mousePos = Vec2.fromEvent(e.nativeEvent).subX(left);
 		const t = mousePos.x / width;
 
 		let newBounds: [number, number];
@@ -116,87 +227,66 @@ export const timelineHandlers = {
 		requestAction({ history: false }, ({ dispatch, submitAction }) => {
 			animate({ duration: 0 }, (t) => {
 				dispatch(
-					areaActions.dispatchToAreaState(
+					dispatchToAreaState({
 						areaId,
-						timelineAreaActions.setViewBounds([
+						action: setViewBounds([
 							interpolate(viewBounds[0], newBounds[0], t),
 							interpolate(viewBounds[1], newBounds[1], t),
 						]),
-					),
+					}),
 				);
 			}).then(() => submitAction());
 		});
 	},
 
 	onWheelPan: (
-		e: WheelEvent,
+		e: React.WheelEvent,
 		areaId: string,
 		options: {
 			compositionId: string;
 			compositionLength: number;
 			viewBounds: [number, number];
 			viewport: Rect;
-			panY: number;
 			lockY: boolean;
+			panY: number;
 		},
 	): void => {
-		const { viewBounds, compositionLength, compositionId } = options;
+		const { viewBounds, viewport, lockY, panY } = options;
 
-		requestAction({ history: false }, ({ submitAction, dispatch }) => {
-			const compositionState = getActionState().compositionState;
+		requestAction({ history: false }, ({ dispatch, submitAction }) => {
+			const parsed = parseWheelEvent(e.nativeEvent);
 
-			const [x0, x1] = [0, e.deltaX].map((x) => graphEditorGlobalToNormal(x, options));
-
-			const xt0 = x0 / compositionLength;
-			const xt1 = x1 / compositionLength;
-
-			const tChange = (xt0 - xt1) * -1;
-
-			const rightShiftMax = 1 - viewBounds[1];
-			const leftShiftMax = -viewBounds[0];
-
-			let newBounds = [viewBounds[0], viewBounds[1]] as [number, number];
-			if (tChange > rightShiftMax) {
-				newBounds[1] = 1;
-				newBounds[0] += rightShiftMax;
-			} else if (tChange < leftShiftMax) {
-				newBounds[0] = 0;
-				newBounds[1] += leftShiftMax;
-			} else {
-				newBounds[0] += tChange;
-				newBounds[1] += tChange;
-			}
-
-			const toDispatch: any[] = [
-				areaActions.dispatchToAreaState(
-					areaId,
-					timelineAreaActions.setViewBounds(newBounds),
-				),
-			];
-
-			if (!options.lockY) {
-				const yChange = e.deltaY;
-				let yPan = options.panY + yChange;
-
-				yPan = Math.min(
-					yPan,
-					getTimelineLayerListHeight(compositionId, compositionState) -
-						(TIMELINE_ITEM_HEIGHT + 32 + 2),
-				);
-				yPan = Math.max(0, yPan);
-
-				toDispatch.push(
-					areaActions.dispatchToAreaState(areaId, timelineAreaActions.setPanY(yPan)),
+			if (!lockY) {
+				const yPan = panY + (parsed.type === "pinch_zoom" ? parsed.delta : parsed.deltaY);
+				dispatch(
+					dispatchToAreaState({
+						areaId,
+						action: timelineAreaActions.setPanY(yPan),
+					}),
 				);
 			}
 
-			dispatch(toDispatch);
+			if (parsed.type !== "pinch_zoom") {
+				const viewBoundsDiff = viewBounds[1] - viewBounds[0];
+				const newBounds: [number, number] = [
+					viewBounds[0] + (parsed.deltaX / viewport.width) * viewBoundsDiff,
+					viewBounds[1] + (parsed.deltaX / viewport.width) * viewBoundsDiff,
+				];
+
+				dispatch(
+					dispatchToAreaState({
+						areaId,
+						action: timelineAreaActions.setViewBounds(newBounds),
+					}),
+				);
+			}
+
 			submitAction();
 		});
 	},
 
 	onWheelZoom: (
-		e: WheelEvent,
+		e: React.WheelEvent,
 		areaId: string,
 		impact = 1,
 		options: { viewBounds: [number, number]; width: number; left: number },
@@ -207,7 +297,7 @@ export const timelineHandlers = {
 
 		const { viewBounds, width, left } = options;
 
-		const mousePos = Vec2.fromEvent(e).subX(left);
+		const mousePos = Vec2.new(e.clientX, e.clientY).subX(left);
 		const t = mousePos.x / width;
 
 		if (t < 0) {
@@ -233,10 +323,10 @@ export const timelineHandlers = {
 
 		requestAction({ history: false }, ({ dispatch, submitAction }) => {
 			dispatch(
-				areaActions.dispatchToAreaState(
+				dispatchToAreaState({
 					areaId,
-					timelineAreaActions.setViewBounds(newBounds),
-				),
+					action: timelineAreaActions.setViewBounds(newBounds),
+				}),
 			);
 			submitAction();
 		});
@@ -253,72 +343,47 @@ export const timelineHandlers = {
 			compositionLength: number;
 			viewBounds: [number, number];
 			viewport: Rect;
-			panY: number;
 			lockY: boolean;
+			panY: number;
 		},
 	): void => {
-		const { viewBounds, compositionLength, compositionId } = options;
+		const { viewBounds, viewport, lockY, panY } = options;
+		const initialPosition = Vec2.fromEvent(e.nativeEvent);
 
-		const initialMousePosition = Vec2.fromEvent(e);
-		const initialPos = graphEditorGlobalToNormal(initialMousePosition.x, options);
+		requestAction({ history: false }, ({ dispatch, submitAction, addListener }) => {
+			const onMove = (e?: MouseEvent | KeyboardEvent) => {
+				if (!e || !(e instanceof MouseEvent)) return;
 
-		const fn: RequestActionCallback = ({ addListener, submitAction, dispatch }) => {
-			const compositionState = getActionState().compositionState;
+				const pos = Vec2.fromEvent(e);
+				const diff = pos.sub(initialPosition);
 
-			let initialT = initialPos / compositionLength;
-
-			addListener.repeated("mousemove", (e) => {
-				const mousePosition = Vec2.fromEvent(e);
-				const pos = graphEditorGlobalToNormal(mousePosition.x, options);
-
-				const t = pos / compositionLength;
-
-				const tChange = (t - initialT) * -1;
-
-				const rightShiftMax = 1 - viewBounds[1];
-				const leftShiftMax = -viewBounds[0];
-
-				let newBounds = [viewBounds[0], viewBounds[1]] as [number, number];
-				if (tChange > rightShiftMax) {
-					newBounds[1] = 1;
-					newBounds[0] += rightShiftMax;
-				} else if (tChange < leftShiftMax) {
-					newBounds[0] = 0;
-					newBounds[1] += leftShiftMax;
-				} else {
-					newBounds[0] += tChange;
-					newBounds[1] += tChange;
+				if (!lockY) {
+					const yPan = panY - diff.y;
+					dispatch(
+						dispatchToAreaState({
+							areaId,
+							action: timelineAreaActions.setPanY(yPan),
+						}),
+					);
 				}
 
-				const toDispatch: any[] = [
-					areaActions.dispatchToAreaState(
-						areaId,
-						timelineAreaActions.setViewBounds(newBounds),
-					),
+				const viewBoundsDiff = viewBounds[1] - viewBounds[0];
+				const newBounds: [number, number] = [
+					viewBounds[0] - (diff.x / viewport.width) * viewBoundsDiff,
+					viewBounds[1] - (diff.x / viewport.width) * viewBoundsDiff,
 				];
 
-				if (!options.lockY) {
-					const yChange = initialMousePosition.y - mousePosition.y;
-					let yPan = options.panY + yChange;
+				dispatch(
+					dispatchToAreaState({
+						areaId,
+						action: timelineAreaActions.setViewBounds(newBounds),
+					}),
+				);
+			};
 
-					yPan = Math.min(
-						yPan,
-						getTimelineLayerListHeight(compositionId, compositionState) -
-							(TIMELINE_ITEM_HEIGHT + 32 + 2),
-					);
-					yPan = Math.max(0, yPan);
-
-					toDispatch.push(
-						areaActions.dispatchToAreaState(areaId, timelineAreaActions.setPanY(yPan)),
-					);
-				}
-
-				dispatch(toDispatch);
-			});
-
+			addListener.repeated("mousemove", onMove);
 			addListener.once("mouseup", () => submitAction());
-		};
-		requestAction({ history: false }, fn);
+		});
 	},
 
 	onCompoundPropertyKeyframeIconMouseDown: (e: React.MouseEvent, compoundPropertyId: string) => {
@@ -368,8 +433,14 @@ export const timelineHandlers = {
 
 					op.add(
 						timelineActions.removeTimeline(property.timelineId),
-						compositionActions.setPropertyValue(property.id, value),
-						compositionActions.setPropertyTimelineId(property.id, ""),
+						setPropertyValue({
+							propertyId: property.id,
+							value
+						}),
+						setPropertyTimelineId({
+							propertyId: property.id,
+							timelineId: ""
+						}),
 					);
 					continue;
 				}
@@ -380,7 +451,10 @@ export const timelineHandlers = {
 				);
 				op.add(
 					timelineActions.setTimeline(timeline.id, timeline),
-					compositionActions.setPropertyTimelineId(property.id, timeline.id),
+					setPropertyTimelineId({
+						propertyId: property.id,
+						timelineId: timeline.id
+					}),
 				);
 			}
 
@@ -432,7 +506,9 @@ export const timelineHandlers = {
 			(params) => {
 				const { compositionState } = getActionState();
 
-				params.dispatch(compSelectionActions.clearCompositionSelection(compositionId));
+				params.dispatch(selectionActions.clearCompositionSelection({
+					compositionId
+				}));
 
 				const timelineIds = getTimelineIdsReferencedByComposition(
 					compositionId,
@@ -448,12 +524,12 @@ export const timelineHandlers = {
 	},
 
 	onRightClickOut: (e: React.MouseEvent, compositionId: string): void => {
-		const position = Vec2.fromEvent(e);
+		const position = Vec2.fromEvent(e.nativeEvent);
 		createTimelineContextMenu(position, { compositionId });
 	},
 
 	onLayerRightClick: (e: React.MouseEvent, layer: Layer): void => {
-		const position = Vec2.fromEvent(e);
+		const position = Vec2.fromEvent(e.nativeEvent);
 		createTimelineContextMenu(position, {
 			compositionId: layer.compositionId,
 			layerId: layer.id,
@@ -470,19 +546,13 @@ export const timelineHandlers = {
 		e.stopPropagation();
 
 		const areaState = getAreaActionState<AreaType.Timeline>(areaId);
-
 		const { compositionState, compositionSelectionState } = getActionState();
-
 		const composition = compositionState.compositions[compositionId];
-		const compositionSelection = compSelectionFromState(
-			compositionId,
-			compositionSelectionState,
-		);
+		const compositionSelection = compSelectionFromState(compositionId, compositionSelectionState);
 		const willBeSelected = !compositionSelection.layers[layerId];
 		const additiveSelection = isKeyDown("Shift") || isKeyDown("Command");
 
 		const rect = layerWrapper.current!.getBoundingClientRect();
-
 		const yPosMap = getTimelineTrackYPositions(compositionId, compositionState, areaState.panY);
 
 		const getInsertBelowLayerIndex = (
@@ -538,57 +608,19 @@ export const timelineHandlers = {
 		};
 
 		const addLayerToSelection = (params: RequestActionParams) => {
-			params.dispatch(compSelectionActions.addLayerToSelection(compositionId, layerId));
+			const action = selectionActions.addLayerToSelection({
+				compositionId,
+				layerId
+			});
+			params.dispatch(action);
 		};
 
 		const removeLayerFromSelection = (params: RequestActionParams) => {
-			params.dispatch(
-				compSelectionActions.removeLayersFromSelection(compositionId, [layerId]),
-			);
-		};
-
-		const clearCompositionSelection = (params: RequestActionParams) => {
-			// Clear composition selection
-			params.dispatch(compSelectionActions.clearCompositionSelection(compositionId));
-
-			// Clear timeline selection of selected properties
-			const timelineIds = getTimelineIdsReferencedByComposition(
+			const action = selectionActions.removeLayersFromSelection({
 				compositionId,
-				compositionState,
-			);
-			params.dispatch(
-				timelineIds.map((timelineId) => timelineSelectionActions.clear(timelineId)),
-			);
-		};
-
-		const deselectLayerProperties = (params: RequestActionParams) => {
-			// Deselect all properties and timeline keyframes
-			const propertyIds = reduceLayerPropertiesAndGroups<string[]>(
-				layerId,
-				compositionState,
-				(acc, property) => {
-					acc.push(property.id);
-					return acc;
-				},
-				[],
-			).filter((propertyId) => compositionSelection.properties[propertyId]);
-
-			const timelineIds = propertyIds.reduce<string[]>((acc, propertyId) => {
-				const property = compositionState.properties[propertyId];
-
-				if (property.type === "property" && property.timelineId) {
-					acc.push(property.timelineId);
-				}
-
-				return acc;
-			}, []);
-
-			params.dispatch(
-				compSelectionActions.removePropertiesFromSelection(compositionId, propertyIds),
-			);
-			params.dispatch(
-				timelineIds.map((timelineId) => timelineSelectionActions.clear(timelineId)),
-			);
+				layerIds: [layerId]
+			});
+			params.dispatch(action);
 		};
 
 		const didLayerOrderChange: ShouldAddToStackFn = (a, b) => {
@@ -607,26 +639,25 @@ export const timelineHandlers = {
 		mouseDownMoveAction(e, {
 			keys: [],
 			shouldAddToStack: [didCompSelectionChange(compositionId), didLayerOrderChange],
-			beforeMove: (params) => {
+			beforeMove: (params: RequestActionParams) => {
+				const timelineParams: TimelineActionParams = {
+					...params,
+					compositionId,
+					layerId
+				};
+
 				if (!additiveSelection && willBeSelected) {
-					// The selection is non-additive and the layer will be selected.
-					//
-					// Clear the composition selection and then add the layer to selection.
-					clearCompositionSelection(params);
-					addLayerToSelection(params);
+					clearCompositionSelection(timelineParams);
+					handleLayerSelect(timelineParams);
 					return;
 				}
 
 				if (additiveSelection && !willBeSelected) {
-					// The selection is additive and the layer will NOT be selected.
-					//
-					// Deselect the layer and its properties.
-					deselectLayerProperties(params);
-					removeLayerFromSelection(params);
+					deselectLayerProperties(timelineParams);
+					handleLayerDeselect(timelineParams);
 				}
 			},
 			mouseMove: (params, { mousePosition }) => {
-				// Layer was deselected, do not move selected layers.
 				if (additiveSelection && !willBeSelected) {
 					return;
 				}
@@ -638,49 +669,48 @@ export const timelineHandlers = {
 					}),
 				);
 			},
-			mouseUp: (params) => {
+			mouseUp: (params: RequestActionParams) => {
+				const timelineParams: TimelineActionParams = {
+					...params,
+					compositionId,
+					layerId
+				};
+
 				if (additiveSelection && !willBeSelected) {
 					params.submitAction("Remove layer from selection");
 					return;
 				}
 
-				const { moveLayers } = getAreaActionState<AreaType.Timeline>(areaId);
+				const moveLayersState = getAreaActionState<AreaType.Timeline>(areaId).moveLayers;
 
-				if (moveLayers) {
-					// Clear `moveLayers`
+				if (moveLayersState) {
 					params.dispatchToAreaState(
 						areaId,
 						timelineAreaActions.setFields({ moveLayers: null }),
 					);
 
-					if (moveLayers.type === "invalid") {
+					if (moveLayersState.type === "invalid") {
 						params.addDiff((diff) => diff.compositionSelection(compositionId));
 						params.submitAction("Add layer to selection");
 						return;
 					}
 
-					const { compositionSelectionState } = getActionState();
-
-					params.dispatch(
-						compositionActions.moveLayers(
-							compositionId,
-							moveLayers as { layerId: string; type: "above" | "below" },
-							compositionSelectionState,
-						),
-					);
+					handleLayerMove({
+						...timelineParams,
+						layerId: moveLayersState.layerId,
+						type: moveLayersState.type as "above" | "below"
+					});
 					params.submitAction("Move layers", { allowIndexShift: true });
 					return;
 				}
 
 				if (!additiveSelection) {
-					clearCompositionSelection(params);
+					clearCompositionSelection(timelineParams);
 				}
 
-				addLayerToSelection(params);
-
+				handleLayerSelect(timelineParams);
 				params.addDiff((diff) => diff.compositionSelection(compositionId));
 				params.submitAction("Add layer to selection");
-				// See if we are moving layer to an eligible target
 			},
 		});
 	},
@@ -700,7 +730,10 @@ export const timelineHandlers = {
 
 			// If graph exists, delete it. If not, create one.
 			if (property.graphId) {
-				dispatch(compositionActions.setPropertyGraphId(propertyId, ""));
+				dispatch(setPropertyGraphId({
+					propertyId,
+					graphId: ""
+				}));
 				dispatch(flowActions.removeGraph(property.graphId));
 				submitAction("Remove array modifier graph");
 				return;
@@ -709,7 +742,10 @@ export const timelineHandlers = {
 			const { graph, node } = createArrayModifierFlowGraph(propertyId, flowState);
 
 			dispatch(
-				compositionActions.setPropertyGraphId(propertyId, graph.id),
+				setPropertyGraphId({
+					propertyId,
+					graphId: graph.id
+				}),
 				flowActions.setGraph(graph),
 				flowActions.setNode(node),
 			);
@@ -728,7 +764,10 @@ export const timelineHandlers = {
 
 			// If graph exists, delete it. If not, create one.
 			if (layer.graphId) {
-				dispatch(compositionActions.setLayerGraphId(layerId, ""));
+				dispatch(setLayerGraphId({
+					layerId,
+					graphId: ""
+				}));
 				dispatch(flowActions.removeGraph(layer.graphId));
 				submitAction("Remove layer graph");
 				return;
@@ -737,7 +776,10 @@ export const timelineHandlers = {
 			const { graph, node } = createLayerFlowGraph(layerId, flowState);
 
 			dispatch(
-				compositionActions.setLayerGraphId(layerId, graph.id),
+				setLayerGraphId({
+					layerId,
+					graphId: graph.id
+				}),
 				flowActions.setGraph(graph),
 				flowActions.setNode(node),
 			);
@@ -776,7 +818,9 @@ export const timelineHandlers = {
 
 				if (!additiveSelection) {
 					// Clear other properties and timeline keyframes
-					op.add(compSelectionActions.clearCompositionSelection(compositionId));
+					op.add(selectionActions.clearCompositionSelection({
+						compositionId
+					}));
 
 					const timelineIds = getTimelineIdsReferencedByComposition(
 						compositionId,
@@ -804,19 +848,17 @@ export const timelineHandlers = {
 						// Only selected property of layer is being deselected.
 						//
 						// Deselect the layer
-						op.add(
-							compSelectionActions.removeLayersFromSelection(compositionId, [
-								property.layerId,
-							]),
-						);
+						op.add(selectionActions.removeLayersFromSelection({
+							compositionId,
+							layerIds: [property.layerId]
+						}));
 					}
 
 					// Remove property and timeline keyframes from selection
-					op.add(
-						compSelectionActions.removePropertiesFromSelection(compositionId, [
-							propertyId,
-						]),
-					);
+					op.add(selectionActions.removePropertiesFromSelection({
+						compositionId,
+						propertyIds: [propertyId]
+					}));
 
 					if (property.type === "property" && property.timelineId) {
 						op.add(timelineSelectionActions.clear(property.timelineId));
@@ -833,10 +875,14 @@ export const timelineHandlers = {
 					}
 				} else {
 					// Add property and timeline keyframes to selection
-					op.add(compSelectionActions.addPropertyToSelection(compositionId, propertyId));
-					op.add(
-						compSelectionActions.addLayerToSelection(compositionId, property.layerId),
-					);
+					op.add(selectionActions.addPropertyToSelection({
+						compositionId,
+						propertyId
+					}));
+					op.add(selectionActions.addLayerToSelection({
+						compositionId,
+						layerId: property.layerId
+					}));
 
 					if (property.type === "property" && property.timelineId) {
 						const timeline = timelineState[property.timelineId];
@@ -869,7 +915,10 @@ export const timelineHandlers = {
 			const { compositionState } = getActionState();
 			const property = compositionState.properties[modifierPropertyId];
 
-			params.dispatch(compositionActions.moveModifier(modifierPropertyId, moveBy));
+			params.dispatch(moveModifier({
+				modifierId: modifierPropertyId,
+				moveBy
+			}));
 			params.addDiff((diff) => diff.modifierOrder(property.layerId));
 			params.submitAction("Move modifier");
 		});
@@ -883,9 +932,173 @@ export const timelineHandlers = {
 			const maintainProportions = !property.maintainProportions;
 
 			params.dispatch(
-				compositionActions.setPropertyMaintainProportions(propertyId, maintainProportions),
+				setPropertyMaintainProportions({
+					propertyId,
+					maintainProportions
+				}),
 			);
 			params.submitAction("Toggle maintain proportions");
+		});
+	},
+
+	onLayerCollapsed: (e: React.MouseEvent, layerId: string): void => {
+		e.stopPropagation();
+
+		const { flowState, compositionState } = getActionState();
+		const layer = compositionState.layers[layerId];
+
+		requestAction({ history: true }, (params) => {
+			const { dispatch, submitAction } = params;
+
+			params.dispatch(setLayerCollapsed({
+				layerId: layer.id,
+				collapsed: !layer.collapsed
+			}));
+
+			if (layer.graphId) {
+				dispatch(setLayerGraphId({
+					layerId,
+					graphId: ""
+				}));
+				dispatch(flowActions.removeGraph(layer.graphId));
+				submitAction("Remove layer graph");
+				return;
+			}
+
+			const { graph, node } = createLayerFlowGraph(layerId, flowState);
+
+			dispatch(
+				setLayerGraphId({
+					layerId,
+					graphId: graph.id
+				}),
+				flowActions.setGraph(graph),
+				flowActions.setNode(node),
+			);
+			submitAction("Create layer graph");
+		});
+	},
+
+	onLayerGraphId: (e: React.MouseEvent, layerId: string): void => {
+		e.stopPropagation();
+
+		const { flowState, compositionState } = getActionState();
+		const layer = compositionState.layers[layerId];
+
+		requestAction({ history: true }, (params) => {
+			const { dispatch, submitAction } = params;
+
+			// If graph exists, delete it. If not, create one.
+			if (layer.graphId) {
+				dispatch(setLayerGraphId({
+					layerId,
+					graphId: ""
+				}));
+				dispatch(flowActions.removeGraph(layer.graphId));
+				submitAction("Remove layer graph");
+				return;
+			}
+
+			const { graph, node } = createLayerFlowGraph(layerId, flowState);
+
+			dispatch(
+				setLayerGraphId({
+					layerId,
+					graphId: graph.id
+				}),
+				flowActions.setGraph(graph),
+				flowActions.setNode(node),
+			);
+			submitAction("Create layer graph");
+		});
+	},
+
+	onLayerParentLayerId: (e: React.MouseEvent, layerId: string): void => {
+		e.stopPropagation();
+
+		const { flowState, compositionState } = getActionState();
+		const layer = compositionState.layers[layerId];
+
+		requestAction({ history: true }, (params) => {
+			const { dispatch, submitAction } = params;
+
+			params.dispatch(setLayerParentLayerId({
+				layerId: layer.id,
+				parentLayerId: ""
+			}));
+
+			if (layer.graphId) {
+				dispatch(setLayerGraphId({
+					layerId,
+					graphId: ""
+				}));
+				dispatch(flowActions.removeGraph(layer.graphId));
+				submitAction("Remove layer graph");
+				return;
+			}
+
+			const { graph, node } = createLayerFlowGraph(layerId, flowState);
+
+			dispatch(
+				setLayerGraphId({
+					layerId,
+					graphId: graph.id
+				}),
+				flowActions.setGraph(graph),
+				flowActions.setNode(node),
+			);
+			submitAction("Create layer graph");
+		});
+	},
+
+	onLayerPickWhipDrag: (
+		e: React.MouseEvent,
+		areaId: string,
+		options: {
+			layerId: string;
+			compositionId: string;
+			viewport: Rect;
+			panY: number;
+		},
+	): void => {
+		const { layerId, compositionId, viewport, panY } = options;
+
+		requestAction({ history: false }, ({ dispatch, submitAction }) => {
+			dispatch(
+				dispatchToAreaState({
+					areaId,
+					action: timelineAreaActions.setFields({
+						pickWhipLayerParent: {
+							fromId: layerId,
+							to: Vec2.fromEvent(e.nativeEvent),
+						},
+					}),
+				}),
+			);
+			submitAction();
+		});
+	},
+
+	onLayerPickWhipDragEnd: (
+		_e: React.MouseEvent,
+		areaId: string,
+		_options: {
+			layerId: string;
+			compositionId: string;
+			viewport: Rect;
+			panY: number;
+		},
+	): void => {
+		requestAction({ history: true }, ({ dispatch, submitAction }) => {
+			dispatch(
+				dispatchToAreaState({
+					areaId,
+					action: timelineAreaActions.setFields({
+						pickWhipLayerParent: null,
+					}),
+				}),
+			);
+			submitAction();
 		});
 	},
 };

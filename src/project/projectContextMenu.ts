@@ -1,4 +1,4 @@
-import { compositionActions } from "~/composition/compositionReducer";
+import { removeComposition, setComposition } from "~/composition/compositionSlice";
 import { Composition } from "~/composition/compositionTypes";
 import { getTimelineIdsReferencedByComposition } from "~/composition/compositionUtils";
 import { contextMenuActions } from "~/contextMenu/contextMenuActions";
@@ -25,7 +25,7 @@ export const createProjectContextMenu = (position: Vec2, { compositionId }: Opti
 			onSelect: () => {
 				requestAction({ history: true }, (params) => {
 					const compositions = getActionState().compositionState.compositions;
-					const existingNames = Object.values(compositions).map((comp) => comp.name);
+					const existingNames = Object.values<Composition>(compositions).map(comp => comp.name);
 
 					const composition: Composition = {
 						id: createMapNumberId(compositions),
@@ -39,7 +39,7 @@ export const createProjectContextMenu = (position: Vec2, { compositionId }: Opti
 
 					params.dispatch([
 						projectActions.addComposition({ composition }),
-						compositionActions.setComposition(composition),
+						setComposition({ composition }),
 						rtkCloseContextMenu(),
 					]);
 					params.submitAction("Add new composition");
@@ -63,7 +63,7 @@ export const createProjectContextMenu = (position: Vec2, { compositionId }: Opti
 
 					const actions = [
 						projectActions.removeComposition({ compositionId }),
-						compositionActions.removeComposition(compositionId),
+						removeComposition({ compositionId }),
 						...timelineIds.map((id) => timelineActions.removeTimeline(id)),
 						rtkCloseContextMenu(),
 					];

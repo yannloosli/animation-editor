@@ -1,13 +1,14 @@
 import { intersectInfiniteLines } from "~/util/math/intersection/intersectInfiniteLines";
 import { Mat2 } from "~/util/math/mat";
+import { Vec2 } from "~/util/math/vec2";
 
 export const interpolate = (a: number, b: number, t: number) => a * (1 - t) + b * t;
 
 export const isVecInRect = (vec: Vec2, rect: Rect) =>
-	vec.x >= rect.left &&
-	vec.x <= rect.left + rect.width &&
-	vec.y >= rect.top &&
-	vec.y <= rect.top + rect.height;
+	vec.x >= rect.x &&
+	vec.x <= rect.x + rect.width &&
+	vec.y >= rect.y &&
+	vec.y <= rect.y + rect.height;
 
 export const capToRange = (low: number, high: number, value: number) =>
 	Math.min(high, Math.max(low, value));
@@ -24,8 +25,8 @@ export const rectOfTwoVecs = (a: Vec2, b: Vec2): Rect => {
 	return {
 		height: yMax - yMin,
 		width: xMax - xMin,
-		left: xMin,
-		top: yMin,
+		x: xMin,
+		y: yMin,
 	};
 };
 
@@ -54,13 +55,13 @@ export const rectOfVecs = (vecs: Vec2[]): Rect => {
 	return {
 		height: yMax - yMin,
 		width: xMax - xMin,
-		left: xMin,
-		top: yMin,
+		x: xMin,
+		y: yMin,
 	};
 };
 
 export const sortRectTopLeft = (a: Rect, b: Rect, acceptableVariance = 0): number => {
-	return Math.abs(a.top - b.top) <= acceptableVariance ? a.left - b.left : a.top - b.top;
+	return Math.abs(a.y - b.y) <= acceptableVariance ? a.x - b.x : a.y - b.y;
 };
 
 export const sortVecTopLeft = (a: Vec2, b: Vec2, acceptableVariance = 0): number => {
@@ -69,12 +70,12 @@ export const sortVecTopLeft = (a: Vec2, b: Vec2, acceptableVariance = 0): number
 
 export const rectsIntersect = (a: Rect, b: Rect): boolean => {
 	// If one rect is on the left of the other
-	if (a.left > b.left + b.width || b.left > a.left + a.width) {
+	if (a.x > b.x + b.width || b.x > a.x + a.width) {
 		return false;
 	}
 
 	// If one rect is above the other
-	if (a.top > b.top + b.height || b.top > a.top + a.height) {
+	if (a.y > b.y + b.height || b.y > a.y + a.height) {
 		return false;
 	}
 
@@ -87,13 +88,13 @@ export const boundingRectOfRects = (rects: Rect[]): Rect | null => {
 	}
 
 	return rects.slice(1).reduce<Rect>((a, b) => {
-		const xMin = Math.min(a.left, b.left);
-		const yMin = Math.min(a.top, b.top);
+		const xMin = Math.min(a.x, b.x);
+		const yMin = Math.min(a.y, b.y);
 		return {
-			left: xMin,
-			top: yMin,
-			height: Math.max(a.top + a.height, b.top + b.height) - yMin,
-			width: Math.max(a.left + a.width, b.left + b.width) - xMin,
+			x: xMin,
+			y: yMin,
+			height: Math.max(a.y + a.height, b.y + b.height) - yMin,
+			width: Math.max(a.x + a.width, b.x + b.width) - xMin,
 		};
 	}, rects[0]);
 };
@@ -181,25 +182,25 @@ export const translateRect = (rect: Rect, translationVector: Vec2): Rect => {
 	return {
 		width: rect.width,
 		height: rect.height,
-		left: rect.left + translationVector.x,
-		top: rect.top + translationVector.y,
+		x: rect.x + translationVector.x,
+		y: rect.y + translationVector.y,
 	};
 };
 
 export const translateRectAsVec = (rect: Rect, transformFn: (vec: Vec2) => Vec2): Rect => {
-	const { x: left, y: top } = transformFn(Vec2.new(rect.left, rect.top));
+	const { x, y } = transformFn(Vec2.new(rect.x, rect.y));
 	const v0 = transformFn(Vec2.new(0, 0));
 	const v1 = transformFn(Vec2.new(1, 1));
 	let { x: wt, y: ht } = v1.sub(v0);
 	const width = rect.width * wt;
 	const height = rect.height * ht;
-	return { left, top, width, height };
+	return { x, y, width, height };
 };
 
 export const contractRect = (rect: Rect, contractBy: number): Rect => {
 	return {
-		left: rect.left + contractBy,
-		top: rect.top + contractBy,
+		x: rect.x + contractBy,
+		y: rect.y + contractBy,
 		width: rect.width - contractBy * 2,
 		height: rect.height - contractBy * 2,
 	};
@@ -219,16 +220,16 @@ export const splitRect = (
 		const rw = w * (1 - t);
 		return [
 			{
-				left: rect.left,
+				x: rect.x,
 				height: rect.height,
 				width: lw,
-				top: rect.top,
+				y: rect.y,
 			},
 			{
-				left: rect.left + lw + margin,
+				x: rect.x + lw + margin,
 				height: rect.height,
 				width: rw,
-				top: rect.top,
+				y: rect.y,
 			},
 		];
 	}
@@ -238,16 +239,16 @@ export const splitRect = (
 	const bh = h * (1 - t);
 	return [
 		{
-			top: rect.top,
+			y: rect.y,
 			height: th,
 			width: rect.width,
-			left: rect.left,
+			x: rect.x,
 		},
 		{
-			top: rect.top + th + margin,
+			y: rect.y + th + margin,
 			height: bh,
 			width: rect.width,
-			left: rect.left,
+			x: rect.x,
 		},
 	];
 };

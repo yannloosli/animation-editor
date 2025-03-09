@@ -1,41 +1,44 @@
-import { compositionActions } from "~/composition/compositionReducer";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { compSelectionActions } from "~/composition/compositionSelectionReducer";
+import { setLayerIndex, setLayerIndexAndLength, setLayerPlaybackIndex, setPropertyValue, setPropertyValueAtTime } from "~/composition/compositionSlice";
 import { CompoundProperty, Layer, Property } from "~/composition/compositionTypes";
 import {
-	getTimelineIdsReferencedByComposition,
-	getTimelineIdsReferencedByLayer,
-	reduceCompProperties,
-	reduceVisibleCompProperties,
+    getTimelineIdsReferencedByComposition,
+    getTimelineIdsReferencedByLayer,
+    reduceCompProperties,
+    reduceVisibleCompProperties,
 } from "~/composition/compositionUtils";
 import {
-	compSelectionFromState,
-	didCompSelectionChange,
+    compSelectionFromState,
+    didCompSelectionChange,
 } from "~/composition/util/compSelectionUtils";
 import { AreaType, TIMELINE_LAYER_HEIGHT, TIMELINE_TRACK_START_END_X_MARGIN } from "~/constants";
 import { isKeyDown } from "~/listener/keyboard";
+import { RequestActionParams } from "~/listener/requestAction";
 import { createOperation } from "~/state/operation";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { timelineActions, timelineSelectionActions } from "~/timeline/timelineActions";
 import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
 import {
-	getTimelineSelection,
-	graphEditorGlobalToNormal,
-	trackEditorGlobalToNormal,
+    getTimelineSelection,
+    graphEditorGlobalToNormal,
+    trackEditorGlobalToNormal,
 } from "~/timeline/timelineUtils";
 import { getTimelineTrackYPositions } from "~/trackEditor/trackEditorUtils";
 import { LayerType } from "~/types";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
 import {
-	capToRange,
-	distanceFromTranslatedX,
-	isVecInRect,
-	rectOfTwoVecs,
-	valueWithinRange,
+    capToRange,
+    distanceFromTranslatedX,
+    isVecInRect,
+    rectOfTwoVecs,
+    valueWithinRange,
 } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 
 const actions = {
 	keyframeMouseDown: (
-		e: React.MouseEvent,
+		e: ReactMouseEvent,
 		timelineId: string,
 		index: number,
 		options: {
@@ -123,7 +126,7 @@ const actions = {
 	},
 
 	compoundKeyframesMouseDown: (
-		e: React.MouseEvent,
+		e: ReactMouseEvent,
 		klist: Array<{ timelineId: string; keyframeIndex: number }>,
 		options: {
 			compositionId: string;
@@ -237,7 +240,7 @@ const actions = {
 	},
 
 	layerMouseDown: (
-		e: React.MouseEvent,
+		e: ReactMouseEvent,
 		layerId: string,
 		options: {
 			compositionId: string;
@@ -336,11 +339,11 @@ const actions = {
 				for (const layerId of layerIds) {
 					const layer = compositionState.layers[layerId];
 					const index = moveX + layerToIndex[layerId];
-					op.add(compositionActions.setLayerIndex(layerId, index));
+					op.add(setLayerIndex({ layerId, index }));
 
 					if (layer.type === LayerType.Composition) {
 						const index = moveX + compositionLayerToPlaybackIndex[layerId];
-						op.add(compositionActions.setLayerPlaybackIndex(layerId, index));
+						op.add(setLayerPlaybackIndex({ layerId, index }));
 					}
 				}
 				op.submit();
@@ -362,7 +365,7 @@ const actions = {
 
 	layerStartOrEndMouseDown: (
 		which: "start" | "end",
-		e: React.MouseEvent,
+		e: ReactMouseEvent,
 		layerId: string,
 		options: {
 			compositionId: string;
@@ -472,7 +475,7 @@ const actions = {
 					const index = layersAtStart[layerId].index + moveX * (start ? 1 : 0);
 					const length = layersAtStart[layerId].length + moveX * (start ? -1 : 1);
 
-					op.add(compositionActions.setLayerIndexAndLength(layerId, index, length));
+					op.add(setLayerIndexAndLength({ layerId, index, length }));
 
 					const indexDelta = layerLastIndex[layerId] - index;
 					layerLastIndex[layerId] = index;
@@ -495,9 +498,14 @@ const actions = {
 	},
 };
 
+const getValueFromMouseEvent = (e: ReactMouseEvent, property: Property) => {
+	// Implémentation à faire
+	return 0;
+};
+
 export const trackHandlers = {
 	onMouseDown: (
-		e: React.MouseEvent,
+		e: ReactMouseEvent,
 		options: {
 			compositionId: string;
 			timelineAreaId: string;
@@ -507,7 +515,7 @@ export const trackHandlers = {
 			viewport: Rect;
 		},
 	): void => {
-		const posTranslated = trackEditorGlobalToNormal(Vec2.fromEvent(e), options);
+		const posTranslated = trackEditorGlobalToNormal(Vec2.new(e.nativeEvent.clientX, e.nativeEvent.clientY), options);
 
 		const { compositionState, timelineState } = getActionState();
 		const composition = compositionState.compositions[options.compositionId];
@@ -786,4 +794,25 @@ export const trackHandlers = {
 			},
 		});
 	},
+
+	handleMouseDown: (params: RequestActionParams, propertyId: string, e: ReactMouseEvent) => {
+		const { compositionState } = getActionState();
+		const property = compositionState.properties[propertyId] as Property;
+		const value = getValueFromMouseEvent(e, property);
+		params.dispatch(setPropertyValue({ propertyId, value }));
+	},
+
+	handleMouseMove: (params: RequestActionParams, propertyId: string, e: ReactMouseEvent) => {
+		const { compositionState } = getActionState();
+		const property = compositionState.properties[propertyId] as Property;
+		const value = getValueFromMouseEvent(e, property);
+		params.dispatch(setPropertyValue({ propertyId, value }));
+	},
+
+	handleKeyframeMouseDown: (params: RequestActionParams, propertyId: string, time: number, e: ReactMouseEvent) => {
+		const { compositionState } = getActionState();
+		const property = compositionState.properties[propertyId] as Property;
+		const value = getValueFromMouseEvent(e, property);
+		params.dispatch(setPropertyValueAtTime({ propertyId, value, time }));
+	}
 };

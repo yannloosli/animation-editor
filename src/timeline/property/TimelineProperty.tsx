@@ -3,12 +3,12 @@ import { GraphIcon } from "~/components/icons/GraphIcon";
 import { LinkIcon } from "~/components/icons/LinkIcon";
 import { OpenInAreaIcon } from "~/components/icons/OpenInAreaIcon";
 import { StopwatchIcon } from "~/components/icons/StopwatchIcon";
-import { compositionActions } from "~/composition/compositionReducer";
+import { setPropertyGroupCollapsed } from "~/composition/compositionSlice";
 import { CompoundProperty, Property, PropertyGroup } from "~/composition/compositionTypes";
 import {
-	getLayerCompoundPropertyLabel,
-	getLayerPropertyGroupLabel,
-	getLayerPropertyLabel,
+    getLayerCompoundPropertyLabel,
+    getLayerPropertyGroupLabel,
+    getLayerPropertyLabel,
 } from "~/composition/util/compositionPropertyUtils";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import { requestAction } from "~/listener/requestAction";
@@ -19,6 +19,7 @@ import { createTimelineContextMenu } from "~/timeline/timelineContextMenu";
 import { timelineHandlers } from "~/timeline/timelineHandlers";
 import { TimelineValue } from "~/timeline/value/TimelineValue";
 import { PropertyGroupName, ValueType } from "~/types";
+import { Vec2 } from "~/util/math/vec2";
 import { separateLeftRightMouse } from "~/util/mouse";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
@@ -81,7 +82,10 @@ const TimelineLayerPropertyComponent: React.FC<Props> = (props) => {
 		const toggleGroupOpen = () => {
 			requestAction({ history: true }, (params) => {
 				params.dispatch(
-					compositionActions.setPropertyGroupCollapsed(property.id, !collapsed),
+					setPropertyGroupCollapsed({
+						propertyId: property.id,
+						collapsed: !collapsed
+					}),
 				);
 				params.submitAction("Toggle property group collapsed");
 			});

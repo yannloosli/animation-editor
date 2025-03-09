@@ -1,49 +1,59 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { areaStateReducerRegistry } from "~/area/areaRegistry";
+import { areaInitialStates } from "~/area/state/areaInitialStates";
+import { AreaState } from "~/area/types";
 import { computeAreaToParentRow } from "~/area/util/areaToParentRow";
 import { joinAreas as joinAreasUtil } from "~/area/util/joinArea";
 import { AreaType } from "~/constants";
 import { CardinalDirection } from "~/types";
-import { Area, AreaLayout, AreaRowLayout, AreaRowOrientation, AreaToOpen } from "~/types/areaTypes";
+import { Area, AreaRowLayout, AreaRowOrientation } from "~/types/areaTypes";
 
-export interface AreaReducerState {
-	_id: number;
-	rootId: string;
-	joinPreview: null | {
-		areaId: string | null;
-		movingInDirection: CardinalDirection | null;
-		eligibleAreaIds: string[];
-	};
+export const initialState: AreaState = {
+	_id: 2,
 	layout: {
-		[key: string]: AreaRowLayout | AreaLayout;
-	};
-	areas: {
-		[key: string]: Area;
-	};
-	areaToOpen: null | AreaToOpen;
-}
-
-export const initialState: AreaReducerState = {
-	_id: 0,
-	rootId: "0",
-	joinPreview: null,
-	layout: {
-		"0": { type: "area" as const, id: "0" }
-	},
-	areas: {
 		"0": {
-			type: AreaType.Project as const,
-			state: {}
+			type: "area_row" as const,
+			id: "0",
+			areas: [
+				{ id: "1", size: 0.25 },
+				{ id: "2", size: 0.75 }
+			],
+			orientation: "horizontal" as const
+		},
+		"1": {
+			type: "area",
+			id: "1",
+		},
+		"2": {
+			type: "area",
+			id: "2",
 		}
 	},
-	areaToOpen: null
+	areas: {
+		"1": {
+			type: AreaType.Project,
+			state: {},
+		},
+		"2": {
+			type: AreaType.Workspace,
+			state: {
+				compositionId: "default",
+				pan: { x: 0, y: 0 },
+				scale: 1,
+				selectionRect: null,
+			},
+		}
+	},
+	joinPreview: null,
+	rootId: "0",
+	areaToOpen: null,
 };
 
-const areaSlice = createSlice({
+export const areaSlice = createSlice({
 	name: "area",
 	initialState,
 	reducers: {
-		setFields: (state, action: PayloadAction<Partial<AreaReducerState>>) => {
+		setFields: (state, action: PayloadAction<Partial<AreaState>>) => {
 			Object.assign(state, action.payload);
 		},
 
@@ -53,7 +63,7 @@ const areaSlice = createSlice({
 				areaId: string | null;
 				from: CardinalDirection | null;
 				eligibleAreaIds: string[];
-			}>,
+			}>
 		) => {
 			const { areaId, from, eligibleAreaIds } = action.payload;
 			state.joinPreview = {
@@ -65,7 +75,11 @@ const areaSlice = createSlice({
 
 		joinAreas: (
 			state,
-			action: PayloadAction<{ areaRowId: string; areaIndex: number; mergeInto: -1 | 1 }>,
+			action: PayloadAction<{
+				areaRowId: string;
+				areaIndex: number;
+				mergeInto: -1 | 1;
+			}>
 		) => {
 			const { areaRowId, areaIndex, mergeInto } = action.payload;
 
@@ -114,14 +128,34 @@ const areaSlice = createSlice({
 			state.joinPreview = null;
 		},
 
+		insertAreaIntoRow: (
+			state,
+			action: PayloadAction<{
+				rowId: string;
+				area: Area;
+				insertIndex: number;
+			}>
+		) => {
+			const { rowId, area, insertIndex } = action.payload;
+			const row = state.layout[rowId] as AreaRowLayout;
+			const areas = [...row.areas];
+			const newAreaId = (state._id + 1).toString();
+
+			areas.splice(insertIndex, 0, { id: newAreaId, size: 0 });
+
+			state._id = state._id + 1;
+			state.layout[row.id] = { ...row, areas };
+			state.layout[newAreaId] = { type: "area", id: newAreaId };
+			state.areas[newAreaId] = area;
+		},
+
 		convertAreaToRow: (
-			state: AreaReducerState,
+			state,
 			action: PayloadAction<{
 				areaId: string;
 				cornerParts: [CardinalDirection, CardinalDirection];
 				horizontal: boolean;
-				skipHistory?: boolean;
-			}>,
+			}>
 		) => {
 			const { cornerParts, areaId, horizontal } = action.payload;
 
@@ -133,7 +167,7 @@ const areaSlice = createSlice({
 					exists: !!originalLayout, 
 					type: originalLayout?.type 
 				});
-				return state;
+				return;
 			}
 
 			// Sauvegarder l'état original de l'area
@@ -141,7 +175,7 @@ const areaSlice = createSlice({
 			
 			if (!originalArea) {
 				console.error('Original area not found:', areaId);
-				return state;
+				return;
 			}
 
 			try {
@@ -199,30 +233,35 @@ const areaSlice = createSlice({
 			}
 		},
 
-		insertAreaIntoRow: (
+		setRowSizes: (
 			state,
-			action: PayloadAction<{ rowId: string; area: Area; insertIndex: number }>,
+			action: PayloadAction<{
+				rowId: string;
+				sizes: number[];
+			}>
 		) => {
-			const { rowId, area, insertIndex } = action.payload;
+			const { rowId, sizes } = action.payload;
+			const row = state.layout[rowId];
 
-			const row = state.layout[rowId] as AreaRowLayout;
-			const areas = [...row.areas];
-			const newAreaId = (state._id + 1).toString();
+			if (row.type !== "area_row") {
+				throw new Error("Expected layout to be of type 'area_row'.");
+			}
 
-			areas.splice(insertIndex, 0, { id: newAreaId, size: 0 });
+			if (row.areas.length !== sizes.length) {
+				throw new Error("Expected row areas to be the same length as sizes.");
+			}
 
-			state._id = state._id + 1;
-			state.layout[row.id] = { ...row, areas };
-			state.layout[newAreaId] = { type: "area", id: newAreaId };
-			state.areas[newAreaId] = area;
+			row.areas = row.areas.map((area, i) => ({ ...area, size: sizes[i] }));
 		},
 
 		wrapAreaInRow: (
 			state,
-			action: PayloadAction<{ areaId: string; orientation: AreaRowOrientation }>,
+			action: PayloadAction<{
+				areaId: string;
+				orientation: AreaRowOrientation;
+			}>
 		) => {
 			const { areaId, orientation } = action.payload;
-
 			const areaToParentRow = computeAreaToParentRow(state);
 			const parentRowId = areaToParentRow[areaId];
 
@@ -250,78 +289,52 @@ const areaSlice = createSlice({
 			state.layout[parentRow.id] = parentRow;
 		},
 
-		setRowSizes: (
-			state,
-			action: PayloadAction<{ rowId: string; sizes: number[] }>,
-		) => {
-			const { rowId, sizes } = action.payload;
-			const row = state.layout[rowId];
-
-			if (row.type !== "area_row") {
-				throw new Error("Expected layout to be of type 'area_row'.");
-			}
-
-			if (row.areas.length !== sizes.length) {
-				throw new Error("Expected row areas to be the same length as sizes.");
-			}
-
-			row.areas = row.areas.map((area, i) => ({ ...area, size: sizes[i] }));
-		},
-
 		setAreaType: (
 			state,
-			action: PayloadAction<{ areaId: string; areaType: AreaType }>
+			action: PayloadAction<{
+				areaId: string;
+				type: AreaType;
+				initialState?: any;
+			}>
 		) => {
-			const { areaId, areaType } = action.payload;
-			console.log('setAreaType reducer called with:', { areaId, areaType });
-			console.log('Current areas state:', state.areas);
-			if (state.areas[areaId]) {
-				console.log('Found area, updating type from', state.areas[areaId].type, 'to', areaType);
-				state.areas[areaId].type = areaType;
-				
-				// Initialiser l'état en fonction du type
-				if (areaType === AreaType.Workspace) {
-					state.areas[areaId].state = {
-						compositionId: 'default',
-						pan: { x: 0, y: 0 },  // Stocker un objet simple au lieu d'un Vec2
-						zoom: 1
-					};
-				} else {
-					state.areas[areaId].state = {};
-				}
-				
-				console.log('Updated area:', state.areas[areaId]);
-			} else {
-				console.warn('Area not found:', areaId);
-				console.log('Available areas:', Object.keys(state.areas));
+			const { areaId, type, initialState } = action.payload;
+			const area = state.areas[areaId];
+
+			if (area) {
+				area.type = type;
+				area.state = initialState || areaInitialStates[type];
 			}
 		},
 
 		dispatchToAreaState: (
 			state,
-			action: PayloadAction<{ areaId: string; action: any }>,
+			action: PayloadAction<{
+				areaId: string;
+				action: any;
+			}>
 		) => {
-			const { areaId, action: _action } = action.payload;
+			const { areaId, action: areaAction } = action.payload;
 			const area = state.areas[areaId];
 
-			state.areas[areaId] = {
-				...area,
-				state: areaStateReducerRegistry[area.type](area.state as any, _action),
-			};
+			if (area) {
+				area.state = areaStateReducerRegistry[area.type](area.state as any, areaAction);
+			}
 		},
 	},
 });
 
+// Export des actions
 export const {
 	setFields,
 	setJoinAreasPreview,
 	joinAreas,
-	convertAreaToRow,
 	insertAreaIntoRow,
-	wrapAreaInRow,
+	convertAreaToRow,
 	setRowSizes,
+	wrapAreaInRow,
 	setAreaType,
 	dispatchToAreaState,
 } = areaSlice.actions;
 
+// Export du reducer
 export default areaSlice.reducer; 

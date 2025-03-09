@@ -1,4 +1,4 @@
-import { areaActions } from "~/area/state/areaActions";
+import { dispatchToAreaState } from "~/area/state/areaSlice";
 import { AreaType } from "~/constants";
 import { constructGraphEditorContext, GraphEditorContext } from "~/graphEditor/graphEditorContext";
 import { getGraphEditorTimelineTargetObject } from "~/graphEditor/graphEditorUtils";
@@ -9,8 +9,10 @@ import { timelineActions, timelineSelectionActions } from "~/timeline/timelineAc
 import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
 import { Timeline, TimelineKeyframe } from "~/timeline/timelineTypes";
 import { getTimelineSelection } from "~/timeline/timelineUtils";
+import { Rect } from "~/types/types";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
 import { isVecInRect, rectOfTwoVecs } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 
 const getYUpperLower = (viewport: Rect, mousePositionGlobal: Vec2): [number, number] => {
 	const { y } = mousePositionGlobal;
@@ -90,10 +92,10 @@ export const graphEditorHandlers = {
 				);
 
 				params.dispatch(
-					areaActions.dispatchToAreaState(
-						options.areaId,
-						timelineAreaActions.setFields({ dragSelectRect }),
-					),
+					dispatchToAreaState({
+						areaId: options.areaId,
+						action: timelineAreaActions.setFields({ dragSelectRect }),
+					}),
 				);
 			},
 			mouseUp: (params, hasMoved) => {
@@ -124,10 +126,10 @@ export const graphEditorHandlers = {
 					op.add(timelineSelectionActions.addKeyframes(timeline.id, keyframes));
 				});
 				op.add(
-					areaActions.dispatchToAreaState(
-						options.areaId,
-						timelineAreaActions.setFields({ dragSelectRect: null }),
-					),
+					dispatchToAreaState({
+						areaId: options.areaId,
+						action: timelineAreaActions.setFields({ dragSelectRect: null }),
+					}),
 				);
 				op.submit();
 				params.submitAction("Select keyframes");

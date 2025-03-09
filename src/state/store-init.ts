@@ -1,12 +1,14 @@
 import { configureStore, Middleware } from "@reduxjs/toolkit";
 import { registerAreaTypeHandlers } from "~/area/handlers/areaTypeHandlers";
-import { initialState as initialAreaState } from "~/area/state/areaSlice";
-import { initialCompositionState } from "~/composition/compositionReducer";
-import { initialCompositionSelectionState } from "~/composition/compositionSelectionReducer";
+import { areaCompatibilityMiddleware } from "~/area/state/areaMiddleware";
+import { areaSlice } from "~/area/state/areaSlice";
+import { compositionCompatibilityMiddleware } from "~/composition/compositionCompatibilityMiddleware";
+import { initialCompositionSelectionState } from "~/composition/compositionSelectionSlice";
 import { contextMenuMiddleware } from "~/contextMenu/contextMenuMiddleware";
 import { initialState as initialContextMenuState } from "~/contextMenu/contextMenuSlice";
 import { initialFlowState } from "~/flow/state/flowReducers";
 import { initialFlowSelectionState } from "~/flow/state/flowSelectionReducer";
+import { shapeCompatibilityMiddleware } from "~/shape/shapeMiddleware";
 import { initialShapeState } from "~/shape/shapeReducer";
 import { initialShapeSelectionState } from "~/shape/shapeSelectionReducer";
 import { createApplicationStateFromActionState } from "~/state/createApplicationStateFromActionState";
@@ -21,12 +23,42 @@ import type { ApplicationState } from "./store-types";
 
 // État initial par défaut
 const defaultInitialState: ApplicationState = {
-    area: { state: initialAreaState, action: null },
+    area: { state: areaSlice.getInitialState(), action: null },
     compositionState: { 
         past: [],
-        present: initialCompositionState,
+        present: {
+            compositions: {
+                "default": {
+                    id: "default",
+                    name: "Default Composition",
+                    layers: [],
+                    width: 800,
+                    height: 600,
+                    length: 100,
+                    frameIndex: 0
+                }
+            },
+            layers: {},
+            properties: {},
+            compositionLayerIdToComposition: {}
+        },
         future: [],
-        _latestUnfiltered: initialCompositionState,
+        _latestUnfiltered: {
+            compositions: {
+                "default": {
+                    id: "default",
+                    name: "Default Composition",
+                    layers: [],
+                    width: 800,
+                    height: 600,
+                    length: 100,
+                    frameIndex: 0
+                }
+            },
+            layers: {},
+            properties: {},
+            compositionLayerIdToComposition: {}
+        },
         group: null,
         index: 0,
         limit: 50
@@ -182,13 +214,28 @@ const serializableCheckConfig = {
     ]
 };
 
+// Middleware de débogage
+const debugMiddleware: Middleware = store => next => action => {
+    console.log('[DEBUG] Action:', action);
+    const result = next(action);
+    console.log('[DEBUG] Next State:', store.getState());
+    return result;
+};
+
 // Créer le store
 export const store = configureStore({
     reducer: rootReducer,
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: false,
-        }).concat(contextMenuMiddleware as Middleware, workspaceMiddleware as Middleware),
+        }).concat(
+            debugMiddleware,
+            contextMenuMiddleware as Middleware,
+            workspaceMiddleware as Middleware,
+            shapeCompatibilityMiddleware as Middleware,
+            compositionCompatibilityMiddleware as Middleware,
+            areaCompatibilityMiddleware as Middleware,
+        ),
     preloadedState: initialState,
 });
 

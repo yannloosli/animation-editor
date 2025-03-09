@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef } from "react";
-import { CompositionState } from "~/composition/compositionReducer";
 import { CompositionSelectionState } from "~/composition/compositionSelectionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { Composition } from "~/composition/compositionTypes";
 import { getTimelineIdsReferencedByComposition } from "~/composition/compositionUtils";
 import { cssVariables } from "~/cssVariables";

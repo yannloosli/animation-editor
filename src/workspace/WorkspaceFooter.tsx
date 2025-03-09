@@ -1,6 +1,9 @@
-import React, { useRef } from "react";
+import { useRef } from "react";
 import { NumberInput } from "~/components/common/NumberInput";
-import { compositionActions } from "~/composition/compositionReducer";
+import {
+    setCompositionDimension,
+    setCompositionLength
+} from "~/composition/compositionSlice";
 import { cssVariables } from "~/cssVariables";
 import { requestAction, RequestActionParams } from "~/listener/requestAction";
 import { connectActionState } from "~/state/stateUtils";
@@ -65,8 +68,8 @@ const WorkspaceFooterComponent = (props: Props) => {
 			onValueChangeFn.current = (value) => {
 				params.dispatch(
 					which === "length"
-						? compositionActions.setCompositionLength(compositionId, value)
-						: compositionActions.setCompositionDimension(compositionId, which, value),
+						? setCompositionLength({ compositionId, value })
+						: setCompositionDimension({ compositionId, which, value }),
 				);
 				paramsRef.current?.performDiff((diff) => diff.compositionDimensions(compositionId));
 			};

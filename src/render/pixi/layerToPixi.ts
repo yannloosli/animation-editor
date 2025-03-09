@@ -1,25 +1,25 @@
 import * as PIXI from "pixi.js";
 import { Layer } from "~/composition/compositionTypes";
 import {
-	CompositionLayerPropertyMap,
-	constructLayerPropertyMap,
-	EllipseLayerPropertyMap,
-	LayerPropertyMap,
-	RectLayerPropertyMap,
-	ShapeLayerPropertyMap,
+    CompositionLayerPropertyMap,
+    constructLayerPropertyMap,
+    EllipseLayerPropertyMap,
+    LayerPropertyMap,
+    RectLayerPropertyMap,
+    ShapeLayerPropertyMap,
 } from "~/composition/layer/layerPropertyMap";
 import { updateCompositionLayerHitTestGraphic } from "~/render/pixi/compositionLayerGraphic";
 import {
-	updateEllipseHitTestLayerGraphic,
-	updateEllipseLayerGraphic,
+    updateEllipseHitTestLayerGraphic,
+    updateEllipseLayerGraphic,
 } from "~/render/pixi/ellipseLayerGraphic";
 import {
-	updateRectLayerGraphic,
-	updateRectLayerHitTestGraphic,
+    updateRectLayerGraphic,
+    updateRectLayerHitTestGraphic,
 } from "~/render/pixi/rectLayerGraphic";
 import {
-	updateShapeLayerGraphic,
-	updateShapeLayerHitTestGraphic,
+    updateShapeLayerGraphic,
+    updateShapeLayerHitTestGraphic,
 } from "~/render/pixi/shapeLayerGraphic";
 import { LayerType } from "~/types";
 
@@ -38,6 +38,12 @@ const updateLayerGraphic: UpdateGraphicFn = (
 	map,
 	getPropertyValue,
 ) => {
+	console.log("[RENDER] Updating layer graphic:", {
+		layerId: layer.id,
+		layerType: layer.type,
+		propertyMap: map
+	});
+	
 	switch (layer.type) {
 		case LayerType.Shape:
 			return updateShapeLayerGraphic(
@@ -56,6 +62,14 @@ const updateLayerGraphic: UpdateGraphicFn = (
 				getPropertyValue,
 			);
 		case LayerType.Ellipse:
+			console.log("[RENDER] Updating ellipse layer graphic:", {
+				layerId: layer.id,
+				propertyMap: map,
+				properties: layer.properties.map(propId => ({
+					id: propId,
+					property: actionState.compositionState.properties[propId]
+				}))
+			});
 			return updateEllipseLayerGraphic(
 				actionState,
 				layer,

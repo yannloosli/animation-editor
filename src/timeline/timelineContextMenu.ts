@@ -1,11 +1,11 @@
-import { compositionActions } from "~/composition/compositionReducer";
 import { compSelectionActions } from "~/composition/compositionSelectionReducer";
+import { addModifierToLayer, createLayer, setCompoundPropertySeparated } from "~/composition/compositionSlice";
 import { CompoundProperty } from "~/composition/compositionTypes";
 import { reduceLayerPropertiesAndGroups } from "~/composition/compositionUtils";
 import { arrayModifierPropertiesFactory } from "~/composition/factories/arrayModifierPropertiesFactory";
 import { getLayerTypeName } from "~/composition/layer/layerUtils";
-import { contextMenuActions } from "~/contextMenu/contextMenuActions";
 import { ContextMenuOption } from "~/contextMenu/contextMenuReducer";
+import { closeContextMenu, openContextMenu } from "~/contextMenu/contextMenuSlice";
 import { FlowNodeState } from "~/flow/flowNodeState";
 import { FlowNodeType } from "~/flow/flowTypes";
 import { flowActions } from "~/flow/state/flowActions";
@@ -38,8 +38,8 @@ export const createTimelineContextMenu = (
 				const { compositionState } = getActionState();
 				const expectedLayerId = createMapNumberId(compositionState.layers);
 				params.dispatch(
-					compositionActions.createLayer(compositionId, type),
-					contextMenuActions.closeContextMenu(),
+					createLayer(compositionId, type),
+					closeContextMenu(),
 				);
 				params.addDiff((diff) => diff.addLayer(expectedLayerId));
 				params.submitAction(`Add ${getLayerTypeName(type)}`);
@@ -73,13 +73,13 @@ export const createTimelineContextMenu = (
 							});
 
 							params.dispatch(
-								compositionActions.addModifierToLayer(
+								addModifierToLayer(
 									layerId,
 									propertyId,
 									propertiesToAdd,
 								),
 							);
-							params.dispatch(contextMenuActions.closeContextMenu());
+							params.dispatch(closeContextMenu());
 							params.addDiff((diff) => diff.propertyStructure(layerId));
 							params.submitAction("Add array modifier to layer");
 						},
@@ -102,7 +102,7 @@ export const createTimelineContextMenu = (
 						const op = createOperation(params);
 						layerOperations.removeArrayModifier(op, propertyId);
 						op.submit();
-						params.dispatch(contextMenuActions.closeContextMenu());
+						params.dispatch(closeContextMenu());
 						params.submitAction("Remove array modifier");
 					},
 				});
@@ -128,12 +128,12 @@ export const createTimelineContextMenu = (
 					label,
 					onSelect: () => {
 						params.dispatch(
-							compositionActions.setCompoundPropertySeparated(
+							setCompoundPropertySeparated(
 								compoundProperty!.id,
 								separated,
 							),
 						);
-						params.dispatch(contextMenuActions.closeContextMenu());
+						params.dispatch(closeContextMenu());
 						params.submitAction("Toggle separate dimensions");
 					},
 				});
@@ -142,15 +142,15 @@ export const createTimelineContextMenu = (
 
 		// Remove layer
 		if (layerId) {
-			const removeLayer = () => {
+			const removeLayerLocal = () => {
 				const op = createOperation(params);
 
 				const { compositionState, flowState, shapeState } = op.state;
 				const layer = compositionState.layers[layerId];
 
 				op.add(
-					compositionActions.removeLayer(layer.id),
-					contextMenuActions.closeContextMenu(),
+					removeLayer(layer.id),
+					closeContextMenu(),
 				);
 
 				// Clear layer selection and property selection
@@ -261,12 +261,12 @@ export const createTimelineContextMenu = (
 
 			options.push({
 				label: "Delete layer",
-				onSelect: removeLayer,
+				onSelect: removeLayerLocal,
 			});
 		}
 
 		params.dispatch(
-			contextMenuActions.openContextMenu("Timeline", options, position, params.cancelAction),
+			openContextMenu({ name: "Timeline", options, position, cancelAction: params.cancelAction }),
 		);
 	});
 };

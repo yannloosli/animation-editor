@@ -1,4 +1,4 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 
 /**
  * Returns the layerIds topologically sorted. Layers with no parents first.

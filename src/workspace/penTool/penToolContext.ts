@@ -6,11 +6,13 @@ import { ShapeState } from "~/shape/shapeReducer";
 import { ShapeSelectionState } from "~/shape/shapeSelectionReducer";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { MousePosition } from "~/types";
+import { Rect as MathRect } from "~/util/math/types";
+import { Vec2 } from "~/util/math/vec2";
 
 export interface PenToolContext {
 	mousePosition: MousePosition;
 	compositionId: string;
-	viewport: Rect;
+	viewport: MathRect;
 	areaId: string;
 	layerId: string;
 	matrix: PIXI.Matrix;
@@ -25,12 +27,12 @@ export const constructPenToolContext = (
 	globalMousePosition: Vec2,
 	layerId: string,
 	areaId: string,
-	viewport: Rect,
+	viewport: MathRect,
 ): PenToolContext => {
 	const actionState = getActionState();
 	const areaState = getAreaActionState<AreaType.Workspace>(areaId);
 	const { compositionId, scale, pan: _pan } = areaState;
-	const pan = _pan.add(Vec2.new(viewport.width / 2, viewport.height / 2));
+	const pan = Vec2.new(_pan.x, _pan.y).add(Vec2.new(viewport.width / 2, viewport.height / 2));
 
 	const propertyManager = createPropertyManager(compositionId, actionState);
 
@@ -46,7 +48,7 @@ export const constructPenToolContext = (
 	};
 	const globalToNormal = (vec: Vec2) => {
 		return vec
-			.subXY(viewport.left, viewport.top)
+			.subXY(viewport.x, viewport.y)
 			.sub(pan)
 			.apply((vec) => matrices.content.applyInverse(vec));
 	};
@@ -56,7 +58,7 @@ export const constructPenToolContext = (
 
 	const mousePosition: MousePosition = {
 		global: globalMousePosition,
-		viewport: globalMousePosition.subXY(viewport.left, viewport.top),
+		viewport: globalMousePosition.subXY(viewport.x, viewport.y),
 		normal: globalToNormal(globalMousePosition),
 	};
 

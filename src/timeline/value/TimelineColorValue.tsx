@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { ColorPicker } from "~/components/colorPicker/ColorPicker";
-import { compositionActions } from "~/composition/compositionReducer";
-import { contextMenuActions } from "~/contextMenu/contextMenuActions";
+import { setPropertyValue } from "~/composition/compositionSlice";
+import { closeContextMenu, openContextMenu } from "~/contextMenu/contextMenuSlice";
 import { ContextMenuBaseProps, OpenCustomContextMenuOptions } from "~/contextMenu/contextMenuTypes";
 import { DiffFactoryFn } from "~/diff/diffFactory";
 import { useKeyDownEffect } from "~/hook/useKeyDown";
@@ -10,6 +10,7 @@ import { requestAction } from "~/listener/requestAction";
 import { getActionState } from "~/state/stateUtils";
 import styles from "~/timeline/property/TimelineProperty.styles";
 import { RGBAColor, RGBColor } from "~/types";
+import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(styles);
@@ -53,7 +54,7 @@ export const TimelinePropertyColorValue: React.FC<ColorProps> = (props) => {
 						value = [...rgbColor, props.value[3]] as RGBAColor;
 					}
 
-					params.dispatch(compositionActions.setPropertyValue(props.propertyId, value));
+					params.dispatch(setPropertyValue({ propertyId: props.propertyId, value }));
 					params.performDiff(diffFn);
 				};
 
@@ -72,7 +73,7 @@ export const TimelinePropertyColorValue: React.FC<ColorProps> = (props) => {
 						return;
 					}
 
-					params.dispatch(contextMenuActions.closeContextMenu());
+					params.dispatch(closeContextMenu());
 					params.addDiff(diffFn);
 					params.submitAction("Update color");
 				};
@@ -98,12 +99,17 @@ export const TimelinePropertyColorValue: React.FC<ColorProps> = (props) => {
 			const options: OpenCustomContextMenuOptions = {
 				component: Component,
 				props: {},
-				position: Vec2.new(rect.left + rect.width + 8, rect.top + rect.height),
+				position: Vec2.new(rect.x + rect.width + 8, rect.y + rect.height),
 				alignPosition: "bottom-left",
 				closeMenuBuffer: Infinity,
 				close: () => params.cancelAction(),
 			};
-			params.dispatch(contextMenuActions.openCustomContextMenu(options));
+			params.dispatch(openContextMenu({
+				name: "ColorPicker",
+				options: [],
+				position: options.position,
+				customContextMenu: options
+			}));
 		});
 	};
 

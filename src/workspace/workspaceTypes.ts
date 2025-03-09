@@ -1,4 +1,4 @@
-import { Rect, SerializableVec2 } from "~/util/math/types";
+import { SerializableVec2 } from "~/util/math/types";
 
 export interface WorkspaceAreaState {
     compositionId: string;

@@ -1,4 +1,4 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { forEachSubProperty } from "~/composition/compositionUtils";
 import { DEG_TO_RAD_FAC } from "~/constants";
 import { LayerTransform, LayerType, PropertyGroupName, PropertyName } from "~/types";

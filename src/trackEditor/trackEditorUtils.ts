@@ -1,4 +1,4 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { Property } from "~/composition/compositionTypes";
 import { TIMELINE_BETWEEN_LAYERS, TIMELINE_ITEM_HEIGHT, TIMELINE_LAYER_HEIGHT } from "~/constants";
 

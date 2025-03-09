@@ -1,5 +1,5 @@
 import React from "react";
-import { areaActions } from "~/area/state/areaActions";
+import { dispatchToAreaState } from "~/area/state/areaSlice";
 import { requestAction } from "~/listener/requestAction";
 import { timelineAreaActions } from "~/timeline/timelineAreaReducer";
 import TimelineHeaderStyles from "~/timeline/TimelineHeader.styles";
@@ -15,7 +15,7 @@ export const TimelineHeader: React.FC<Props> = (props) => {
 	const onToggleGraphEditor = () => {
 		requestAction({ history: false }, (params) => {
 			params.dispatch(
-				areaActions.dispatchToAreaState(
+				dispatchToAreaState(
 					props.areaId,
 					timelineAreaActions.toggleGraphEditorOpen(),
 				),

@@ -3,7 +3,7 @@ import { Vec2 } from "~/util/math/vec2";
 import workspaceSlice from "./workspaceSlice";
 
 export const workspaceMiddleware: Middleware = (store) => (next) => (action) => {
-    // Conversion des anciennes actions typesafe-actions en actions RTK
+    // Conversion des anciennes actions  en actions RTK
     if (action.type === "workspaceArea/SET_FIELDS") {
         const fields = { ...action.payload.fields };
         

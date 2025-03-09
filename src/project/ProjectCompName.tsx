@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { compositionActions } from "~/composition/compositionReducer";
+import { setCompositionName } from "~/composition/compositionSlice";
 import { cssVariables } from "~/cssVariables";
 import { isKeyCodeOf } from "~/listener/keyboard";
 import { requestAction, RequestActionParams } from "~/listener/requestAction";
@@ -103,7 +103,10 @@ export const ProjectCompLayerName: React.FC<Props> = ({ compositionId }) => {
 				return;
 			}
 
-			params.dispatch(compositionActions.setCompositionName(compositionId, value));
+			params.dispatch(setCompositionName({
+				compositionId,
+				name: value
+			}));
 			params.submitAction("Rename composition");
 		};
 

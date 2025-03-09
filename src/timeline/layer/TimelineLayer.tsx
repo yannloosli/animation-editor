@@ -1,7 +1,7 @@
 import React from "react";
 import { GraphIcon } from "~/components/icons/GraphIcon";
 import { OpenInAreaIcon } from "~/components/icons/OpenInAreaIcon";
-import { compositionActions } from "~/composition/compositionReducer";
+import { setLayerCollapsed } from "~/composition/compositionSlice";
 import { Layer } from "~/composition/compositionTypes";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import { requestAction } from "~/listener/requestAction";
@@ -40,7 +40,10 @@ const TimelineLayerComponent: React.FC<Props> = (props) => {
 
 	const toggleCollapsed = () => {
 		requestAction({ history: true }, (params) => {
-			params.dispatch(compositionActions.setLayerCollapsed(layer.id, !collapsed));
+			params.dispatch(setLayerCollapsed({
+				layerId: layer.id,
+				collapsed: !collapsed
+			}));
 			params.submitAction("Toggle layer collapsed");
 		});
 	};

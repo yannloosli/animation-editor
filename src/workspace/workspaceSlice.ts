@@ -1,5 +1,5 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-import { Rect, SerializableVec2 } from "~/util/math/types";
+import { SerializableVec2 } from "~/util/math/types";
 import { Vec2 } from "~/util/math/vec2";
 import { WorkspaceAreaState, initialWorkspaceState } from "./workspaceTypes";
 

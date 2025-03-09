@@ -8,7 +8,7 @@ import AreaRootStyles from "~/area/components/AreaRoot.styles";
 import { AreaRowSeparators } from "~/area/components/AreaRowSeparators";
 import { AreaToOpenPreview } from "~/area/components/AreaToOpenPreview";
 import { JoinAreaPreview } from "~/area/components/JoinAreaPreview";
-import { AreaReducerState } from "~/area/state/areaReducer";
+import { AreaReducerState } from "~/area/types";
 import { computeAreaToViewport } from "~/area/util/areaToViewport";
 import { _setAreaViewport, getAreaRootViewport } from "~/area/util/getAreaViewport";
 import { connectActionState, MapActionState } from "~/state/stateUtils";

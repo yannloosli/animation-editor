@@ -1,7 +1,7 @@
 import React from "react";
-import { compositionActions } from "~/composition/compositionReducer";
+import { compositionSlice } from "~/composition/compositionSlice";
 import { requestAction } from "~/listener/requestAction";
-import { getActionState } from "~/state/stateUtils";
+import { createOperation } from "~/state/operation";
 import TimelinePropertyStyles from "~/timeline/property/TimelineProperty.styles";
 import { TransformBehavior } from "~/types";
 import { separateLeftRightMouse } from "~/util/mouse";
@@ -27,11 +27,8 @@ export function TimelineSelectValue<T extends string>(props: Props<T>) {
 	const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		const value = e.target.value as TransformBehavior;
 		requestAction({ history: true }, (params) => {
-			const { compositionState } = getActionState();
-			const property = compositionState.properties[propertyId];
-			params.dispatch(compositionActions.setPropertyValue(propertyId, value));
-			params.addDiff((diff) => diff.modifyProperty(property.id));
-			params.submitAction(props.actionName);
+			const op = createOperation(params);
+			op.add(compositionSlice.actions.setPropertyValue({ propertyId, value }));
 		});
 	};
 

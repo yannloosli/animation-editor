@@ -1,6 +1,9 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { compositionActions } from "~/composition/compositionReducer";
 import { compSelectionActions } from "~/composition/compositionSelectionReducer";
+import {
+    addPropertyToPropertyGroup,
+    createLayer
+} from "~/composition/compositionSlice";
 import { Property, PropertyGroup } from "~/composition/compositionTypes";
 import {
     findLayerProperty,
@@ -52,7 +55,6 @@ import {
 } from "~/util/math";
 import { pathBoundingRect, pathControlPointsBoundingRect } from "~/util/math/boundingRect";
 import { splitCubicBezier } from "~/util/math/splitCubicBezier";
-import { Rect } from "~/util/math/types";
 import { Vec2 } from "~/util/math/vec2";
 import { constructPenToolContext, PenToolContext } from "~/workspace/penTool/penToolContext";
 import { penToolMoveObjects, penToolMovePathIds } from "~/workspace/penTool/penToolMoveObjects";
@@ -141,10 +143,10 @@ export const penToolHandlers = {
 
 		if (!pathId) {
 			const selectedPathIds = getShapeLayerSelectedPathIds(
-				layerId,
-				compositionState,
-				compositionSelectionState,
-			);
+					layerId,
+					compositionState,
+					compositionSelectionState,
+				);
 
 			const layer = compositionState.layers[layerId];
 			const composition = compositionState.compositions[layer.compositionId];
@@ -378,12 +380,9 @@ export const penToolHandlers = {
 			beforeMove: () => {},
 			mouseMove: (params, { mousePosition, initialMousePosition }) => {
 				selectionRect = rectOfTwoVecs(mousePosition.normal, initialMousePosition.normal);
-				params.dispatch(setSelectionRect({
-					x: selectionRect.left,
-					y: selectionRect.top,
-					width: selectionRect.width,
-					height: selectionRect.height
-				}));
+				if (selectionRect) {
+					params.dispatch(setSelectionRect(selectionRect));
+				}
 			},
 			mouseUp: (params, hasMoved) => {
 				const pathIds = getShapeLayerSelectedPathIds(
@@ -397,10 +396,10 @@ export const penToolHandlers = {
 					const toDispatch: any[] = [];
 
 					const directlySelected = getShapeLayerDirectlySelectedPaths(
-						layerId,
-						compositionState,
-						compositionSelectionState,
-					);
+							layerId,
+							compositionState,
+							compositionSelectionState,
+						);
 
 					const _addedToDirectSelection = new Set<string>();
 					const addPathToDirectSelection = (pathId: string) => {
@@ -2166,11 +2165,11 @@ export const penToolHandlers = {
 
 				// Add Shape property to contents group and select the Path of the Shape group
 				params.dispatch(
-					compositionActions.addPropertyToPropertyGroup(
-						contentsGroupId,
+					addPropertyToPropertyGroup({
+						addToPropertyGroup: contentsGroupId,
 						propertyId,
-						propertiesToAdd,
-					),
+						propertiesToAdd
+					}),
 					compSelectionActions.addPropertyToSelection(compositionId, propertyId),
 					compSelectionActions.addPropertyToSelection(compositionId, pathPropertyId),
 				);
@@ -2269,7 +2268,7 @@ export const penToolHandlers = {
 			beforeMove: (params, { mousePosition }) => {
 				// Create and select layer
 				params.dispatch(
-					compositionActions.createLayer(compositionId, LayerType.Shape),
+					createLayer({ compositionId, type: LayerType.Shape }),
 					compSelectionActions.clearCompositionSelection(compositionId),
 					compSelectionActions.addLayerToSelection(compositionId, layerId),
 				);
@@ -2327,11 +2326,11 @@ export const penToolHandlers = {
 
 				// Add Shape property to contents group and select the Path of the Shape group
 				params.dispatch(
-					compositionActions.addPropertyToPropertyGroup(
-						contentsGroupId,
+					addPropertyToPropertyGroup({
+						addToPropertyGroup: contentsGroupId,
 						propertyId,
-						propertiesToAdd,
-					),
+						propertiesToAdd
+					}),
 					compSelectionActions.addPropertyToSelection(compositionId, propertyId),
 					compSelectionActions.addPropertyToSelection(compositionId, pathPropertyId),
 				);

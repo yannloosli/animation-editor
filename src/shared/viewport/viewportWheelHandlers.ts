@@ -1,4 +1,4 @@
-import { areaActions } from "~/area/state/areaActions";
+import { dispatchToAreaState } from "~/area/state/areaSlice";
 import { getAreaViewport } from "~/area/util/getAreaViewport";
 import { AreaType, TRACKPAD_ZOOM_DELTA_FAC } from "~/constants";
 import { isKeyDown } from "~/listener/keyboard";
@@ -6,9 +6,10 @@ import { requestAction } from "~/listener/requestAction";
 import { getAreaActionState } from "~/state/stateUtils";
 import { Action } from "~/types";
 import { capToRange, interpolate } from "~/util/math";
+import { SerializableVec2 } from "~/util/math/types";
 import { Vec2 } from "~/util/math/vec2";
 import { parseWheelEvent } from "~/util/wheelEvent";
-import { SerializableVec2, WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
+import { WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 
 type PossibleAreaTypes = AreaType.FlowEditor | AreaType.Workspace;
 
@@ -18,7 +19,7 @@ interface Actions {
 }
 
 // Fonction utilitaire pour convertir SerializableVec2 en Vec2
-const toVec2 = (v: SerializableVec2): Vec2 => Vec2.new(v.x, v.y);
+export const toVec2 = (v: SerializableVec2): Vec2 => Vec2.new(v.x, v.y);
 
 export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 	areaType: T,
@@ -102,8 +103,8 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 				const scaleAction = actions.setScale(areaState.scale * fac);
 
 				params.dispatch(
-					areaActions.dispatchToAreaState(areaId, panAction),
-					areaActions.dispatchToAreaState(areaId, scaleAction),
+					dispatchToAreaState({ areaId, action: panAction }),
+					dispatchToAreaState({ areaId, action: scaleAction }),
 				);
 				if ((<WorkspaceAreaState>areaState).compositionId) {
 					const { compositionId } = areaState as WorkspaceAreaState;
@@ -142,8 +143,8 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 				const scaleAction = actions.setScale(areaState.scale * fac);
 
 				params.dispatch(
-					areaActions.dispatchToAreaState(areaId, panAction),
-					areaActions.dispatchToAreaState(areaId, scaleAction),
+					dispatchToAreaState({ areaId, action: panAction }),
+					dispatchToAreaState({ areaId, action: scaleAction }),
 				);
 				if ((<WorkspaceAreaState>areaState).compositionId) {
 					const { compositionId, scale } = areaState as WorkspaceAreaState;
@@ -162,7 +163,7 @@ export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
 				const pan = toVec2(areaState.pan).add(Vec2.new(-deltaX, -deltaY));
 				const panAction = actions.setPan(pan);
 
-				params.dispatch(areaActions.dispatchToAreaState(areaId, panAction));
+				params.dispatch(dispatchToAreaState({ areaId, action: panAction }));
 				if ((<WorkspaceAreaState>areaState).compositionId) {
 					const { compositionId, scale } = areaState as WorkspaceAreaState;
 					params.addDiff((diff) => diff.compositionView(compositionId, scale));

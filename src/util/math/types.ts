@@ -1,3 +1,7 @@
+/**
+ * @deprecated Ce type est défini globalement dans index.d.ts.
+ * Utilisez le type global Rect directement au lieu de l'importer de ce fichier.
+ */
 export interface Rect {
     x: number;
     y: number;

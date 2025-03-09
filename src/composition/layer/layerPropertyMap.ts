@@ -1,4 +1,4 @@
-import { CompositionState } from "~/composition/compositionReducer";
+import { CompositionState } from "~/composition/compositionSlice";
 import { forEachLayerProperty } from "~/composition/compositionUtils";
 import { LayerType, PropertyGroupName, PropertyName } from "~/types";
 

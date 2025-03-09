@@ -9,6 +9,7 @@ import { AreaComponentProps } from "~/types/areaTypes";
 import { isArrayShallowEqual } from "~/util/arrayUtils";
 import { separateLeftRightMouse } from "~/util/mouse";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
+import { ellipseToolHandlers } from "~/workspace/ellipseTool/ellipseTool";
 import { moveToolHandlers } from "~/workspace/moveTool/moveTool";
 import { penToolHandlers } from "~/workspace/penTool/penTool";
 import { useWorkspaceCursor } from "~/workspace/useWorkspaceCursor";
@@ -109,12 +110,15 @@ const WorkspaceComponent: React.FC<Props> = (props) => {
 
 	const onMouseDown = (e: React.MouseEvent) => {
 		const { tool } = getActionState();
-
 		const viewport = { left, top, width, height };
 
 		switch (tool.selected) {
 			case Tool.pen: {
 				penToolHandlers.onMouseDown(e, props.areaId, viewport);
+				break;
+			}
+			case Tool.ellipse: {
+				ellipseToolHandlers.onMouseDown(e, props.areaId, viewport);
 				break;
 			}
 			default: {
