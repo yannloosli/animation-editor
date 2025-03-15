@@ -9,7 +9,7 @@ import { compileStylesheetLabelled } from "~/util/stylesheets";
 const s = compileStylesheetLabelled(styles);
 
 export interface TimelineViewBoundsProps {
-	left: number;
+	x: number;
 	width: number;
 	viewBounds: [number, number];
 	compositionLength: number;

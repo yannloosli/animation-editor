@@ -1,15 +1,14 @@
-import React from "react";
 import { CompoundProperty, Property, PropertyGroup } from "~/composition/compositionTypes";
 import {
-	getLayerCompoundPropertyLabel,
-	getLayerPropertyLabel,
+    getLayerCompoundPropertyLabel,
+    getLayerPropertyLabel,
 } from "~/composition/util/compositionPropertyUtils";
 import { FlowNodeState } from "~/flow/flowNodeState";
 import { FlowNodeInput, FlowNodeOutput, FlowNodeProps, FlowNodeType } from "~/flow/flowTypes";
 import NodeStyles from "~/flow/nodes/Node.styles";
 import { NodeInputCircle } from "~/flow/nodes/NodeInputCircle";
 import { PropertyNodeSelectProperty } from "~/flow/nodes/property/PropertyNodeSelectProperty";
-import { flowActions } from "~/flow/state/flowActions";
+import { setNodeInputs, updateNodeState } from "~/flow/state/flowSlice";
 import { useMemoActionState } from "~/hook/useActionState";
 import { requestAction } from "~/listener/requestAction";
 import { getPropertyValueType } from "~/property/propertyConstants";
@@ -39,11 +38,14 @@ function PropertyOutputNodeComponent(props: Props) {
 	const onSelectProperty = (propertyId: string) => {
 		requestAction({ history: true }, (params) => {
 			params.dispatch(
-				flowActions.updateNodeState<FlowNodeType.property_output>(
-					props.graphId,
-					props.nodeId,
-					{ propertyId },
-				),
+				updateNodeState({
+					nodeId: props.nodeId,
+					graphId: props.graphId,
+					state: {
+						propertyName: "",
+						propertyGroupName: null,
+					}
+				}),
 			);
 
 			const properties = getActionState().compositionState.properties;
@@ -91,12 +93,18 @@ function PropertyOutputNodeComponent(props: Props) {
 				});
 
 			params.dispatch(
-				flowActions.updateNodeState<FlowNodeType.property_output>(
-					props.graphId,
-					props.nodeId,
-					{ propertyId },
-				),
-				flowActions.setNodeInputs(props.graphId, props.nodeId, inputs),
+				updateNodeState({
+					nodeId: props.nodeId,
+					graphId: props.graphId,
+					state: {
+						propertyName: property.name,
+						propertyGroupName: property.type === "group" ? property.name : null,
+					}
+				}),
+				setNodeInputs({
+					nodeId: props.nodeId,
+					inputs
+				}),
 			);
 			params.addDiff((diff) => diff.propertyStructure(property.layerId));
 			params.submitAction("Update selected PropertyOutputNode property");

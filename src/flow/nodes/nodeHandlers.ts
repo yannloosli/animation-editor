@@ -1,15 +1,15 @@
 import { getAreaViewport } from "~/area/util/getAreaViewport";
 import { AreaType, FLOW_NODE_MIN_WIDTH } from "~/constants";
 import { createContextMenuActions } from "~/contextMenu/contextMenuActions";
-import { flowAreaActions } from "~/flow/flowAreaActions";
 import { flowOperations } from "~/flow/flowOperations";
 import {
     didFlowSelectionChange,
     flowEditorGlobalToNormal,
     flowSelectionFromState,
 } from "~/flow/flowUtils";
-import { flowActions } from "~/flow/state/flowActions";
-import { flowSelectionActions } from "~/flow/state/flowSelectionReducer";
+import { setFields } from "~/flow/state/flowAreaSlice";
+import { toggleNode } from "~/flow/state/flowSelectionSlice";
+import { setNodePosition, setNodeWidth } from "~/flow/state/flowSlice";
 import {
     getFlowGraphAvailableInputs,
     getFlowGraphAvailableOutputs,
@@ -82,7 +82,7 @@ export const nodeHandlers = {
 			translate: globalToNormal,
 			beforeMove: (params) => {
 				if (additiveSelection) {
-					params.dispatch(flowSelectionActions.toggleNode(graphId, nodeId));
+					params.dispatch(toggleNode({ graphId, nodeId }));
 				} else if (!selection.nodes[nodeId]) {
 					performOperation(params, (op) => flowOperations.selectNode(op, nodeId));
 				}
@@ -94,10 +94,10 @@ export const nodeHandlers = {
 				const op = createOperation(params);
 				for (const nodeId of selectedNodeIds) {
 					op.add(
-						flowActions.setNodePosition(
+						setNodePosition({
 							nodeId,
-							graphNodePositions[nodeId].add(moveVector.normal),
-						),
+							position: graphNodePositions[nodeId].add(moveVector.normal)
+						})
 					);
 				}
 				op.submit();
@@ -162,7 +162,7 @@ export const nodeHandlers = {
 				const toPos = toIndex === -1 ? mousePosition.normal : inputPositions[toIndex];
 				params.dispatchToAreaState(
 					areaId,
-					flowAreaActions.setFields({ dragPreview: [fromPos, toPos] }),
+					setFields({ dragPreview: [fromPos, toPos] }),
 				);
 			},
 			mouseUp: (params, hasMoved) => {
@@ -183,7 +183,7 @@ export const nodeHandlers = {
 				);
 				params.dispatchToAreaState(
 					areaId,
-					flowAreaActions.setFields({ dragPreview: null }),
+					setFields({ dragPreview: null }),
 				);
 				params.submitAction("Connect output to input");
 			},
@@ -244,7 +244,7 @@ export const nodeHandlers = {
 				const toPos = toIndex === -1 ? mousePosition.normal : outputPositions[toIndex];
 				params.dispatchToAreaState(
 					areaId,
-					flowAreaActions.setFields({ dragPreview: [fromPos, toPos] }),
+					setFields({ dragPreview: [fromPos, toPos] }),
 				);
 			},
 			mouseUp: (params, hasMoved) => {
@@ -265,7 +265,7 @@ export const nodeHandlers = {
 				);
 				params.dispatchToAreaState(
 					areaId,
-					flowAreaActions.setFields({ dragPreview: null }),
+					setFields({ dragPreview: null }),
 				);
 				params.submitAction("Connect input to output");
 			},
@@ -327,7 +327,7 @@ export const nodeHandlers = {
 				const toPos = toIndex === -1 ? mousePosition.normal : inputPositions[toIndex];
 				params.dispatchToAreaState(
 					areaId,
-					flowAreaActions.setFields({ dragPreview: [fromPos, toPos] }),
+					setFields({ dragPreview: [fromPos, toPos] }),
 				);
 			},
 			mouseUp: (params, hasMoved) => {
@@ -338,7 +338,7 @@ export const nodeHandlers = {
 
 				params.dispatchToAreaState(
 					areaId,
-					flowAreaActions.setFields({ dragPreview: null }),
+					setFields({ dragPreview: null }),
 				);
 
 				if (toIndex === -1) {
@@ -399,7 +399,11 @@ export const nodeHandlers = {
 					FLOW_NODE_MIN_WIDTH,
 					Math.round(mousePos.x - node.position.x),
 				);
-				dispatch(flowActions.setNodeWidth(graphId, nodeId, width));
+				dispatch(setNodeWidth({
+					graphId,
+					nodeId,
+					width
+				}));
 			});
 
 			addListener.once("mouseup", () => {

@@ -3,7 +3,7 @@ import { FlowNodeNumberInput } from "~/flow/components/FlowNodeNumberInput";
 import { FlowNodeInput } from "~/flow/flowTypes";
 import NodeStyles from "~/flow/nodes/Node.styles";
 import { NodeInputCircle } from "~/flow/nodes/NodeInputCircle";
-import { flowActions } from "~/flow/state/flowActions";
+import { setNodeInputValue } from "~/flow/state/flowSlice";
 import { useNumberInputAction } from "~/hook/useNumberInputAction";
 import { connectActionState } from "~/state/stateUtils";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
@@ -31,7 +31,7 @@ const NodeNumberInputComponent: React.FC<Props> = (props) => {
 	const { onChange, onChangeEnd } = useNumberInputAction({
 		onChange: (value, params) => {
 			params.performDiff((diff) => diff.flowNodeState(nodeId));
-			params.dispatch(flowActions.setNodeInputValue(graphId, nodeId, index, value));
+			params.dispatch(setNodeInputValue({ nodeId, inputIndex: index, value }));
 		},
 		onChangeEnd: (_type, params) => {
 			params.addDiff((diff) => diff.flowNodeState(nodeId));

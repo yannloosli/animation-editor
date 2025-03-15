@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
+import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import { CONTEXT_MENU_OPTION_HEIGHT, DEFAULT_CONTEXT_MENU_WIDTH } from "~/constants";
+import { DEFAULT_CONTEXT_MENU_WIDTH } from "~/constants";
 import { ContextMenuIcon } from "~/contextMenu/ContextMenuIcon";
-import { ContextMenuState, SerializableContextMenuOption, closeContextMenu, handleContextMenuOptionSelect } from "~/contextMenu/contextMenuSlice";
+import { ContextMenuState, closeContextMenu, handleContextMenuOptionSelect } from "~/contextMenu/contextMenuSlice";
 import styles from "~/contextMenu/normal/NormalContextMenu.styles";
-import { connectActionState } from "~/state/stateUtils";
-import { boundingRectOfRects, isVecInRect } from "~/util/math";
+import type { ApplicationState } from "~/state/store-types";
 import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheet } from "~/util/stylesheets";
+
+console.log("[DEBUG] NormalContextMenu - Module chargé");
 
 const s = compileStylesheet(styles);
 
@@ -24,188 +26,114 @@ interface DispatchProps {
 
 type Props = StateProps & DispatchProps;
 
-const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) => {
-	const [rect, setRect] = useState<Rect | null>(null);
-	const [reduceStackRect, setReduceStackRect] = useState<Rect | null>(null);
-	const [stack, setStack] = useState<
-		Array<{ position: Vec2; options: SerializableContextMenuOption[]; fromIndex: number }>
-	>([]);
+interface Rect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
 
-	const mouseOverOptionListener = useRef<number | null>(null);
+const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) => {
+	console.log("[DEBUG] NormalContextMenu - Props reçues:", contextMenu);
+
+	const [menuRect, setMenuRect] = useState<Rect | null>(null);
+	const [optionRects, setOptionRects] = useState<Rect[]>([]);
+	const menuRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (!contextMenu.isOpen) {
-			setStack([]);
+		console.log("[DEBUG] NormalContextMenu - useEffect triggered, isOpen:", contextMenu.isOpen);
+		if (!contextMenu.isOpen || !menuRef.current) {
+			setMenuRect(null);
+			setOptionRects([]);
 			return;
 		}
 
-		let position = Vec2.new(contextMenu.position.x, contextMenu.position.y);
+		const menuElement = menuRef.current;
+		const menuBounds = menuElement.getBoundingClientRect();
+		console.log("[DEBUG] NormalContextMenu - Menu bounds:", menuBounds);
+		const newMenuRect: Rect = {
+			x: menuBounds.left,
+			y: menuBounds.top,
+			width: menuBounds.width,
+			height: menuBounds.height
+		};
 
-		for (let i = 0; i < contextMenu.options.length; i += 1) {
-			if (contextMenu.options[i].default) {
-				position = position.add(
-					Vec2.new(
-						-(DEFAULT_CONTEXT_MENU_WIDTH - 40),
-						-40 + CONTEXT_MENU_OPTION_HEIGHT * i,
-					),
-				);
-				break;
-			}
-		}
-
-		setStack([{ position, options: contextMenu.options, fromIndex: -1 }]);
-	}, [contextMenu.isOpen]);
-
-	useEffect(() => {
-		setTimeout(() => {
-			const els = document.querySelectorAll("[data-option-list]");
-			const rects: Rect[] = [];
-			els.forEach((el) => rects.push(el.getBoundingClientRect()));
-			setRect(boundingRectOfRects(rects));
-
-			if (rects.length > 1) {
-				let rect = rects[rects.length - 1];
-				setReduceStackRect({
-					top: rect.top - REDUCE_STACK_BUFFER,
-					height: rect.height + REDUCE_STACK_BUFFER * 2,
-					left: rect.left - 16,
-					width: rect.width + REDUCE_STACK_BUFFER + 16,
-				});
-			} else {
-				setReduceStackRect(null);
-			}
+		const newOptionRects: Rect[] = Array.from(menuElement.children).map((child) => {
+			const bounds = child.getBoundingClientRect();
+			return {
+				x: bounds.left,
+				y: bounds.top,
+				width: bounds.width,
+				height: bounds.height
+			};
 		});
-	}, [stack]);
 
-	if (!contextMenu.isOpen) {
-		return null;
-	}
+		setMenuRect(newMenuRect);
+		setOptionRects(newOptionRects);
+	}, [contextMenu.isOpen]);
 
 	const onMouseMove = (e: React.MouseEvent) => {
 		const vec = Vec2.new(e.clientX, e.clientY);
 		const { x, y } = vec;
 
-		if (!rect) {
-			return;
-		}
-
-		if (stack.length > 1 && reduceStackRect && !isVecInRect(vec, reduceStackRect)) {
-			setStack(stack.slice(0, stack.length - 1));
+		if (!menuRect) {
 			return;
 		}
 
 		if (
-			x < rect.left - CLOSE_MENU_BUFFER ||
-			x > rect.left + rect.width + CLOSE_MENU_BUFFER ||
-			y < rect.top - CLOSE_MENU_BUFFER ||
-			y > rect.top + rect.height + CLOSE_MENU_BUFFER
+			x < menuRect.x - CLOSE_MENU_BUFFER ||
+			x > menuRect.x + menuRect.width + CLOSE_MENU_BUFFER ||
+			y < menuRect.y - CLOSE_MENU_BUFFER ||
+			y > menuRect.y + menuRect.height + CLOSE_MENU_BUFFER
 		) {
 			dispatch(closeContextMenu());
 		}
 	};
 
-	const onListMouseOver = (options: SerializableContextMenuOption[], i: number, j: number) => {
-		if (i !== stack.length - 1) {
-			return;
-		}
+	if (!contextMenu.isOpen) {
+		console.log("[DEBUG] NormalContextMenu - Menu non affiché car isOpen est false");
+		return null;
+	}
 
-		let didRemove = false;
-
-		const item = document.querySelector(`[data-option="${i}-${j}"]`);
-
-		if (!item) {
-			return;
-		}
-
-		const rect = item.getBoundingClientRect();
-
-		mouseOverOptionListener.current = window.setTimeout(() => {
-			setStack([
-				...stack.slice(0, didRemove ? stack.length - 1 : stack.length),
-				{
-					fromIndex: j,
-					options,
-					position: Vec2.new(rect.left + rect.width, rect.top).add(Vec2.new(2, -3)),
-				},
-			]);
-		}, 150);
-	};
-
-	const onListMouseOut = (i: number) => {
-		if (i !== stack.length - 1) {
-			return;
-		}
-		window.clearTimeout(mouseOverOptionListener.current!);
-	};
+	console.log("[DEBUG] NormalContextMenu - Rendu du menu avec options:", contextMenu.options);
 
 	return (
-		<>
-			<div
-				className={s("background")}
-				onMouseMove={onMouseMove}
-				onMouseDown={() => dispatch(closeContextMenu())}
-			/>
-			{stack.map(({ options, position }, i) => {
-				return (
-					<div
-						className={s("container")}
-						style={{ left: position.x, top: position.y }}
-						data-option-list={i}
-						key={i}
-						onMouseMove={onMouseMove}
-					>
-						{i === 0 && (
-							<>
-								<div className={s("name")}>{contextMenu.name}</div>
-								<div className={s("separator")} />
-							</>
-						)}
-
-						{options.map((option, j) => {
-							if (option.options) {
-								const active = stack[i + 1]?.fromIndex === j;
-								const eligible = active || i === stack.length - 1;
-
-								return (
-									<div
-										key={j}
-										data-option={`${i}-${j}`}
-										className={s("option", { active, eligible })}
-										onMouseMove={(e) => e.stopPropagation()}
-										onMouseOver={() => onListMouseOver(option.options!, i, j)}
-										onMouseOut={() => onListMouseOut(i)}
-									>
-										<i className={s("option__icon")}>
-											<ContextMenuIcon iconName={option.iconName} />
-										</i>
-										<div className={s("option__label")}>{option.label}</div>
-										{<div className={s("option__arrowRight")} />}
-									</div>
-								);
-							}
-
-							return (
-								<button
-									className={s("option", { eligible: i === stack.length - 1 })}
-									key={j}
-									onClick={() => dispatch(handleContextMenuOptionSelect({ optionId: option.id }))}
-								>
-									<i className={s("option__icon")}>
-										<ContextMenuIcon iconName={option.iconName} />
-									</i>
-									<div className={s("option__label")}>{option.label}</div>
-								</button>
-							);
-						})}
-					</div>
-				);
-			})}
-		</>
+		<div
+			ref={menuRef}
+			className={s("container")}
+			style={{
+				left: contextMenu.position.x,
+				top: contextMenu.position.y,
+				width: DEFAULT_CONTEXT_MENU_WIDTH
+			}}
+			onMouseMove={onMouseMove}
+		>
+			<div className={s("name")}>{contextMenu.name}</div>
+			<div className={s("separator")} />
+			{contextMenu.options.map((option, index) => (
+				<div
+					key={option.id}
+					className={s("option", { eligible: true })}
+					onClick={() => dispatch(handleContextMenuOptionSelect({ optionId: option.id }))}
+				>
+					<i className={s("option__icon")}>
+						<ContextMenuIcon iconName={option.iconName} />
+					</i>
+					<div className={s("option__label")}>{option.label}</div>
+				</div>
+			))}
+		</div>
 	);
 };
 
-const mapStateToProps = (state: ActionState): StateProps => ({
-    contextMenu: state.contextMenu
-});
+const mapStateToProps = (state: ApplicationState): StateProps => {
+	console.log("[DEBUG] NormalContextMenu - mapStateToProps appelé avec state complet:", state);
+	console.log("[DEBUG] NormalContextMenu - contextMenu dans state:", state.contextMenu);
+	const contextMenuState = state.contextMenu.action ? state.contextMenu.action.state : state.contextMenu.state;
+	console.log("[DEBUG] NormalContextMenu - État du menu contextuel utilisé:", contextMenuState);
+	return {
+		contextMenu: contextMenuState
+	};
+};
 
-export const NormalContextMenu = connectActionState(mapStateToProps)(NormalContextMenuComponent);
+export const NormalContextMenu = connect(mapStateToProps)(NormalContextMenuComponent);

@@ -1,137 +1,137 @@
 import {
-	getValueTypeCanConvertToValueTypes,
-	getValueTypesThatCanConvertToValueType,
+    getValueTypeCanConvertToValueTypes,
+    getValueTypesThatCanConvertToValueType,
 } from "~/flow/flowValueConversion";
-import { FlowState } from "~/flow/state/flowReducers";
+import { FlowState } from "~/flow/state/flowSlice";
 
 interface AvailableInput {
-	inputNodeId: string;
-	inputIndex: number;
+    inputNodeId: string;
+    inputIndex: number;
 }
 interface AvailableOutput {
-	outputNodeId: string;
-	outputIndex: number;
+    outputNodeId: string;
+    outputIndex: number;
 }
 
 function findNodesThatNodeReferences(flowState: FlowState, nodeId: string): Set<string> {
-	const visited = new Set<string>();
+    const visited = new Set<string>();
 
-	function dfs(nodeId: string) {
-		if (visited.has(nodeId)) {
-			return;
-		}
-		visited.add(nodeId);
+    function dfs(nodeId: string) {
+        if (visited.has(nodeId)) {
+            return;
+        }
+        visited.add(nodeId);
 
-		const node = flowState.nodes[nodeId];
-		for (const input of node.inputs) {
-			if (!input.pointer) {
-				continue;
-			}
-			dfs(input.pointer.nodeId);
-		}
-	}
-	dfs(nodeId);
+        const node = flowState.nodes[nodeId];
+        for (const input of node.inputs) {
+            if (!input.pointer) {
+                continue;
+            }
+            dfs(input.pointer.nodeId);
+        }
+    }
+    dfs(nodeId);
 
-	return visited;
+    return visited;
 }
 
 function findNodesThatReferenceNode(flowState: FlowState, nodeId: string): Set<string> {
-	const visited = new Set<string>();
+    const visited = new Set<string>();
 
-	const nodeToNext: Record<string, Set<string>> = {};
+    const nodeToNext: Record<string, Set<string>> = {};
 
-	const graph = flowState.graphs[flowState.nodes[nodeId].graphId];
-	for (const nodeId of graph.nodes) {
-		nodeToNext[nodeId] = new Set();
-	}
+    const graph = flowState.graphs[flowState.nodes[nodeId].graphId];
+    for (const nodeId of graph.nodes) {
+        nodeToNext[nodeId] = new Set();
+    }
 
-	for (const nodeId of graph.nodes) {
-		const node = flowState.nodes[nodeId];
-		for (const input of node.inputs) {
-			if (!input.pointer) {
-				continue;
-			}
+    for (const nodeId of graph.nodes) {
+        const node = flowState.nodes[nodeId];
+        for (const input of node.inputs) {
+            if (!input.pointer) {
+                continue;
+            }
 
-			nodeToNext[input.pointer.nodeId].add(nodeId);
-		}
-	}
+            nodeToNext[input.pointer.nodeId].add(nodeId);
+        }
+    }
 
-	function dfs(nodeId: string) {
-		if (visited.has(nodeId)) {
-			return;
-		}
-		visited.add(nodeId);
+    function dfs(nodeId: string) {
+        if (visited.has(nodeId)) {
+            return;
+        }
+        visited.add(nodeId);
 
-		for (const id of [...nodeToNext[nodeId]]) {
-			dfs(id);
-		}
-	}
-	dfs(nodeId);
+        for (const id of [...nodeToNext[nodeId]]) {
+            dfs(id);
+        }
+    }
+    dfs(nodeId);
 
-	return visited;
+    return visited;
 }
 
 export const getFlowGraphAvailableInputs = (
-	flowState: FlowState,
-	graphId: string,
-	nodeId: string,
-	outputIndex: number,
+    flowState: FlowState,
+    graphId: string,
+    nodeId: string,
+    outputIndex: number,
 ): AvailableInput[] => {
-	const availableInputs: AvailableInput[] = [];
+    const availableInputs: AvailableInput[] = [];
 
-	const graph = flowState.graphs[graphId];
-	const node = flowState.nodes[nodeId];
-	const valueType = node.outputs[outputIndex].type;
+    const graph = flowState.graphs[graphId];
+    const node = flowState.nodes[nodeId];
+    const valueType = node.outputs[outputIndex].type;
 
-	const canConvertToTypes = getValueTypeCanConvertToValueTypes(valueType);
+    const canConvertToTypes = getValueTypeCanConvertToValueTypes(valueType);
 
-	const disallowedNodeIds = findNodesThatNodeReferences(flowState, nodeId);
+    const disallowedNodeIds = findNodesThatNodeReferences(flowState, nodeId);
 
-	for (const nodeId of graph.nodes) {
-		if (disallowedNodeIds.has(nodeId)) {
-			continue;
-		}
+    for (const nodeId of graph.nodes) {
+        if (disallowedNodeIds.has(nodeId)) {
+            continue;
+        }
 
-		for (const [inputIndex, input] of flowState.nodes[nodeId].inputs.entries()) {
-			if (!canConvertToTypes.has(input.type)) {
-				continue;
-			}
+        for (const [inputIndex, input] of flowState.nodes[nodeId].inputs.entries()) {
+            if (!canConvertToTypes.has(input.type)) {
+                continue;
+            }
 
-			availableInputs.push({ inputNodeId: nodeId, inputIndex });
-		}
-	}
+            availableInputs.push({ inputNodeId: nodeId, inputIndex });
+        }
+    }
 
-	return availableInputs;
+    return availableInputs;
 };
 
 export const getFlowGraphAvailableOutputs = (
-	flowState: FlowState,
-	graphId: string,
-	nodeId: string,
-	inputIndex: number,
+    flowState: FlowState,
+    graphId: string,
+    nodeId: string,
+    inputIndex: number,
 ): AvailableOutput[] => {
-	const availableOutputs: AvailableOutput[] = [];
+    const availableOutputs: AvailableOutput[] = [];
 
-	const graph = flowState.graphs[graphId];
-	const node = flowState.nodes[nodeId];
-	const valueType = node.inputs[inputIndex].type;
-	const typesThatCanConvertToType = getValueTypesThatCanConvertToValueType(valueType);
+    const graph = flowState.graphs[graphId];
+    const node = flowState.nodes[nodeId];
+    const valueType = node.inputs[inputIndex].type;
+    const typesThatCanConvertToType = getValueTypesThatCanConvertToValueType(valueType);
 
-	const disallowedNodeIds = findNodesThatReferenceNode(flowState, nodeId);
+    const disallowedNodeIds = findNodesThatReferenceNode(flowState, nodeId);
 
-	for (const nodeId of graph.nodes) {
-		if (disallowedNodeIds.has(nodeId)) {
-			continue;
-		}
+    for (const nodeId of graph.nodes) {
+        if (disallowedNodeIds.has(nodeId)) {
+            continue;
+        }
 
-		for (const [outputIndex, output] of flowState.nodes[nodeId].outputs.entries()) {
-			if (!typesThatCanConvertToType.has(output.type)) {
-				continue;
-			}
+        for (const [outputIndex, output] of flowState.nodes[nodeId].outputs.entries()) {
+            if (!typesThatCanConvertToType.has(output.type)) {
+                continue;
+            }
 
-			availableOutputs.push({ outputNodeId: nodeId, outputIndex });
-		}
-	}
+            availableOutputs.push({ outputNodeId: nodeId, outputIndex });
+        }
+    }
 
-	return availableOutputs;
+    return availableOutputs;
 };

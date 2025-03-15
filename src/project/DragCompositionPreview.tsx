@@ -70,7 +70,7 @@ export const DragCompositionPreview: React.FC = () => {
 
 	const vec = dragComp.position;
 
-	let renderCoords: { top: number; left: number; width: number } | undefined;
+	let renderCoords: { x: number; y: number; width: number } | undefined;
 
 	const targetGroups = targetGroupsRef.current!;
 	i: for (let i = 0; i < targetGroups.length; i += 1) {
@@ -86,21 +86,21 @@ export const DragCompositionPreview: React.FC = () => {
 				continue;
 			}
 
-			const isInTopHalf = vec.y < target.rect.top + target.rect.height / 2;
+			const isInTopHalf = vec.y < target.rect.y + target.rect.height / 2;
 			renderCoords = {
-				left: rect.left,
+				x: rect.x,
 				width: rect.width,
-				top: target.rect.top + (isInTopHalf ? 0 : target.rect.height),
+				y: target.rect.y + (isInTopHalf ? 0 : target.rect.height),
 			};
 			break i;
 		}
 
 		// Below last item
-		const yMax = Math.max(rect.top, ...targets.map(({ rect }) => rect.top + rect.height));
+		const yMax = Math.max(rect.y, ...targets.map(({ rect }) => rect.y + rect.height));
 		renderCoords = {
-			left: rect.left,
+			x: rect.x,
 			width: rect.width,
-			top: yMax,
+			y: yMax,
 		};
 	}
 
@@ -111,7 +111,7 @@ export const DragCompositionPreview: React.FC = () => {
 					className={s("previewBar")}
 					style={{
 						width: renderCoords.width,
-						transform: `translate(${renderCoords.left}px, ${renderCoords.top}px)`,
+						transform: `translate(${renderCoords.x}px, ${renderCoords.y}px)`,
 					}}
 				/>
 			)}

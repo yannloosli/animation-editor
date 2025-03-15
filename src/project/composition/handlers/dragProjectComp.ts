@@ -1,7 +1,7 @@
 import { createLayer } from "~/composition/compositionSlice";
 import { requestAction } from "~/listener/requestAction";
 import { getDragCompositionEligibleTargets } from "~/project/dragCompositionEligibleTargets";
-import { projectActions } from "~/project/projectReducer";
+import { clearDragComposition, setDragComposition } from "~/project/projectSlice";
 import { getActionState } from "~/state/stateUtils";
 import { LayerType } from "~/types";
 import { createMapNumberId } from "~/util/mapUtils";
@@ -9,80 +9,80 @@ import { getDistance, isVecInRect } from "~/util/math";
 import { Vec2 } from "~/util/math/vec2";
 
 export const dragProjectComp = (e: React.MouseEvent, compositionId: string) => {
-	const initialPosition = Vec2.fromEvent(e.nativeEvent);
+    const initialPosition = Vec2.fromEvent(e.nativeEvent);
 
-	requestAction({ history: true }, (params) => {
-		let hasMoved = false;
-		let vec: Vec2 = initialPosition;
+    requestAction({ history: true }, (params) => {
+        let hasMoved = false;
+        let vec: Vec2 = initialPosition;
 
-		params.addListener.repeated("mousemove", (e: MouseEvent | KeyboardEvent) => {
-			if (!(e instanceof MouseEvent)) return;
-			const mousePosition = Vec2.fromEvent(e);
-			vec = mousePosition;
+        params.addListener.repeated("mousemove", (e: MouseEvent | KeyboardEvent) => {
+            if (!(e instanceof MouseEvent)) return;
+            const mousePosition = Vec2.fromEvent(e);
+            vec = mousePosition;
 
-			if (!hasMoved) {
-				if (getDistance(initialPosition, mousePosition) < 5) {
-					return;
-				}
-				hasMoved = true;
-			}
+            if (!hasMoved) {
+                if (getDistance(initialPosition, mousePosition) < 5) {
+                    return;
+                }
+                hasMoved = true;
+            }
 
-			params.dispatch(projectActions.setDragComposition({
-				compositionId,
-				position: mousePosition
-			}));
-		});
+            params.dispatch(setDragComposition({
+                compositionId,
+                position: mousePosition
+            }));
+        });
 
-		const targetGroups = getDragCompositionEligibleTargets();
+        const targetGroups = getDragCompositionEligibleTargets();
 
-		params.addListener.once("mouseup", () => {
-			let targetCompositionId!: string;
-			let insertLayerIndex: number | undefined;
+        params.addListener.once("mouseup", () => {
+            let targetCompositionId!: string;
+            let insertLayerIndex: number | undefined;
 
-			i: for (let i = 0; i < targetGroups.length; i += 1) {
-				const { rect, targets, compositionId } = targetGroups[i];
-				if (!isVecInRect(vec, rect)) {
-					continue;
-				}
+            i: for (let i = 0; i < targetGroups.length; i += 1) {
+                const { rect, targets, compositionId } = targetGroups[i];
+                if (!isVecInRect(vec, rect)) {
+                    continue;
+                }
 
-				for (let j = 0; j < targets.length; j += 1) {
-					const target = targets[j];
+                for (let j = 0; j < targets.length; j += 1) {
+                    const target = targets[j];
 
-					if (!isVecInRect(vec, target.rect)) {
-						continue;
-					}
+                    if (!isVecInRect(vec, target.rect)) {
+                        continue;
+                    }
 
-					const isInTopHalf = vec.y < target.rect.top + target.rect.height / 2;
+                    const isInTopHalf = vec.y < target.rect.top + target.rect.height / 2;
 
-					targetCompositionId = compositionId;
-					insertLayerIndex = target.index + (isInTopHalf ? 0 : 1);
-					break i;
-				}
+                    targetCompositionId = compositionId;
+                    insertLayerIndex = target.index + (isInTopHalf ? 0 : 1);
+                    break i;
+                }
 
-				targetCompositionId = compositionId;
-				insertLayerIndex = targets.length;
-			}
+                targetCompositionId = compositionId;
+                insertLayerIndex = targets.length;
+            }
 
-			if (typeof insertLayerIndex === "undefined") {
-				params.cancelAction();
-				return;
-			}
+            if (typeof insertLayerIndex === "undefined") {
+                params.cancelAction();
+                return;
+            }
 
-			const { compositionState } = getActionState();
-			const expectedLayerId = createMapNumberId(compositionState.layers);
-			params.dispatch(
-				createLayer({
-					compositionId: targetCompositionId,
-					type: LayerType.Composition,
-					options: {
-						compositionLayerReferenceId: compositionId,
-						insertLayerIndex
-					}
-				})
-			);
-			params.dispatch(projectActions.clearDragComposition());
-			params.addDiff((diff) => diff.addLayer(expectedLayerId));
-			params.submitAction("Create Composition Layer");
-		});
-	});
+            const { compositionState } = getActionState();
+            const expectedLayerId = createMapNumberId(compositionState.layers);
+            params.dispatch(
+                createLayer({
+                    compositionId: targetCompositionId,
+                    type: LayerType.Composition,
+                    options: {
+                        compositionLayerReferenceId: compositionId,
+                        insertLayerIndex
+                    }
+                })
+            );
+            params.dispatch(clearDragComposition());
+            params.addDiff((diff) => diff.addLayer(expectedLayerId));
+            params.submitAction("Create Composition Layer");
+        });
+    });
 };

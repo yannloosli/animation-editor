@@ -39,7 +39,6 @@
         "svg-parser": "^2.0.4",
         "svg-path-parser": "^1.1.0",
         "svgpath": "^2.3.0",
-        "typesafe-actions": "^4.4.2",
         "uuid": "^11.1.0"
     },
     "devDependencies": {
@@ -50,6 +49,7 @@
         "@types/lodash": "^4.17.16",
         "@types/mathjs": "^6.0.5",
         "@types/node": "^22.13.9",
+        "@types/pixi.js": "^5.0.0",
         "@types/react": "^17.0.14",
         "@types/react-dom": "^17.0.9",
         "@types/react-redux": "^7.1.5",

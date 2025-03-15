@@ -5,7 +5,9 @@ import { cssVariables } from "~/cssVariables";
 import { getActionState } from "~/state/stateUtils";
 import { getTimelineTrackYPositions } from "~/trackEditor/trackEditorUtils";
 import { LayerParentPickWhip } from "~/types";
+import { ViewportRect, viewportRectToRect } from '~/types/viewport';
 import { traceLine } from "~/util/canvas/renderPrimitives";
+import { Vec2 } from '~/util/math/vec2';
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(({ css }) => ({
@@ -19,7 +21,7 @@ const s = compileStylesheetLabelled(({ css }) => ({
 
 interface OwnProps {
 	pickWhipLayerParent: null | LayerParentPickWhip;
-	viewport: Rect;
+	viewport: ViewportRect;
 	compositionId: string;
 	panY: number;
 }
@@ -44,6 +46,7 @@ export const TimelineLayerParentPickWhipPreview: React.FC<Props> = (props) => {
 		}
 
 		const { compositionState } = getActionState();
+		const rect = viewportRectToRect(viewport);
 		const yPosMap = getTimelineTrackYPositions(compositionId, compositionState, panY);
 
 		const fromY =
@@ -53,7 +56,7 @@ export const TimelineLayerParentPickWhipPreview: React.FC<Props> = (props) => {
 
 		// Sorry for the magic constant
 		const from = Vec2.new(289, fromY);
-		const to = pickWhipLayerParent.to.subXY(viewport.left, viewport.top);
+		const to = pickWhipLayerParent.to.subXY(rect.x, rect.y);
 
 		ctx.beginPath();
 		traceLine(ctx, [from, to], {

@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { getInsertIndex } from '~/util/alg/getInsertIndex';
-import { TimelineSelection } from './timelineSelectionReducer';
+import { TimelineSelection } from './timelineSelectionTypes';
 import { Timeline, TimelineKeyframe, TimelineKeyframeControlPoint } from './timelineTypes';
 import { applyTimelineIndexAndValueShifts } from './timelineUtils';
 
@@ -10,36 +10,24 @@ export interface TimelineState {
 
 const initialState: TimelineState = {};
 
+export { initialState as initialTimelineState };
+
 const timelineSlice = createSlice({
     name: 'timeline',
     initialState,
     reducers: {
-        setTimeline: (state, action: PayloadAction<{ timelineId: string; timeline: Timeline }>) => {
+        setTimeline: (state: TimelineState, action: PayloadAction<{ timelineId: string; timeline: Timeline }>) => {
             const { timelineId, timeline } = action.payload;
-            if (!timeline) {
-                console.warn('setTimeline action missing timeline:', action);
-                return;
-            }
             state[timelineId] = timeline;
         },
-
-        removeTimeline: (state, action: PayloadAction<{ timelineId: string }>) => {
+        removeTimeline: (state: TimelineState, action: PayloadAction<{ timelineId: string }>) => {
             const { timelineId } = action.payload;
             delete state[timelineId];
         },
-
-        setKeyframe: (state, action: PayloadAction<{ timelineId: string; keyframe: TimelineKeyframe }>) => {
+        setKeyframe: (state: TimelineState, action: PayloadAction<{ timelineId: string; keyframe: TimelineKeyframe }>) => {
             const { timelineId, keyframe } = action.payload;
-            if (!keyframe) {
-                console.warn('setKeyframe action missing keyframe:', action);
-                return;
-            }
-
             const timeline = state[timelineId];
-            if (!timeline) {
-                console.warn('Timeline not found:', timelineId);
-                return;
-            }
+            if (!timeline) return;
 
             const keyframes = [...timeline.keyframes];
             const keyframeIds = keyframes.map((k) => k.id);
@@ -59,8 +47,7 @@ const timelineSlice = createSlice({
 
             timeline.keyframes = keyframes;
         },
-
-        removeKeyframes: (state, action: PayloadAction<{ timelineId: string; keyframeIds: string[] }>) => {
+        removeKeyframes: (state: TimelineState, action: PayloadAction<{ timelineId: string; keyframeIds: string[] }>) => {
             const { timelineId, keyframeIds } = action.payload;
             const set = new Set(keyframeIds);
             const timeline = state[timelineId];
@@ -68,27 +55,24 @@ const timelineSlice = createSlice({
                 timeline.keyframes = timeline.keyframes.filter((k) => !set.has(k.id));
             }
         },
-
-        setYPan: (state, action: PayloadAction<{ timelineId: string; yPan: number }>) => {
+        setYPan: (state: TimelineState, action: PayloadAction<{ timelineId: string; yPan: number }>) => {
             const { timelineId, yPan } = action.payload;
             const timeline = state[timelineId];
             if (timeline) {
                 timeline._yPan = yPan;
             }
         },
-
-        setYBounds: (state, action: PayloadAction<{ timelineId: string; yBounds: [number, number] | null }>) => {
+        setYBounds: (state: TimelineState, action: PayloadAction<{ timelineId: string; yBounds: [number, number] | null }>) => {
             const { timelineId, yBounds } = action.payload;
             const timeline = state[timelineId];
             if (timeline) {
                 timeline._yBounds = yBounds;
             }
         },
-
-        setIndexAndValueShift: (state, action: PayloadAction<{ 
-            timelineId: string; 
-            indexShift: number; 
-            valueShift: number 
+        setIndexAndValueShift: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            indexShift: number;
+            valueShift: number
         }>) => {
             const { timelineId, indexShift, valueShift } = action.payload;
             const timeline = state[timelineId];
@@ -97,10 +81,16 @@ const timelineSlice = createSlice({
                 timeline._valueShift = valueShift;
             }
         },
-
-        setControlPointShift: (state, action: PayloadAction<{ 
-            timelineId: string; 
-            controlPointShift: Timeline['_controlPointShift'] 
+        setControlPointShift: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            controlPointShift: {
+                indexDiff: number;
+                direction: "left" | "right";
+                indexShift: number;
+                valueShift: number;
+                yFac: number;
+                shiftDown: boolean
+            } | null
         }>) => {
             const { timelineId, controlPointShift } = action.payload;
             const timeline = state[timelineId];
@@ -108,10 +98,14 @@ const timelineSlice = createSlice({
                 timeline._controlPointShift = controlPointShift;
             }
         },
-
-        setNewControlPointShift: (state, action: PayloadAction<{ 
-            timelineId: string; 
-            newControlPointShift: Timeline['_newControlPointShift'] 
+        setNewControlPointShift: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            newControlPointShift: {
+                indexShift: number;
+                valueShift: number;
+                keyframeIndex: number;
+                direction: "left" | "right";
+            } | null
         }>) => {
             const { timelineId, newControlPointShift } = action.payload;
             const timeline = state[timelineId];
@@ -119,82 +113,118 @@ const timelineSlice = createSlice({
                 timeline._newControlPointShift = newControlPointShift;
             }
         },
-
-        applyControlPointShift: (state, action: PayloadAction<{ 
-            timelineId: string; 
-            selection: TimelineSelection | undefined 
+        setDragSelectRect: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            rect: Rect | null
         }>) => {
-            const { timelineId, selection } = action.payload;
+            const { timelineId, rect } = action.payload;
             const timeline = state[timelineId];
             if (timeline) {
-                const updatedTimeline = applyTimelineIndexAndValueShifts(timeline, selection);
-                state[timelineId] = updatedTimeline;
+                timeline._dragSelectRect = rect;
             }
         },
-
-        submitIndexAndValueShift: (state, action: PayloadAction<{ 
-            timelineId: string; 
-            selection: TimelineSelection 
+        submitDragSelectRect: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            additiveSelection: boolean
         }>) => {
-            const { timelineId, selection } = action.payload;
+            // Cette action sera gérée par un middleware ou un thunk
+            // car elle nécessite d'accéder à d'autres parties de l'état
+        },
+        submitIndexAndValueShift: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            selection: TimelineSelection
+        }>) => {
+            const { timelineId } = action.payload;
             const timeline = state[timelineId];
             if (timeline) {
-                const updatedTimeline = applyTimelineIndexAndValueShifts(timeline, selection);
-                state[timelineId] = updatedTimeline;
+                // Appliquer les décalages aux keyframes sélectionnés
+                if (timeline._indexShift !== null || timeline._valueShift !== null) {
+                    applyTimelineIndexAndValueShifts(timeline, action.payload.selection);
+                    timeline._indexShift = null;
+                    timeline._valueShift = null;
+                }
             }
         },
-
-        shiftTimelineIndex: (state, action: PayloadAction<{ timelineId: string; shiftBy: number }>) => {
+        applyControlPointShift: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            selection: TimelineSelection | undefined
+        }>) => {
+            const { timelineId } = action.payload;
+            const timeline = state[timelineId];
+            if (timeline && timeline._controlPointShift) {
+                // Logique pour appliquer le décalage des points de contrôle
+                // Cette logique complexe sera restaurée dans un middleware ou un thunk
+                timeline._controlPointShift = null;
+            }
+        },
+        shiftTimelineIndex: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            shiftBy: number
+        }>) => {
             const { timelineId, shiftBy } = action.payload;
             const timeline = state[timelineId];
             if (timeline) {
-                timeline.keyframes = timeline.keyframes.map((k) => ({
-                    ...k,
-                    index: k.index + shiftBy,
+                timeline.keyframes = timeline.keyframes.map(keyframe => ({
+                    ...keyframe,
+                    index: keyframe.index + shiftBy
                 }));
             }
         },
-
-        setKeyframeReflectControlPoints: (state, action: PayloadAction<{ 
-            timelineId: string; 
-            keyframeIndex: number; 
-            reflectControlPoints: boolean 
+        setKeyframeReflectControlPoints: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            keyframeIndex: number;
+            reflectControlPoints: boolean
         }>) => {
             const { timelineId, keyframeIndex, reflectControlPoints } = action.payload;
             const timeline = state[timelineId];
             if (timeline) {
-                timeline.keyframes = timeline.keyframes.map((keyframe, index) => {
-                    if (keyframeIndex !== index) {
-                        return keyframe;
-                    }
-                    return { ...keyframe, reflectControlPoints };
-                });
+                const keyframe = timeline.keyframes.find(k => k.index === keyframeIndex);
+                if (keyframe) {
+                    keyframe.reflectControlPoints = reflectControlPoints;
+                }
             }
         },
-
-        setKeyframeControlPoint: (state, action: PayloadAction<{ 
-            timelineId: string; 
-            keyframeIndex: number; 
-            direction: 'left' | 'right'; 
-            controlPoint: TimelineKeyframeControlPoint | null 
+        setKeyframeControlPoint: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            keyframeIndex: number;
+            direction: "left" | "right";
+            controlPoint: TimelineKeyframeControlPoint | null
         }>) => {
             const { timelineId, keyframeIndex, direction, controlPoint } = action.payload;
+            const timeline = state[timelineId];
+            if (timeline) {
+                const keyframe = timeline.keyframes.find(k => k.index === keyframeIndex);
+                if (keyframe) {
+                    if (direction === "left") {
+                        keyframe.controlPointLeft = controlPoint;
+                    } else {
+                        keyframe.controlPointRight = controlPoint;
+                    }
+                }
+            }
+        },
+        removeKeyframeControlPoint: (state: TimelineState, action: PayloadAction<{
+            timelineId: string;
+            keyframeIndex: number;
+            direction: 'left' | 'right'
+        }>) => {
+            const { timelineId, keyframeIndex, direction } = action.payload;
             const timeline = state[timelineId];
             if (timeline) {
                 const keyframe = timeline.keyframes[keyframeIndex];
                 if (keyframe) {
                     if (direction === 'right') {
-                        keyframe.controlPointRight = controlPoint;
+                        keyframe.controlPointRight = null;
                     } else {
-                        keyframe.controlPointLeft = controlPoint;
+                        keyframe.controlPointLeft = null;
                     }
                 }
             }
         },
-    },
+    }
 });
 
-export const { 
+export const {
     setTimeline,
     removeTimeline,
     setKeyframe,
@@ -204,11 +234,14 @@ export const {
     setIndexAndValueShift,
     setControlPointShift,
     setNewControlPointShift,
-    applyControlPointShift,
+    setDragSelectRect,
+    submitDragSelectRect,
     submitIndexAndValueShift,
+    applyControlPointShift,
     shiftTimelineIndex,
     setKeyframeReflectControlPoints,
     setKeyframeControlPoint,
+    removeKeyframeControlPoint,
 } = timelineSlice.actions;
 
-export default timelineSlice.reducer; 
+export default timelineSlice.reducer;

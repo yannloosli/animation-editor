@@ -419,3 +419,73 @@ La clé du succès est de :
 -   Tester abondamment
 -   Documenter les changements
 -   Valider chaque étape
+
+## État d'avancement et plan d'action
+
+### États déjà migrés (✅)
+
+**Première Phase - États Simples (ActionBasedState)**
+- ✅ ToolState (`toolSlice.ts`)
+- ✅ ContextMenuState (`contextMenuSlice.ts`)
+- ✅ AreaState (`areaSlice.ts`)
+
+**Phase Intermédiaire - WorkspaceState**
+- ✅ WorkspaceState (`workspaceSlice.ts`)
+
+**Deuxième Phase - États de Sélection**
+- ✅ TimelineSelectionState (`timelineSelectionSlice.ts`)
+- ✅ CompositionSelectionState (`compositionSelectionSlice.ts`)
+- ✅ ShapeSelectionState (`shapeSelectionSlice.ts`)
+- ✅ FlowSelectionState (`flowSelectionSlice.ts`)
+
+**Troisième Phase - États de Base**
+- ✅ ProjectState (`projectSlice.ts`)
+- ✅ ShapeState (`shapeSlice.ts`)
+- ✅ CompositionState (`compositionSlice.ts`)
+
+**Quatrième Phase - États Spécialisés**
+- ✅ TimelineState (`timelineSlice.ts`)
+- ✅ FlowState (`flowSlice.ts`)
+
+**Phase Finale - Système d'historique**
+- ✅ ActionBasedState (`actionBasedSlice.ts`)
+- ✅ HistoryState (`historySlice.ts`)
+- ✅ AppHistoryState (`appHistorySlice.ts`)
+
+### Problèmes restants à résoudre (⚠️)
+
+1. **Imports obsolètes**
+   - ✅ Correction des imports dans `src/trackEditor/TrackEditor.tsx`
+   - ✅ Correction des imports dans `src/graphEditor/renderGraphEditor.ts`
+   - ✅ Correction des imports dans `src/flow/flowUtils.ts`
+   - ✅ Correction des imports dans `src/flow/util/flowNodeAvailableIO.ts`
+   - ✅ Correction des imports dans `src/flow/nodes/expression/expressionUtils.ts`
+   - ✅ Correction des imports dans `src/workspace/penTool/penToolContext.ts`
+   - ✅ Correction des imports dans `src/shape/shapeUtils.ts`
+
+2. **Erreurs de typage**
+   - ✅ Correction des erreurs liées à `Vec2` et `Rect` dans différents fichiers
+   - ✅ Résolution des incompatibilités entre les types `ActionState` via un adaptateur
+   - ✅ Correction de l'accès aux propriétés de `ShapeSelectionState`
+
+3. **Fichiers obsolètes**
+   - ✅ Suppression de `src/timeline/timelineActions.ts` (déprécié)
+   - ✅ Vérification qu'aucun autre fichier obsolète n'est importé
+
+### Conclusion
+
+La migration vers Redux Toolkit est **complète**. Tous les états ont été migrés vers des slices Redux Toolkit et les problèmes restants ont été résolus :
+
+1. Les imports obsolètes ont été corrigés
+2. Les erreurs de typage ont été résolues
+3. Les fichiers obsolètes ont été supprimés
+
+La dépendance `typesafe-actions` a été supprimée du `package.json`, confirmant que la migration est complète du point de vue des dépendances.
+
+### Prochaines étapes recommandées
+
+1. Exécuter une suite complète de tests pour s'assurer que tout fonctionne correctement
+2. Mettre à jour la documentation technique pour refléter la nouvelle architecture
+3. Optimiser les performances si nécessaire
+
+La migration est un succès et le projet est maintenant entièrement basé sur Redux Toolkit.

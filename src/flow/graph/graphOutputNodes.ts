@@ -1,5 +1,5 @@
 import { FlowGraph, FlowNode, FlowNodeType } from "~/flow/flowTypes";
-import { FlowState } from "~/flow/state/flowReducers";
+import { FlowState } from "~/flow/state/flowSlice";
 
 export const findGraphOutputNodes = (
 	graph: FlowGraph,

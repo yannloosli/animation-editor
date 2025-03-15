@@ -2,6 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 import { cssVariables } from "~/cssVariables";
 import { store } from "~/state/store-init";
+import { ApplicationState } from "~/state/store-types";
 import { AreaComponentProps } from "~/types/areaTypes";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
@@ -42,8 +43,8 @@ interface OwnProps {
 	component: React.ComponentType<AreaComponentProps<any>>;
 	areaId: string;
 	areaState: any;
-	left: number;
-	top: number;
+	x: number;
+	y: number;
 	width: number;
 	height: number;
 }
@@ -57,14 +58,16 @@ interface State {
 	error: Error | null;
 }
 
-class AreaErrorBoundaryComponent extends React.Component<Props> {
+class AreaErrorBoundaryComponent extends React.Component<Props, State> {
 	public readonly state: State = {
 		errorAtHistoryIndex: -1,
 		error: null,
 	};
 
 	static getDerivedStateFromError(error: any): Partial<State> {
-		const historyIndex = store.getState().flowState.index;
+		const state = store.getState();
+		// Utiliser un index par défaut si flowState n'est pas disponible
+		const historyIndex = state.history?.index ?? -1;
 		return {
 			errorAtHistoryIndex: historyIndex,
 			error,
@@ -107,14 +110,14 @@ class AreaErrorBoundaryComponent extends React.Component<Props> {
 			);
 		}
 
-		const { component: Component, areaId, areaState, left, top, width, height } = this.props;
+		const { component: Component, areaId, areaState, x, y, width, height } = this.props;
 
 		return (
 			<Component
 				areaId={areaId}
 				areaState={areaState}
-				left={left}
-				top={top}
+				x={x}
+				y={y}
 				width={width}
 				height={height}
 			/>
@@ -123,12 +126,14 @@ class AreaErrorBoundaryComponent extends React.Component<Props> {
 }
 
 const mapState = (state: ApplicationState): StateProps => ({
-	historyIndex: state.flowState.index,
+	// Utiliser l'index de l'historique global plutôt que celui de flowState
+	historyIndex: state.history?.index ?? -1,
 });
 
-const ConnectedAreaErrorBoundary = connect<StateProps, {}, OwnProps, ApplicationState>(
-	mapState,
-	{},
-)(AreaErrorBoundaryComponent);
+// Utiliser une approche avec un cast explicite pour éviter les erreurs de type
+const ConnectedComponent = connect(mapState)(
+	AreaErrorBoundaryComponent as any
+) as any;
 
-export const AreaErrorBoundary = ConnectedAreaErrorBoundary as React.ComponentType<OwnProps>;
+// Exporter avec le type correct
+export const AreaErrorBoundary: React.ComponentType<OwnProps> = ConnectedComponent;

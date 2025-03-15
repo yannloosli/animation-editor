@@ -1057,6 +1057,13 @@
   resolved "https://registry.npmjs.org/@types/parse-json/-/parse-json-4.0.2.tgz"
   integrity sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==
 
+"@types/pixi.js@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.npmjs.org/@types/pixi.js/-/pixi.js-5.0.0.tgz"
+  integrity sha512-yZqQBR043lRBlBZci2cx6hgmX0fvBfYIqFm6VThlnueXEjitxd3coy+BGsqsZ7+ary7O//+ks4aJRhC5MJoHqA==
+  dependencies:
+    pixi.js "*"
+
 "@types/prop-types@*":
   version "15.7.14"
   resolved "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.14.tgz"
@@ -3175,7 +3182,7 @@ picomatch@^2.3.1:
   resolved "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz"
   integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
 
-pixi.js@^5.3.3:
+pixi.js@*, pixi.js@^5.3.3:
   version "5.3.12"
   resolved "https://registry.npmjs.org/pixi.js/-/pixi.js-5.3.12.tgz"
   integrity sha512-XZzUhrq/m6fx3E0ESv/zXKEVR/GW82dPmbwdapIqsgAldKT2QqBYMfz1WuPf+Q9moPapywVNjjyxPvh+DNPmIg==
@@ -3359,7 +3366,7 @@ redux-thunk@^3.1.0:
 
 redux-undo@^1.1.0:
   version "1.1.0"
-  resolved "https://registry.yarnpkg.com/redux-undo/-/redux-undo-1.1.0.tgz#ae28e517797b1aa5521d55da561f7214d310f8a5"
+  resolved "https://registry.npmjs.org/redux-undo/-/redux-undo-1.1.0.tgz"
   integrity sha512-zzLFh2qeF0MTIlzDhDLm9NtkfBqCllQJ3OCuIl5RKlG/ayHw6GUdIFdMhzMS9NnrnWdBX5u//ExMOHpfudGGOg==
 
 redux@^4.0.0, redux@^4.0.5:
@@ -3938,11 +3945,6 @@ typed-function@^1.1.1:
   version "1.1.1"
   resolved "https://registry.npmjs.org/typed-function/-/typed-function-1.1.1.tgz"
   integrity sha512-RbN7MaTQBZLJYzDENHPA0nUmWT0Ex80KHItprrgbTPufYhIlTePvCXZxyQK7wgn19FW5bnuaBIKcBb5mRWjB1Q==
-
-typesafe-actions@^4.4.2:
-  version "4.4.2"
-  resolved "https://registry.npmjs.org/typesafe-actions/-/typesafe-actions-4.4.2.tgz"
-  integrity sha512-QW61P4cOX8dCNmrfpcUMjvU/MF/sFTC8/PlG9215W1gKDzZUBjRGdyYSO6ZcEUNsn491S2VpryJOHSIVSDqJrg==
 
 typescript@^4.3.5:
   version "4.9.5"

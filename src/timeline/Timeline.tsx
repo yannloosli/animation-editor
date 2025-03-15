@@ -19,8 +19,21 @@ import { AreaComponentProps } from "~/types/areaTypes";
 import { capToRange, isVecInRect, splitRect } from "~/util/math";
 import { Vec2 } from "~/util/math/vec2";
 import { separateLeftRightMouse } from "~/util/mouse";
+import { convertExtendedRectToRect, createExtendedRectFromXY, ExtendedRect } from "~/util/rectUtils";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 import { parseWheelEvent } from "~/util/wheelEvent";
+import {
+    GraphEditorProps,
+    TimelineLayerListProps,
+    TimelineLayerParentPickWhipPreviewProps,
+    TimelineScrubberProps,
+    TrackEditorProps
+} from './timelineComponentTypes';
+import {
+    handleControlPointMouseDown,
+    handleKeyframeMouseDown,
+    handleTimelineBackgroundMouseDown
+} from './timelineEventHandlers';
 
 const s = compileStylesheetLabelled(styles);
 
@@ -32,25 +45,39 @@ type Props = OwnProps & StateProps;
 
 const TimelineComponent: React.FC<Props> = (props) => {
 	const [t, setT] = useState(0.3);
+	const [isZooming, setIsZooming] = useState(false);
+	const [isPanning, setIsPanning] = useState(false);
 
-	const viewportRect: Rect = {
-		x: props.left,
-		y: props.top,
+	const viewportRect: ExtendedRect = createExtendedRectFromXY({
+		x: props.x,
+		y: props.y,
 		width: props.width,
 		height: props.height
-	};
+	});
 
-	let [viewportLeft, viewportRight] = splitRect("horizontal", viewportRect, t, TIMELINE_SEPARATOR_WIDTH);
+	let [viewportLeft, viewportRight] = splitRect(
+		"horizontal",
+		createExtendedRectFromXY({
+			x: props.x,
+			y: props.y,
+			width: props.width,
+			height: props.height
+		}),
+		t,
+		TIMELINE_SEPARATOR_WIDTH,
+	);
 
 	const zoomTarget = useRef<HTMLDivElement>(null);
 	const panTarget = useRef<HTMLDivElement>(null);
 
 	useKeyDownEffect("Z", (down) => {
+		setIsZooming(down);
 		if (zoomTarget.current) {
 			zoomTarget.current.style.display = down ? "block" : "";
 		}
 	});
 	useKeyDownEffect("Space", (down) => {
+		setIsPanning(down);
 		if (panTarget.current) {
 			panTarget.current.style.display = down ? "block" : "";
 		}
@@ -60,8 +87,10 @@ const TimelineComponent: React.FC<Props> = (props) => {
 		const { addListener, submitAction } = params;
 
 		addListener.repeated("mousemove", (e) => {
-			const pos = Vec2.fromEvent(e).subX(props.left);
-			setT(capToRange(0.1, 0.8, pos.x / props.width));
+			if (e instanceof MouseEvent) {
+				const pos = Vec2.fromEvent(e).subX(props.x);
+				setT(capToRange(0.1, 0.8, pos.x / props.width));
+			}
 		});
 
 		addListener.once("mouseup", () => {
@@ -93,7 +122,12 @@ const TimelineComponent: React.FC<Props> = (props) => {
 			const { panY, viewBounds } = props.areaState;
 			let [viewportLeft, viewportRight] = splitRect(
 				"horizontal",
-				props,
+				createExtendedRectFromXY({
+					x: props.x,
+					y: props.y,
+					width: props.width,
+					height: props.height
+				}),
 				t,
 				TIMELINE_SEPARATOR_WIDTH,
 			);
@@ -103,7 +137,10 @@ const TimelineComponent: React.FC<Props> = (props) => {
 					? !isVecInRect(Vec2.fromEvent(e), viewportLeft)
 					: false;
 
-				timelineHandlers.onWheelPan(e as any, props.areaId, {
+				timelineHandlers.onWheelPan({
+					nativeEvent: e,
+					preventDefault: () => {}
+				} as React.WheelEvent, props.areaId, {
 					compositionId: props.areaState.compositionId,
 					viewport: viewportRight,
 					compositionLength,
@@ -116,7 +153,13 @@ const TimelineComponent: React.FC<Props> = (props) => {
 			switch (parsed.type) {
 				case "pinch_zoom": {
 					timelineHandlers.onWheelZoom(
-						e,
+						{
+							nativeEvent: e,
+							preventDefault: () => {},
+							clientX: e.clientX,
+							clientY: e.clientY,
+							deltaY: e.deltaY
+						} as unknown as React.WheelEvent,
 						props.areaId,
 						Math.abs(e.deltaY) * TRACKPAD_ZOOM_DELTA_FAC,
 						{
@@ -151,6 +194,88 @@ const TimelineComponent: React.FC<Props> = (props) => {
 	const { compositionId, viewBounds, panY } = props.areaState;
 	const { compositionLength } = props;
 
+	const onKeyframeMouseDown = (keyframeId: string, e: React.MouseEvent) => {
+		handleKeyframeMouseDown(
+			props.areaState.compositionId,
+			keyframeId,
+			e.nativeEvent,
+			e.shiftKey
+		);
+	};
+
+	const onControlPointMouseDown = (keyframeIndex: number, direction: 'left' | 'right', e: React.MouseEvent) => {
+		handleControlPointMouseDown(
+			props.areaState.compositionId,
+			keyframeIndex,
+			direction,
+			e.nativeEvent
+		);
+	};
+
+	const onBackgroundMouseDown = (e: React.MouseEvent) => {
+		if (e.button === 0 && !isZooming && !isPanning) {
+			handleTimelineBackgroundMouseDown(
+				props.areaState.compositionId,
+				e.nativeEvent,
+				{
+					viewBounds: props.areaState.viewBounds,
+					viewport: convertExtendedRectToRect(viewportRight)
+				}
+			);
+		}
+	};
+
+	// Préparer les props pour les composants enfants
+	const timelineLayerListProps: TimelineLayerListProps = {
+		compositionId,
+		moveLayers: props.areaState.moveLayers,
+		panY: props.areaState.panY
+	};
+
+	const timelineLayerParentPickWhipPreviewProps: TimelineLayerParentPickWhipPreviewProps = {
+		pickWhipLayerParent: props.areaState.pickWhipLayerParent ? {
+			fromId: props.areaState.pickWhipLayerParent.fromId,
+			to: Vec2.new(
+				props.areaState.pickWhipLayerParent.to.x,
+				props.areaState.pickWhipLayerParent.to.y
+			)
+		} : null,
+		viewport: viewportLeft,
+		compositionId,
+		panY: props.areaState.panY
+	};
+
+	const timelineScrubberProps: TimelineScrubberProps = {
+		compositionId,
+		viewportRight,
+		viewBounds
+	};
+
+	const trackEditorProps: TrackEditorProps = {
+		panY: props.areaState.panY,
+		viewBounds,
+		compositionId,
+		viewport: {
+			width: viewportRight.width,
+			height: viewportRight.height - 32,
+			x: viewportRight.left,
+			y: viewportRight.top + 32,
+		},
+		timelineAreaId: props.areaId,
+		trackDragSelectRect: props.areaState.trackDragSelectRect
+	};
+
+	const graphEditorProps: GraphEditorProps = {
+		areaId: props.areaId,
+		compositionId,
+		viewport: {
+			width: viewportRight.width,
+			height: viewportRight.height - 32,
+			x: viewportRight.left,
+			y: viewportRight.top + 32,
+		}
+	};
+
 	return (
 		<div className={s("wrapper")} ref={wrapperRef}>
 			<div
@@ -159,7 +284,7 @@ const TimelineComponent: React.FC<Props> = (props) => {
 				onMouseDown={separateLeftRightMouse({
 					left: (e) => {
 						const lockY = props.areaState.graphEditorOpen
-							? !isVecInRect(Vec2.fromEvent(e), viewportLeft)
+							? !isVecInRect(Vec2.fromEvent(e.nativeEvent), viewportLeft)
 							: false;
 						timelineHandlers.onPan(e, props.areaId, {
 							compositionId,
@@ -182,17 +307,8 @@ const TimelineComponent: React.FC<Props> = (props) => {
 				})}
 			>
 				<TimelineHeader areaId={props.areaId} />
-				<TimelineLayerList
-					compositionId={compositionId}
-					moveLayers={props.areaState.moveLayers}
-					panY={props.areaState.panY}
-				/>
-				<TimelineLayerParentPickWhipPreview
-					pickWhipLayerParent={props.areaState.pickWhipLayerParent}
-					viewport={viewportLeft}
-					compositionId={compositionId}
-					panY={props.areaState.panY}
-				/>
+				<TimelineLayerList {...timelineLayerListProps} />
+				<TimelineLayerParentPickWhipPreview {...timelineLayerParentPickWhipPreviewProps} />
 			</div>
 			<div
 				className={s("separator")}
@@ -203,13 +319,13 @@ const TimelineComponent: React.FC<Props> = (props) => {
 			/>
 			<div className={s("right")} style={viewportRight}>
 				<TimelineViewBounds
-					left={viewportRight.left}
+					x={viewportRight.left}
 					width={viewportRight.width}
 					compositionLength={compositionLength}
 					requestUpdate={(cb) => {
 						requestAction({ history: false }, (params) => {
 							cb({
-								addListener: params.addListener,
+								addListener: params.addListener as any,
 								update: (viewBounds) => {
 									params.dispatch(
 										dispatchToAreaState({
@@ -224,11 +340,7 @@ const TimelineComponent: React.FC<Props> = (props) => {
 					}}
 					viewBounds={viewBounds}
 				/>
-				<TimelineScrubber
-					compositionId={compositionId}
-					viewportRight={viewportRight}
-					viewBounds={viewBounds}
-				/>
+				<TimelineScrubber {...timelineScrubberProps} />
 				<div style={{ position: "relative" }}>
 					<div
 						className={s("zoomTarget")}
@@ -237,37 +349,16 @@ const TimelineComponent: React.FC<Props> = (props) => {
 							left: (e) =>
 								timelineHandlers.onZoomClick(e, props.areaId, {
 									viewBounds,
-									left: viewportRight.left,
 									width: viewportRight.width,
+									left: viewportRight.left,
 								}),
 						})}
 					/>
 					{!props.areaState.graphEditorOpen && (
-						<TrackEditor
-							panY={props.areaState.panY}
-							viewBounds={viewBounds}
-							compositionId={compositionId}
-							viewport={{
-								width: viewportRight.width,
-								height: viewportRight.height - 32,
-								left: viewportRight.left,
-								top: viewportRight.top + 32,
-							}}
-							timelineAreaId={props.areaId}
-							trackDragSelectRect={props.areaState.trackDragSelectRect}
-						/>
+						<TrackEditor {...trackEditorProps} />
 					)}
 					{props.areaState.graphEditorOpen && (
-						<GraphEditor
-							areaId={props.areaId}
-							compositionId={compositionId}
-							viewport={{
-								width: viewportRight.width,
-								height: viewportRight.height - 32,
-								left: viewportRight.left,
-								top: viewportRight.top + 32,
-							}}
-						/>
+						<GraphEditor {...graphEditorProps} />
 					)}
 				</div>
 			</div>

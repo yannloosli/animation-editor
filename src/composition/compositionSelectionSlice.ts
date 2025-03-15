@@ -17,124 +17,104 @@ export const compositionSelectionSlice = createSlice({
     name: "compositionSelection",
     initialState: initialCompositionSelectionState,
     reducers: {
-        toggleLayerSelection: (
-            state,
-            action: PayloadAction<{
-                compositionId: string;
-                layerId: string;
-            }>
-        ) => {
-            const { compositionId, layerId } = action.payload;
-            const selection = state[compositionId] || createNewCompSelection();
+        toggleLayerSelection: {
+            reducer: (state, action: PayloadAction<{ compositionId: string; layerId: string }>) => {
+                const { compositionId, layerId } = action.payload;
+                const selection = state[compositionId] || createNewCompSelection();
 
-            if (selection.layers[layerId]) {
-                selection.layers = removeKeysFromMap(selection.layers, [layerId]);
-            } else {
-                selection.layers = {
-                    ...selection.layers,
-                    [layerId]: true,
-                };
-            }
-
-            state[compositionId] = selection;
+                if (!selection.layers[layerId]) {
+                    if (!state[compositionId]) {
+                        state[compositionId] = createNewCompSelection();
+                    }
+                    state[compositionId].layers[layerId] = true;
+                } else {
+                    delete state[compositionId].layers[layerId];
+                }
+            },
+            prepare: (compositionId: string, layerId: string) => ({
+                payload: { compositionId, layerId }
+            })
         },
+        removeLayersFromSelection: {
+            reducer: (state, action: PayloadAction<{ compositionId: string; layerIds: string[] }>) => {
+                const { compositionId, layerIds } = action.payload;
+                if (!state[compositionId]) return;
 
-        removeLayersFromSelection: (
-            state,
-            action: PayloadAction<{
-                compositionId: string;
-                layerIds: string[];
-            }>
-        ) => {
-            const { compositionId, layerIds } = action.payload;
-            const selection = state[compositionId] || createNewCompSelection();
-
-            selection.layers = removeKeysFromMap(selection.layers, layerIds);
-            state[compositionId] = selection;
+                state[compositionId].layers = removeKeysFromMap(state[compositionId].layers, layerIds);
+            },
+            prepare: (compositionId: string, layerIds: string[]) => ({
+                payload: { compositionId, layerIds }
+            })
         },
+        removePropertiesFromSelection: {
+            reducer: (state, action: PayloadAction<{ compositionId: string; propertyIds: string[] }>) => {
+                const { compositionId, propertyIds } = action.payload;
+                if (!state[compositionId]) return;
 
-        removePropertiesFromSelection: (
-            state,
-            action: PayloadAction<{
-                compositionId: string;
-                propertyIds: string[];
-            }>
-        ) => {
-            const { compositionId, propertyIds } = action.payload;
-            const selection = state[compositionId] || createNewCompSelection();
-
-            selection.properties = removeKeysFromMap(selection.properties, propertyIds);
-            state[compositionId] = selection;
+                state[compositionId].properties = removeKeysFromMap(state[compositionId].properties, propertyIds);
+            },
+            prepare: (compositionId: string, propertyIds: string[]) => ({
+                payload: { compositionId, propertyIds }
+            })
         },
+        togglePropertySelection: {
+            reducer: (state, action: PayloadAction<{ compositionId: string; propertyId: string }>) => {
+                const { compositionId, propertyId } = action.payload;
+                const selection = state[compositionId] || createNewCompSelection();
 
-        togglePropertySelection: (
-            state,
-            action: PayloadAction<{
-                compositionId: string;
-                propertyId: string;
-            }>
-        ) => {
-            const { compositionId, propertyId } = action.payload;
-            const selection = state[compositionId] || createNewCompSelection();
-
-            if (selection.properties[propertyId]) {
-                selection.properties = removeKeysFromMap(selection.properties, [propertyId]);
-            } else {
-                selection.properties = {
-                    ...selection.properties,
-                    [propertyId]: true,
-                };
-            }
-
-            state[compositionId] = selection;
+                if (!selection.properties[propertyId]) {
+                    if (!state[compositionId]) {
+                        state[compositionId] = createNewCompSelection();
+                    }
+                    state[compositionId].properties[propertyId] = true;
+                } else {
+                    delete state[compositionId].properties[propertyId];
+                }
+            },
+            prepare: (compositionId: string, propertyId: string) => ({
+                payload: { compositionId, propertyId }
+            })
         },
+        clearCompositionSelection: {
+            reducer: (state, action: PayloadAction<{ compositionId: string }>) => {
+                const { compositionId } = action.payload;
+                console.log("[DEBUG] CLEAR_COMP_SELECTION triggered", action.payload);
 
-        clearCompositionSelection: (
-            state,
-            action: PayloadAction<{
-                compositionId: string;
-            }>
-        ) => {
-            const { compositionId } = action.payload;
-            state[compositionId] = createNewCompSelection();
+                if (state[compositionId]) {
+                    state[compositionId] = createNewCompSelection();
+                }
+            },
+            prepare: (compositionId: string) => ({
+                payload: { compositionId }
+            })
         },
+        addPropertyToSelection: {
+            reducer: (state, action: PayloadAction<{ compositionId: string; propertyId: string }>) => {
+                const { compositionId, propertyId } = action.payload;
 
-        addPropertyToSelection: (
-            state,
-            action: PayloadAction<{
-                compositionId: string;
-                propertyId: string;
-            }>
-        ) => {
-            const { compositionId, propertyId } = action.payload;
-            const selection = state[compositionId] || createNewCompSelection();
-
-            selection.properties = {
-                ...selection.properties,
-                [propertyId]: true,
-            };
-
-            state[compositionId] = selection;
+                if (!state[compositionId]) {
+                    state[compositionId] = createNewCompSelection();
+                }
+                state[compositionId].properties[propertyId] = true;
+            },
+            prepare: (compositionId: string, propertyId: string) => ({
+                payload: { compositionId, propertyId }
+            })
         },
+        addLayerToSelection: {
+            reducer: (state, action: PayloadAction<{ compositionId: string; layerId: string }>) => {
+                const { compositionId, layerId } = action.payload;
 
-        addLayerToSelection: (
-            state,
-            action: PayloadAction<{
-                compositionId: string;
-                layerId: string;
-            }>
-        ) => {
-            const { compositionId, layerId } = action.payload;
-            const selection = state[compositionId] || createNewCompSelection();
-
-            selection.layers = {
-                ...selection.layers,
-                [layerId]: true,
-            };
-
-            state[compositionId] = selection;
-        },
-    },
+                if (!state[compositionId]) {
+                    state[compositionId] = createNewCompSelection();
+                }
+                state[compositionId].layers[layerId] = true;
+            },
+            prepare: (compositionId: string, layerId: string) => ({
+                payload: { compositionId, layerId }
+            })
+        }
+    }
 });
 
 export const {
@@ -144,7 +124,7 @@ export const {
     togglePropertySelection,
     clearCompositionSelection,
     addPropertyToSelection,
-    addLayerToSelection,
+    addLayerToSelection
 } = compositionSelectionSlice.actions;
 
 export const compositionSelectionReducer = compositionSelectionSlice.reducer; 

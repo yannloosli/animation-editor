@@ -22,15 +22,15 @@ interface OwnProps {
 }
 interface StateProps {
 	type: FlowNodeType;
-	left: number;
-	top: number;
+	x: number;
+	y: number;
 	width: number;
 	selected: boolean;
 }
 type Props = OwnProps & StateProps;
 
 export const FlowNodeBodyComponent: React.FC<Props> = (props) => {
-	const { nodeId, top, left, width, type, errors, zIndex, scale } = props;
+	const { nodeId, y, x, width, type, errors, zIndex, scale } = props;
 	const { selected } = props;
 
 	const hasError = errors.length > 0;
@@ -41,7 +41,7 @@ export const FlowNodeBodyComponent: React.FC<Props> = (props) => {
 		<>
 			<div
 				className={s("container", { selected, hasError })}
-				style={{ left, top, width, zIndex }}
+				style={{ left: x, top: y, width, zIndex }}
 				onMouseDown={separateLeftRightMouse({
 					left: (e) =>
 						nodeHandlers.mouseDown(e, props.areaId, props.graphId, props.nodeId),
@@ -91,8 +91,8 @@ const mapStateToProps: MapActionState<StateProps, OwnProps> = (
 	const { type, width, position } = flowState.nodes[nodeId];
 	const selected = !!selection.nodes[nodeId];
 
-	const { x: left, y: top } = position;
-	return { selected, left, top, type, width };
+	const { x, y } = position;
+	return { selected, x, y, type, width };
 };
 
 export const FlowNodeBody = connectActionState(mapStateToProps)(FlowNodeBodyComponent);

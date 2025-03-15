@@ -9,13 +9,13 @@ import { manageComposition } from "~/composition/manager/compositionManager";
 import { GraphicManager } from "~/composition/manager/graphic/GraphicManager";
 import { HitTestManager } from "~/composition/manager/hitTest/HitTestManager";
 import { InteractionManager } from "~/composition/manager/interaction/interactionManager";
-import { populateLayerManager } from "~/composition/manager/populateLayerManager";
 import { PropertyManager } from "~/composition/manager/property/propertyManager";
 import { DEG_TO_RAD_FAC } from "~/constants";
 import { adjustDiffsToChildComposition } from "~/diff/adjustDiffsToChildComposition";
 import { Diff } from "~/diff/diffs";
 import { applyPixiLayerTransform, getPixiLayerMatrix } from "~/render/pixi/pixiLayerTransform";
-import { getLayerChildLayers } from "~/shared/layer/layerParentSort";
+import { getLayerChildLayers, layerParentSort } from "~/shared/layer/layerParentSort";
+import { ActionState as BaseActionState } from "~/state/store-types";
 import {
     LayerDimension,
     LayerType,
@@ -24,6 +24,8 @@ import {
     TransformPropertyName,
 } from "~/types";
 import { Vec2 } from "~/util/math/vec2";
+
+type ActionState = BaseActionState & { penTool: any };
 
 export interface LayerPixiContainers {
 	transformContainer: PIXI.Container;
@@ -60,6 +62,31 @@ export class LayerManager {
 	private parentDimensions: LayerDimension[];
 
 	constructor(options: Options) {
+		console.log("[DEBUG] LayerManager constructor called");
+		console.log("[DEBUG] Options received:", {
+			...options,
+			// Ne pas logger les objets PIXI directement car ils sont trop volumineux
+			compositionContainer: "PIXI.Container instance",
+			propertyManager: "PropertyManager instance",
+			interactionManager: "InteractionManager instance",
+			hitTestManager: "HitTestManager instance",
+		});
+
+		if (!options) {
+			console.error("[ERROR] No options provided to LayerManager constructor");
+			throw new Error("No options provided to LayerManager constructor");
+		}
+
+		if (!options.compositionId) {
+			console.error("[ERROR] No compositionId provided in options");
+			throw new Error("No compositionId provided in options");
+		}
+
+		if (!options.actionState) {
+			console.error("[ERROR] No actionState provided in options");
+			throw new Error("No actionState provided in options");
+		}
+
 		this.options = options;
 		this.compositionId = this.options.compositionId;
 		this.interactionManager = this.options.interactionManager;
@@ -70,17 +97,47 @@ export class LayerManager {
 
 		this.parentDimensions = this.options.dimensions || [];
 
-		populateLayerManager(this.options.actionState, this);
+		console.log("[DEBUG] About to call initialize()");
+		this.initialize();
+		console.log("[DEBUG] Initialize() completed");
 	}
 
-	public updateLayerZIndices(actionState: ActionState) {
-		const composition = actionState.compositionState.compositions[this.compositionId];
-
-		for (let i = 0; i < composition.layers.length; i++) {
-			const layerId = composition.layers[i];
-			const container = this.getLayerTransformContainer(layerId);
-			container.zIndex = composition.layers.length - i;
+	private initialize() {
+		console.log("[DEBUG] Starting initialization");
+		console.log("[DEBUG] ActionState:", this.options.actionState);
+		
+		if (!this.options.actionState) {
+			console.error("[ERROR] ActionState is undefined");
+			return;
 		}
+
+		const { compositionState } = this.options.actionState;
+		console.log("[DEBUG] CompositionState:", compositionState);
+		
+		if (!compositionState) {
+			console.error("[ERROR] CompositionState is undefined");
+			return;
+		}
+
+		if (!compositionState.compositions) {
+			console.error("[ERROR] compositions is undefined in CompositionState");
+			return;
+		}
+
+		const composition = compositionState.compositions[this.compositionId];
+		console.log("[DEBUG] Composition:", composition);
+		
+		if (!composition) {
+			console.warn('No composition available for LayerManager');
+			return;
+		}
+
+		const layerIds = layerParentSort(composition.layers, compositionState);
+		for (const layerId of layerIds) {
+			this.addLayer(this.options.actionState, layerId);
+		}
+
+		this.updateLayerZIndices(this.options.actionState);
 	}
 
 	public addLayer(actionState: ActionState, layerId: string) {
@@ -179,6 +236,59 @@ export class LayerManager {
 		}
 		
 		console.log("[LAYER] Layer added successfully");
+	}
+
+	public updateLayers() {
+		const composition = this.options.actionState.compositionState.compositions[this.compositionId];
+		if (!composition) {
+			console.warn('No composition available for LayerManager');
+			return;
+		}
+
+		for (const layerId of composition.layers) {
+			const container = this.layerContainers[layerId];
+			const layer = this.options.actionState.compositionState.layers[layerId];
+			
+			if (!layer) {
+				console.warn(`No layer found with id ${layerId}`);
+				continue;
+			}
+
+			if (container) {
+				this.updateTransform(layerId);
+			}
+		}
+	}
+
+	public renderLayers(renderer: PIXI.Renderer) {
+		const composition = this.options.actionState.compositionState.compositions[this.compositionId];
+		if (!composition) {
+			console.warn('No composition available for LayerManager');
+			return;
+		}
+
+		for (const layerId of composition.layers) {
+			const container = this.layerContainers[layerId];
+			if (container) {
+				renderer.render(container.transformContainer);
+			}
+		}
+	}
+
+	public updateLayerZIndices(actionState: ActionState) {
+		const composition = actionState.compositionState.compositions[this.compositionId];
+		if (!composition) {
+			console.warn('No composition available for LayerManager');
+			return;
+		}
+
+		for (let i = 0; i < composition.layers.length; i++) {
+			const layerId = composition.layers[i];
+			const container = this.getLayerTransformContainer(layerId);
+			if (container) {
+				container.zIndex = composition.layers.length - i;
+			}
+		}
 	}
 
 	public removeLayer(layerId: string) {

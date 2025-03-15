@@ -1,15 +1,22 @@
 export const elementHasKeyboardFocus = () => {
-	if (!document.activeElement) {
-		return false;
-	}
+    console.log('elementHasKeyboardFocus appelé');
 
-	return (
-		document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA"
-	);
+    if (!document.activeElement) {
+        console.log('Pas d\'élément actif');
+        return false;
+    }
+
+    const hasFocus = document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA";
+    console.log('Élément actif:', document.activeElement.tagName, 'hasFocus:', hasFocus);
+
+    return hasFocus;
 };
 
 export const clearElementFocus = () => {
-	if (document.activeElement && (document.activeElement as HTMLInputElement).blur) {
-		(document.activeElement as HTMLInputElement).blur();
-	}
+    console.log('clearElementFocus appelé');
+
+    if (document.activeElement && (document.activeElement as HTMLInputElement).blur) {
+        console.log('Suppression du focus de:', document.activeElement.tagName);
+        (document.activeElement as HTMLInputElement).blur();
+    }
 };

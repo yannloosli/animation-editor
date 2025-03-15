@@ -1,3 +1,6 @@
+import { ViewportMouseEvent } from '~/types/viewport';
+import { Vec2 } from '~/util/math/vec2';
+
 const isLeftClick = (e: { button: number }) => {
 	return e.button === 0;
 };
@@ -10,7 +13,7 @@ const isRightClick = (e: { button: number }) => {
 	return e.button === 2;
 };
 
-type ListenerFn = (e: React.MouseEvent) => void;
+type ListenerFn = (e: ViewportMouseEvent) => void;
 
 export const separateLeftRightMouse = ({
 	left,
@@ -21,7 +24,7 @@ export const separateLeftRightMouse = ({
 	middle?: ListenerFn;
 	right?: ListenerFn;
 }) => {
-	return (e: React.MouseEvent): void => {
+	return (e: ViewportMouseEvent): void => {
 		if (isLeftClick(e)) {
 			left?.(e);
 		} else if (isRightClick(e)) {

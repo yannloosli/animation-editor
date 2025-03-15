@@ -14,184 +14,236 @@ import { WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 type PossibleAreaTypes = AreaType.FlowEditor | AreaType.Workspace;
 
 interface Actions {
-	setPan: (pan: Vec2) => Action;
-	setScale: (scale: number) => Action;
+    setPan: (pan: Vec2 | SerializableVec2) => Action;
+    setScale: (scale: number) => Action;
 }
 
 // Fonction utilitaire pour convertir SerializableVec2 en Vec2
-export const toVec2 = (v: SerializableVec2): Vec2 => Vec2.new(v.x, v.y);
+export const toVec2 = (v: { x: number; y: number } | SerializableVec2): Vec2 => {
+    if ('left' in v && 'top' in v) {
+        return Vec2.new(v.x, v.y);
+    }
+    return Vec2.new(v.x, v.y);
+};
+
+// Définir les variables manquantes
+const actions: Actions = {
+    setPan: (pan: Vec2 | SerializableVec2) => ({ type: 'SET_PAN', payload: pan }),
+    setScale: (scale: number) => ({ type: 'SET_SCALE', payload: scale }),
+};
 
 export const createViewportWheelHandlers = <T extends PossibleAreaTypes>(
-	areaType: T,
-	actions: Actions,
+    areaType: T,
+    actions: Actions,
 ) => {
-	const handlers = {
-		onPanStart: (areaId: string, e: React.MouseEvent) => {
-			e.stopPropagation();
+    const handlers = {
+        onPanStart: (areaId: string, e: React.MouseEvent) => {
+            e.stopPropagation();
 
-			const initialPos = Vec2.fromEvent(e.nativeEvent);
+            const initialPos = Vec2.fromEvent(e.nativeEvent);
 
-			requestAction({ history: true }, (params) => {
-				const handleMouseMove = (e: MouseEvent | KeyboardEvent) => {
-					if (e instanceof MouseEvent) {
-						const areaState = getAreaActionState<T>(areaId);
-						if (!areaState || !areaState.pan) return;
+            requestAction({ history: true }, (params) => {
+                const handleMouseMove = (e: MouseEvent | KeyboardEvent) => {
+                    if (e instanceof MouseEvent) {
+                        const areaState = getAreaActionState<T>(areaId);
+                        if (!areaState || !areaState.pan) return;
 
-						const pos = Vec2.fromEvent(e);
-						const diff = pos.sub(initialPos);
-						const action = actions.setPan(toVec2(areaState.pan).add(diff));
-						if ((<WorkspaceAreaState>areaState).compositionId) {
-							const { compositionId, scale } = areaState as WorkspaceAreaState;
-							params.performDiff((diff) => diff.compositionView(compositionId, scale));
-						}
-						params.dispatchToAreaState(areaId, action);
-					}
-				};
+                        const pos = Vec2.fromEvent(e);
+                        const diff = pos.sub(initialPos);
+                        const vec = toVec2(areaState.pan).add(diff);
+                        const action = actions.setPan({ x: vec.x, y: vec.y });
+                        if ((<WorkspaceAreaState>areaState).compositionId) {
+                            const { compositionId, scale } = areaState as WorkspaceAreaState;
+                            params.performDiff((diff) => diff.compositionView(compositionId, scale));
+                        }
+                        params.dispatchToAreaState(areaId, action);
+                    }
+                };
 
-				const handleMouseUp = () => {
-					const areaState = getAreaActionState<T>(areaId);
-					if (!areaState) return;
+                const handleMouseUp = () => {
+                    const areaState = getAreaActionState<T>(areaId);
+                    if (!areaState) return;
 
-					if ((<WorkspaceAreaState>areaState).compositionId) {
-						const { compositionId, scale } = areaState as WorkspaceAreaState;
-						params.addDiff((diff) => diff.compositionView(compositionId, scale));
-					}
-					params.submitAction("Pan");
-				};
+                    if ((<WorkspaceAreaState>areaState).compositionId) {
+                        const { compositionId, scale } = areaState as WorkspaceAreaState;
+                        params.addDiff((diff) => diff.compositionView(compositionId, scale));
+                    }
+                    params.submitAction("Pan");
+                };
 
-				params.addListener.repeated("mousemove", handleMouseMove);
-				params.addListener.once("mouseup", handleMouseUp);
-			});
-		},
+                params.addListener.repeated("mousemove", handleMouseMove);
+                params.addListener.once("mouseup", handleMouseUp);
+            });
+        },
 
-		onZoomClick: (e: React.MouseEvent, areaId: string) => {
-			e.stopPropagation();
+        onZoomClick: (e: React.MouseEvent, areaId: string) => {
+            e.stopPropagation();
 
-			const mousePos = Vec2.fromEvent(e.nativeEvent);
-			const areaState = getAreaActionState<T>(areaId);
-			
-			if (!areaState || !areaState.pan || !areaState.scale) return;
+            const mousePos = Vec2.fromEvent(e.nativeEvent);
+            const areaState = getAreaActionState<T>(areaId);
 
-			if (
-				(areaState.scale < 0.0625 && isKeyDown("Alt")) ||
-				(areaState.scale > 256 && !isKeyDown("Alt"))
-			) {
-				return;
-			}
+            if (!areaState || !areaState.pan || !areaState.scale) return;
 
-			requestAction({ history: true }, (params) => {
-				const viewport = getAreaViewport(areaId, areaType);
-				if (!viewport) return;
+            if (
+                (areaState.scale < 0.0625 && isKeyDown("Alt")) ||
+                (areaState.scale > 256 && !isKeyDown("Alt"))
+            ) {
+                return;
+            }
 
-				const fac = isKeyDown("Alt") ? 0.5 : 2;
+            requestAction({ history: true }, (params) => {
+                const viewport = getAreaViewport(areaId, areaType);
+                if (!viewport) return;
 
-				const pos = mousePos
-					.sub(Vec2.new(areaState.pan))
-					.sub(Vec2.new(viewport.width / 2, viewport.height / 2))
-					.sub(Vec2.new(viewport));
+                const fac = isKeyDown("Alt") ? 0.5 : 2;
 
-				const xt = pos.x / viewport.width;
-				const yt = pos.y / viewport.height;
+                const pos = mousePos
+                    .sub(Vec2.new(areaState.pan))
+                    .sub(Vec2.new(viewport.width / 2, viewport.height / 2))
+                    .sub(Vec2.new(viewport));
 
-				const diff = Vec2.new(
-					viewport.width * (xt * fac) * (isKeyDown("Alt") ? -1 : 0.5),
-					viewport.height * (yt * fac) * (isKeyDown("Alt") ? -1 : 0.5),
-				);
+                const xt = pos.x / viewport.width;
+                const yt = pos.y / viewport.height;
 
-				const nextScale = areaState.scale * fac;
-				const panAction = actions.setPan(toVec2(areaState.pan).sub(diff));
-				const scaleAction = actions.setScale(areaState.scale * fac);
+                const diff = Vec2.new(
+                    viewport.width * (xt * fac) * (isKeyDown("Alt") ? -1 : 0.5),
+                    viewport.height * (yt * fac) * (isKeyDown("Alt") ? -1 : 0.5),
+                );
 
-				params.dispatch(
-					dispatchToAreaState({ areaId, action: panAction }),
-					dispatchToAreaState({ areaId, action: scaleAction }),
-				);
-				if ((<WorkspaceAreaState>areaState).compositionId) {
-					const { compositionId } = areaState as WorkspaceAreaState;
-					params.addDiff((diff) => diff.compositionView(compositionId, nextScale));
-				}
-				params.submitAction("Zoom");
-			});
-		},
+                const vec = toVec2(areaState.pan).sub(diff);
+                const panAction = actions.setPan({ x: vec.x, y: vec.y });
+                const scaleAction = actions.setScale(areaState.scale * fac);
 
-		onWheelScale: (e: WheelEvent, areaId: string, impact = 1) => {
-			const { deltaY } = e;
+                params.dispatch(
+                    dispatchToAreaState({ areaId, action: panAction }),
+                    dispatchToAreaState({ areaId, action: scaleAction }),
+                );
+                if ((<WorkspaceAreaState>areaState).compositionId) {
+                    const { compositionId } = areaState as WorkspaceAreaState;
+                    params.addDiff((diff) => diff.compositionView(compositionId, areaState.scale * fac));
+                }
+                params.submitAction("Zoom");
+            });
+        },
 
-			const mousePos = Vec2.fromEvent(e);
-			const areaState = getAreaActionState<T>(areaId);
-			const viewport = getAreaViewport(areaId, areaType);
+        onWheelScale: (e: WheelEvent, areaId: string, impact = 1) => {
+            const { deltaY } = e;
 
-			if (!areaState || !areaState.pan || !areaState.scale || !viewport) return;
+            const mousePos = Vec2.fromEvent(e);
+            const areaState = getAreaActionState<T>(areaId);
+            const viewport = getAreaViewport(areaId, areaType);
 
-			const fac = interpolate(1, -deltaY < 0 ? 0.85 : 1.15, capToRange(0, 2, impact));
+            if (!areaState || !areaState.pan || !areaState.scale || !viewport) return;
 
-			requestAction({ history: false }, (params) => {
-				const pos = mousePos
-					.sub(Vec2.new(areaState.pan))
-					.sub(Vec2.new(viewport.width / 2, viewport.height / 2))
-					.sub(Vec2.new(viewport));
+            const fac = interpolate(1, -deltaY < 0 ? 0.85 : 1.15, capToRange(0, 2, impact));
 
-				const xt = pos.x / viewport.width;
-				const yt = pos.y / viewport.height;
+            requestAction({ history: false }, (params) => {
+                const pos = mousePos
+                    .sub(Vec2.new(areaState.pan))
+                    .sub(Vec2.new(viewport.width / 2, viewport.height / 2))
+                    .sub(Vec2.new(viewport));
 
-				const xDiff = viewport.width * xt * ((1 - fac) / 1) * -1;
-				const yDiff = viewport.height * yt * ((1 - fac) / 1) * -1;
+                const xt = pos.x / viewport.width;
+                const yt = pos.y / viewport.height;
 
-				const diff = Vec2.new(xDiff, yDiff);
+                const xDiff = viewport.width * xt * ((1 - fac) / 1) * -1;
+                const yDiff = viewport.height * yt * ((1 - fac) / 1) * -1;
 
-				const panAction = actions.setPan(toVec2(areaState.pan).sub(diff));
-				const scaleAction = actions.setScale(areaState.scale * fac);
+                const diff = Vec2.new(xDiff, yDiff);
 
-				params.dispatch(
-					dispatchToAreaState({ areaId, action: panAction }),
-					dispatchToAreaState({ areaId, action: scaleAction }),
-				);
-				if ((<WorkspaceAreaState>areaState).compositionId) {
-					const { compositionId, scale } = areaState as WorkspaceAreaState;
-					params.addDiff((diff) => diff.compositionView(compositionId, scale));
-				}
-				params.submitAction("Zoom");
-			});
-		},
+                const vec = toVec2(areaState.pan).sub(diff);
+                const panAction = actions.setPan({ x: vec.x, y: vec.y });
+                const scaleAction = actions.setScale(areaState.scale * fac);
 
-		onWheelPan: (deltaX: number, deltaY: number, areaId: string) => {
-			const areaState = getAreaActionState<T>(areaId);
-			
-			if (!areaState || !areaState.pan) return;
+                params.dispatch(
+                    dispatchToAreaState({ areaId, action: panAction }),
+                    dispatchToAreaState({ areaId, action: scaleAction }),
+                );
+                if ((<WorkspaceAreaState>areaState).compositionId) {
+                    const { compositionId, scale } = areaState as WorkspaceAreaState;
+                    params.addDiff((diff) => diff.compositionView(compositionId, scale));
+                }
+                params.submitAction("Zoom");
+            });
+        },
 
-			requestAction({ history: false }, (params) => {
-				const pan = toVec2(areaState.pan).add(Vec2.new(-deltaX, -deltaY));
-				const panAction = actions.setPan(pan);
+        onWheelPan: (deltaX: number, deltaY: number, areaId: string) => {
+            const areaState = getAreaActionState<T>(areaId);
 
-				params.dispatch(dispatchToAreaState({ areaId, action: panAction }));
-				if ((<WorkspaceAreaState>areaState).compositionId) {
-					const { compositionId, scale } = areaState as WorkspaceAreaState;
-					params.addDiff((diff) => diff.compositionView(compositionId, scale));
-				}
-				params.submitAction("Pan");
-			});
-		},
+            if (!areaState || !areaState.pan) return;
 
-		onWheel: (e: WheelEvent, areaId: string) => {
-			e.preventDefault();
+            requestAction({ history: false }, (params) => {
+                const vec = toVec2(areaState.pan).add(Vec2.new(-deltaX, -deltaY));
+                const panAction = actions.setPan({ x: vec.x, y: vec.y });
 
-			const normalized = parseWheelEvent(e);
+                params.dispatch(dispatchToAreaState({ areaId, action: panAction }));
+                if ((<WorkspaceAreaState>areaState).compositionId) {
+                    const { compositionId, scale } = areaState as WorkspaceAreaState;
+                    params.addDiff((diff) => diff.compositionView(compositionId, scale));
+                }
+                params.submitAction("Pan");
+            });
+        },
 
-			switch (normalized.type) {
-				case "mouse_wheel": {
-					handlers.onWheelScale(e, areaId);
-					break;
-				}
-				case "pinch_zoom": {
-					handlers.onWheelScale(e, areaId, Math.abs(e.deltaY) * TRACKPAD_ZOOM_DELTA_FAC);
-					break;
-				}
-				case "pan": {
-					handlers.onWheelPan(normalized.deltaX, normalized.deltaY, areaId);
-					break;
-				}
-			}
-		},
-	};
-	return handlers;
+        onWheel: (e: WheelEvent, areaId: string) => {
+            e.preventDefault();
+
+            const normalized = parseWheelEvent(e);
+
+            switch (normalized.type) {
+            case "mouse_wheel": {
+                handlers.onWheelScale(e, areaId);
+                break;
+            }
+            case "pinch_zoom": {
+                handlers.onWheelScale(e, areaId, Math.abs(e.deltaY) * TRACKPAD_ZOOM_DELTA_FAC);
+                break;
+            }
+            case "pan": {
+                handlers.onWheelPan(normalized.deltaX, normalized.deltaY, areaId);
+                break;
+            }
+            }
+        },
+    };
+    return handlers;
+};
+
+export const onPanStart = <T extends PossibleAreaTypes>(areaId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const initialPos = Vec2.fromEvent(e.nativeEvent);
+
+    requestAction({ history: true }, (params) => {
+        const handleMouseMove = (e: MouseEvent | KeyboardEvent) => {
+            if (e instanceof MouseEvent) {
+                const areaState = getAreaActionState<T>(areaId);
+                if (!areaState || !areaState.pan) return;
+
+                const pos = Vec2.fromEvent(e);
+                const diff = pos.sub(initialPos);
+                const vec = toVec2(areaState.pan).add(diff);
+                const action = actions.setPan({ x: vec.x, y: vec.y });
+                if ((<WorkspaceAreaState>areaState).compositionId) {
+                    const { compositionId, scale } = areaState as WorkspaceAreaState;
+                    params.performDiff((diff) => diff.compositionView(compositionId, scale));
+                }
+                params.dispatchToAreaState(areaId, action);
+            }
+        };
+
+        const handleMouseUp = () => {
+            const areaState = getAreaActionState<T>(areaId);
+            if (!areaState) return;
+
+            if ((<WorkspaceAreaState>areaState).compositionId) {
+                const { compositionId, scale } = areaState as WorkspaceAreaState;
+                params.addDiff((diff) => diff.compositionView(compositionId, scale));
+            }
+            params.submitAction("Pan");
+        };
+
+        params.addListener.repeated("mousemove", handleMouseMove);
+        params.addListener.once("mouseup", handleMouseUp);
+    });
 };

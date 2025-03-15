@@ -1,11 +1,10 @@
-import React from "react";
 import { FlowNodeNumberInput } from "~/flow/components/FlowNodeNumberInput";
 import { FlowNodeSelect } from "~/flow/components/FlowNodeSelect";
 import { FlowNodeTValueInput } from "~/flow/components/FlowNodeTValueInput";
 import { FlowNodeState } from "~/flow/flowNodeState";
 import { FlowNodeProps, FlowNodeType } from "~/flow/flowTypes";
 import { NodeOutputs } from "~/flow/nodes/NodeOutputs";
-import { flowActions } from "~/flow/state/flowActions";
+import { updateNodeState } from "~/flow/state/flowSlice";
 import { useNumberInputAction } from "~/hook/useNumberInputAction";
 import { requestAction } from "~/listener/requestAction";
 import { connectActionState } from "~/state/stateUtils";
@@ -23,8 +22,10 @@ function NumberInputNodeComponent(props: Props) {
 	const { onChange, onChangeEnd } = useNumberInputAction({
 		onChange: (value, params) => {
 			params.dispatch(
-				flowActions.updateNodeState<FlowNodeType.num_input>(graphId, nodeId, {
-					value,
+				updateNodeState({
+					graphId,
+					nodeId,
+					state: { value },
 				}),
 			);
 			params.performDiff((diff) => diff.flowNodeState(nodeId));
@@ -38,8 +39,10 @@ function NumberInputNodeComponent(props: Props) {
 	const onTypeChange = (type: string) => {
 		requestAction({ history: true }, (params) => {
 			params.dispatch(
-				flowActions.updateNodeState<FlowNodeType.num_input>(graphId, nodeId, {
-					type: type as FlowNodeState<FlowNodeType.num_input>["type"],
+				updateNodeState({
+					graphId,
+					nodeId,
+					state: { type: type as FlowNodeState<FlowNodeType.num_input>["type"] },
 				}),
 			);
 			params.submitAction("Update number input node type");

@@ -1,10 +1,10 @@
 declare type Ctx = CanvasRenderingContext2D;
 
 declare interface Rect {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
 }
 
 declare type CubicBezier = [Vec2, Vec2, Vec2, Vec2];
@@ -13,11 +13,11 @@ declare type Line = [Vec2, Vec2];
 declare type Curve = CubicBezier | Line;
 
 declare interface GlobalState {
-	window: WindowState;
+    window: WindowState;
 }
 
 declare interface MapOf<T> {
-	[key: string]: T;
+    [key: string]: T;
 }
 
 declare const ClipperLib: any;

@@ -1,10 +1,17 @@
 import { flowSelectionFromState } from "~/flow/flowUtils";
 import {
-	getValueTypeCanConvertToValueTypes,
-	getValueTypesThatCanConvertToValueType,
+    getValueTypeCanConvertToValueTypes,
+    getValueTypesThatCanConvertToValueType,
 } from "~/flow/flowValueConversion";
-import { flowActions } from "~/flow/state/flowActions";
-import { flowSelectionActions } from "~/flow/state/flowSelectionReducer";
+import { setSelectedNodesInGraph } from "~/flow/state/flowSelectionSlice";
+import {
+    connectInputToOutput as connectInputToOutputAction,
+    removeGraph as removeGraphAction,
+    removeInputPointer as removeInputPointerAction,
+    removeNode as removeNodeAction,
+    setNodeInputType as setNodeInputTypeAction,
+    setNodeOutputType as setNodeOutputTypeAction,
+} from "~/flow/state/flowSlice";
 import { Operation, ValueType } from "~/types";
 
 function selectNode(op: Operation, nodeId: string): void {
@@ -15,7 +22,7 @@ function selectNode(op: Operation, nodeId: string): void {
 
 	// If the node is selected, do nothing.
 	if (!selection.nodes[nodeId]) {
-		op.add(flowSelectionActions.setSelectedNodesInGraph(node.graphId, [nodeId]));
+		op.add(setSelectedNodesInGraph(node.graphId, [nodeId]));
 	}
 }
 
@@ -28,8 +35,7 @@ const removeSelectedNodesInGraph = (op: Operation, graphId: string): void => {
 
 	for (const nodeId of nodeIds) {
 		if (selection.nodes[nodeId]) {
-			op.add(flowActions.removeNode(graphId, nodeId));
-			op.add(flowSelectionActions.removeNode(graphId, nodeId));
+			op.add(removeNodeAction({ nodeId }));
 		}
 	}
 
@@ -49,8 +55,7 @@ const removeSelectedNodesInGraph = (op: Operation, graphId: string): void => {
 };
 
 const removeGraph = (op: Operation, graphId: string): void => {
-	op.add(flowActions.removeGraph(graphId));
-	op.add(flowSelectionActions.removeGraph(graphId));
+	op.add(removeGraphAction({ graphId }));
 };
 
 const connectOutputToInput = (
@@ -60,7 +65,7 @@ const connectOutputToInput = (
 	inputNodeId: string,
 	inputIndex: number,
 ): void => {
-	op.add(flowActions.connectInputToOutput(outputNodeId, outputIndex, inputNodeId, inputIndex));
+	op.add(connectInputToOutputAction({ outputNodeId, outputIndex, inputNodeId, inputIndex }));
 	op.addDiff((diff) => diff.updateNodeConnection([outputNodeId, inputNodeId]));
 };
 
@@ -69,7 +74,7 @@ const removeInputPointer = (op: Operation, inputNodeId: string, inputIndex: numb
 	const node = flowState.nodes[inputNodeId];
 	const { nodeId: outputNodeId } = node.inputs[inputIndex].pointer!;
 
-	op.add(flowActions.removeInputPointer(inputNodeId, inputIndex));
+	op.add(removeInputPointerAction({ nodeId: inputNodeId, inputIndex }));
 	op.addDiff((diff) => diff.updateNodeConnection([outputNodeId, inputNodeId]));
 };
 
@@ -89,12 +94,12 @@ const setInputValueType = (
 	if (pointer) {
 		const output = flowState.nodes[pointer.nodeId].outputs[pointer.outputIndex];
 		if (!compatibleOutputValueTypes.has(output.type)) {
-			op.add(flowActions.removeInputPointer(inputNodeId, inputIndex));
+			op.add(removeInputPointerAction({ nodeId: inputNodeId, inputIndex }));
 			affectedNodeIds.push(pointer.nodeId);
 		}
 	}
 
-	op.add(flowActions.setNodeInputType(inputNodeId, inputIndex, valueType));
+	op.add(setNodeInputTypeAction({ nodeId: inputNodeId, inputIndex, valueType }));
 	op.addDiff((diff) => diff.updateNodeConnection(affectedNodeIds));
 };
 
@@ -127,12 +132,12 @@ const setOutputValueType = (
 				continue;
 			}
 
-			op.add(flowActions.removeInputPointer(nodeId, inputIndex));
+			op.add(removeInputPointerAction({ nodeId, inputIndex }));
 			affectedNodeIds.push(nodeId);
 		}
 	}
 
-	op.add(flowActions.setNodeOutputType(outputNodeId, outputIndex, valueType));
+	op.add(setNodeOutputTypeAction({ nodeId: outputNodeId, outputIndex, valueType }));
 	op.addDiff((diff) => diff.updateNodeConnection(affectedNodeIds));
 };
 

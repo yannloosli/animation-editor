@@ -8,7 +8,7 @@ import { FlowNodeState } from "~/flow/flowNodeState";
 import { FlowNodeProps, FlowNodeType } from "~/flow/flowTypes";
 import NodeStyles from "~/flow/nodes/Node.styles";
 import { NodeOutputs } from "~/flow/nodes/NodeOutputs";
-import { flowActions } from "~/flow/state/flowActions";
+import { updateNodeState } from "~/flow/state/flowSlice";
 import { NODE_HEIGHT_CONSTANTS } from "~/flow/util/flowNodeHeight";
 import { useKeyDownEffect } from "~/hook/useKeyDown";
 import { useNumberInputAction } from "~/hook/useNumberInputAction";
@@ -16,6 +16,7 @@ import { useGetRefRectFn, useRefRect } from "~/hook/useRefRect";
 import { requestAction } from "~/listener/requestAction";
 import { connectActionState } from "~/state/stateUtils";
 import { RGBAColor, RGBColor } from "~/types";
+import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
 const s = compileStylesheetLabelled(NodeStyles);
@@ -41,8 +42,10 @@ const ColorInputNodeComponent: React.FC<Props> = (props) => {
 				const color = [...state.color] as RGBAColor;
 				color[i] = value;
 				params.dispatch(
-					flowActions.updateNodeState<FlowNodeType.color_input>(graphId, nodeId, {
-						color,
+					updateNodeState({
+						graphId,
+						nodeId,
+						state: { color },
 					}),
 				);
 				params.performDiff((diff) => diff.flowNodeState(nodeId));
@@ -74,7 +77,11 @@ const ColorInputNodeComponent: React.FC<Props> = (props) => {
 					const rgbaColor = [...rgbColor, a] as RGBAColor;
 
 					params.dispatch(
-						flowActions.updateNodeState(graphId, nodeId, { color: rgbaColor }),
+						updateNodeState({
+							graphId,
+							nodeId,
+							state: { color: rgbaColor },
+						}),
 					);
 					params.performDiff((diff) => diff.flowNodeState(nodeId));
 				};

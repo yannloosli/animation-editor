@@ -28,11 +28,16 @@ const ErrorFallback = ({ error }: { error: Error }) => (
     </div>
 );
 
+const StoreProvider = Provider as React.ComponentType<{
+    store: typeof store;
+    children: React.ReactNode;
+}>;
+
 ReactDOM.render(
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <Provider store={store as any}>
+        <StoreProvider store={store}>
             <App />
-        </Provider>
+        </StoreProvider>
     </ErrorBoundary>,
     document.getElementById("root")
 );

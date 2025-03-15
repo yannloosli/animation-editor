@@ -9,8 +9,8 @@ import { getPropertyMaxValue, getPropertyMinValue } from "~/property/propertyCon
 import { createOperation } from "~/state/operation";
 import { connectActionState, getActionState } from "~/state/stateUtils";
 import TimelinePropertyStyles from "~/timeline/property/TimelineProperty.styles";
-import { timelineActions } from "~/timeline/timelineActions";
 import { timelineHandlers } from "~/timeline/timelineHandlers";
+import { setKeyframe } from "~/timeline/timelineSlice";
 import { TimelineKeyframe } from "~/timeline/timelineTypes";
 import {
     createTimelineKeyframe,
@@ -114,9 +114,12 @@ const usePropertyNumberInput = (
 
 					if (keyframe) {
 						op.add(
-							timelineActions.setKeyframe(timeline.id, {
-								...keyframe,
-								value,
+							setKeyframe({
+								timelineId: timeline.id,
+								keyframe: {
+									...keyframe,
+									value,
+								},
 							}),
 						);
 						return;
@@ -127,13 +130,13 @@ const usePropertyNumberInput = (
 
 					if (index < keyframes[0].index) {
 						const k = createTimelineKeyframe(value, index);
-						op.add(timelineActions.setKeyframe(timeline.id, k));
+						op.add(setKeyframe({ timelineId: timeline.id, keyframe: k }));
 						return;
 					}
 
 					if (index > keyframes[keyframes.length - 1].index) {
 						const k = createTimelineKeyframe(value, index);
-						op.add(timelineActions.setKeyframe(timeline.id, k));
+						op.add(setKeyframe({ timelineId: timeline.id, keyframe: k }));
 						return;
 					}
 
@@ -156,9 +159,9 @@ const usePropertyNumberInput = (
 							index,
 						);
 						keyframe = k;
-						op.add(timelineActions.setKeyframe(timeline.id, k0));
-						op.add(timelineActions.setKeyframe(timeline.id, k));
-						op.add(timelineActions.setKeyframe(timeline.id, k1));
+						op.add(setKeyframe({ timelineId: timeline.id, keyframe: k0 }));
+						op.add(setKeyframe({ timelineId: timeline.id, keyframe: k }));
+						op.add(setKeyframe({ timelineId: timeline.id, keyframe: k1 }));
 					}
 				};
 

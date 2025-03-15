@@ -1,16 +1,17 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-	EXPR_TEXTAREA_H_PADDING,
-	EXPR_TEXTAREA_LINE_HEIGHT,
-	EXPR_TEXTAREA_MIN_HEIGHT,
-	EXPR_TEXTAREA_MIN_WIDTH,
-	EXPR_TEXTAREA_V_PADDING,
-	FLOW_NODE_H_PADDING_BASE,
+    EXPR_TEXTAREA_H_PADDING,
+    EXPR_TEXTAREA_LINE_HEIGHT,
+    EXPR_TEXTAREA_MIN_HEIGHT,
+    EXPR_TEXTAREA_MIN_WIDTH,
+    EXPR_TEXTAREA_V_PADDING,
+    FLOW_NODE_H_PADDING_BASE,
 } from "~/constants";
 import { cssVariables } from "~/cssVariables";
 import { FlowNode, FlowNodeType } from "~/flow/flowTypes";
+import { getExpressionNodeInputDefaultValue } from "~/flow/flowUtils";
 import { getExpressionUpdateIO } from "~/flow/nodes/expression/expressionUtils";
-import { flowActions } from "~/flow/state/flowActions";
+import { addNodeInput, addNodeOutput, removeNodeInputs, removeNodeOutputs, setNodeWidth, updateNodeState } from "~/flow/state/flowSlice";
 import { useComputeHistory } from "~/hook/useComputeHistory";
 import { isKeyCodeOf } from "~/listener/keyboard";
 import { requestAction, RequestActionParams } from "~/listener/requestAction";
@@ -115,8 +116,13 @@ const ExpressionNodeTextareaComponent: React.FC<Props> = (props) => {
 
 		const expression = e.target.value;
 		params.dispatch(
-			flowActions.updateNodeState<FlowNodeType.expr>(graphId, nodeId, {
-				expression,
+			updateNodeState({
+				nodeId,
+				graphId,
+				state: {
+					text: expression,
+					textareaHeight: props.textareaHeight,
+				}
 			}),
 		);
 		params.addDiff((diff) => diff.flowNodeExpression(nodeId));
@@ -134,25 +140,37 @@ const ExpressionNodeTextareaComponent: React.FC<Props> = (props) => {
 		const toUpdate = getExpressionUpdateIO(io, flowState, nodeId);
 
 		const toDispatch: any[] = [
-			flowActions.removeNodeInputs(graphId, nodeId, toUpdate.inputIndicesToRemove),
-			flowActions.removeNodeOutputs(graphId, nodeId, toUpdate.outputIndicesToRemove),
+			removeNodeInputs({
+				nodeId,
+				indices: toUpdate.inputIndicesToRemove
+			}),
+			removeNodeOutputs({
+				nodeId,
+				indices: toUpdate.outputIndicesToRemove
+			}),
 		];
 
 		toUpdate.inputsToAdd.forEach((input) => {
 			toDispatch.push(
-				flowActions.addNodeInput(graphId, nodeId, {
-					name: input,
-					pointer: null,
-					type: ValueType.Number,
-					value: 0,
+				addNodeInput({
+					nodeId,
+					input: {
+						name: input,
+						type: ValueType.Number,
+						pointer: null,
+						value: getExpressionNodeInputDefaultValue(ValueType.Number),
+					}
 				}),
 			);
 		});
 		toUpdate.outputsToAdd.forEach((output) => {
 			toDispatch.push(
-				flowActions.addNodeOutput(graphId, nodeId, {
-					name: output,
-					type: ValueType.Number,
+				addNodeOutput({
+					nodeId,
+					output: {
+						name: output,
+						type: ValueType.Number,
+					}
 				}),
 			);
 		});
@@ -179,8 +197,11 @@ const ExpressionNodeTextareaComponent: React.FC<Props> = (props) => {
 		h = Math.max(EXPR_TEXTAREA_MIN_HEIGHT, h);
 
 		params.dispatch(
-			flowActions.setExpressionNodeTextareaHeight(graphId, nodeId, h + 8),
-			flowActions.setNodeWidth(graphId, nodeId, w + 16),
+			setNodeWidth({
+				nodeId,
+				graphId,
+				width: w + 16
+			}),
 		);
 	}, [value]);
 

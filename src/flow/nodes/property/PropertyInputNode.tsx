@@ -1,14 +1,13 @@
-import React from "react";
 import { CompoundProperty, Layer, Property } from "~/composition/compositionTypes";
 import {
-	getLayerCompoundPropertyLabel,
-	getLayerPropertyLabel,
+    getLayerCompoundPropertyLabel,
+    getLayerPropertyLabel,
 } from "~/composition/util/compositionPropertyUtils";
 import { FlowNodeState } from "~/flow/flowNodeState";
 import { FlowNodeInput, FlowNodeOutput, FlowNodeProps, FlowNodeType } from "~/flow/flowTypes";
 import { NodeOutputs } from "~/flow/nodes/NodeOutputs";
 import { PropertyNodeSelectProperty } from "~/flow/nodes/property/PropertyNodeSelectProperty";
-import { flowActions } from "~/flow/state/flowActions";
+import { removeReferencesToNodeInGraph, setNodeOutputs, updateNodeState } from "~/flow/state/flowSlice";
 import { requestAction } from "~/listener/requestAction";
 import { getPropertyValueType } from "~/property/propertyConstants";
 import { connectActionState, getActionState } from "~/state/stateUtils";
@@ -34,13 +33,19 @@ function PropertyInputNodeComponent(props: Props) {
 	const onSelectLayer = (layerId: string) => {
 		requestAction({ history: true }, (params) => {
 			params.dispatch(
-				flowActions.removeReferencesToNodeInGraph(props.graphId, props.nodeId),
-				flowActions.updateNodeState<FlowNodeType.property_input>(
-					props.graphId,
-					props.nodeId,
-					{ layerId, propertyId: "" },
-				),
-				flowActions.setNodeOutputs(props.graphId, props.nodeId, []),
+				removeReferencesToNodeInGraph({ nodeId: props.nodeId }),
+				updateNodeState({
+					nodeId: props.nodeId,
+					graphId: props.graphId,
+					state: {
+						propertyName: "",
+						propertyGroupName: null,
+					}
+				}),
+				setNodeOutputs({
+					nodeId: props.nodeId,
+					outputs: []
+				}),
 			);
 
 			params.addDiff((diff) => diff.propertyStructure(layerId));
@@ -51,11 +56,14 @@ function PropertyInputNodeComponent(props: Props) {
 	const onSelectProperty = (propertyId: string) => {
 		requestAction({ history: true }, (params) => {
 			params.dispatch(
-				flowActions.updateNodeState<FlowNodeType.property_input>(
-					props.graphId,
-					props.nodeId,
-					{ propertyId },
-				),
+				updateNodeState({
+					nodeId: props.nodeId,
+					graphId: props.graphId,
+					state: {
+						propertyName: propertyId,
+						propertyGroupName: null,
+					}
+				}),
 			);
 
 			const properties = getActionState().compositionState.properties;
@@ -98,13 +106,19 @@ function PropertyInputNodeComponent(props: Props) {
 				});
 
 			params.dispatch(
-				flowActions.updateNodeState<FlowNodeType.property_input>(
-					props.graphId,
-					props.nodeId,
-					{ propertyId },
-				),
-				flowActions.removeReferencesToNodeInGraph(props.graphId, props.nodeId),
-				flowActions.setNodeOutputs(props.graphId, props.nodeId, outputs),
+				updateNodeState({
+					nodeId: props.nodeId,
+					graphId: props.graphId,
+					state: {
+						propertyName: propertyId,
+						propertyGroupName: null,
+					}
+				}),
+				removeReferencesToNodeInGraph({ nodeId: props.nodeId }),
+				setNodeOutputs({
+					nodeId: props.nodeId,
+					outputs
+				}),
 			);
 			params.addDiff((diff) => diff.propertyStructure(property.layerId));
 			params.submitAction("Update selected PropertyInputNode property");

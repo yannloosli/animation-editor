@@ -1,4 +1,4 @@
-import { compSelectionActions } from "~/composition/compositionSelectionReducer";
+import { addLayerToSelection, clearCompositionSelection } from "~/composition/compositionSelectionSlice";
 import { createLayer, setEllipseCenter, setEllipseRadius } from "~/composition/compositionSlice";
 import { AreaType } from "~/constants";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
@@ -8,10 +8,10 @@ import { createMapNumberId } from "~/util/mapUtils";
 import { Vec2 } from "~/util/math/vec2";
 
 export const ellipseToolHandlers = {
-    onMouseDown: (e: MouseEvent, areaId: string, viewport: { left: number; top: number; width: number; height: number }) => {
+    onMouseDown: (e: React.MouseEvent<Element, MouseEvent>, areaId: string, viewport: { x: number; y: number; width: number; height: number }) => {
         const { compositionId } = getAreaActionState<AreaType.Workspace>(areaId);
         const { compositionState } = getActionState();
-        
+
         console.log("[ELLIPSE] Starting onMouseDown with:", {
             compositionId,
             areaId,
@@ -19,9 +19,9 @@ export const ellipseToolHandlers = {
             mouseY: e.clientY,
             compositionState
         });
-        
-        const viewportVec = Vec2.new(viewport.left, viewport.top);
-        const initialPos = Vec2.fromEvent(e).sub(viewportVec);
+
+        const viewportVec = Vec2.new(viewport.x, viewport.y);
+        const initialPos = Vec2.fromEvent(e.nativeEvent).sub(viewportVec);
         let createdLayerId: string | null = null;
 
         mouseDownMoveAction(e, {
@@ -35,22 +35,21 @@ export const ellipseToolHandlers = {
                 });
 
                 console.log("[ELLIPSE] Dispatching create layer");
-                const createAction = createLayer({ 
-                    compositionId, 
-                    type: LayerType.Ellipse,
-                    compositionState: compositionState.present
+                const createAction = createLayer({
+                    compositionId,
+                    type: LayerType.Ellipse
                 });
                 console.log("[ELLIPSE] Create action:", createAction);
                 params.dispatch(createAction);
-                
+
                 console.log("[ELLIPSE] Dispatching clear selection");
-                params.dispatch(compSelectionActions.clearCompositionSelection(compositionId));
-                
+                params.dispatch(clearCompositionSelection(compositionId));
+
                 console.log("[ELLIPSE] Dispatching add to selection");
-                params.dispatch(compSelectionActions.addLayerToSelection(compositionId, expectedLayerId));
-                
+                params.dispatch(addLayerToSelection(compositionId, expectedLayerId));
+
                 createdLayerId = expectedLayerId;
-                
+
                 console.log("[ELLIPSE] Setting ellipse center:", {
                     initialPos: initialPos.toString(),
                     x: initialPos.x,
@@ -65,15 +64,15 @@ export const ellipseToolHandlers = {
                     console.log("[ELLIPSE] No createdLayerId in mouseMove");
                     return;
                 }
-                
+
                 const currentPos = mousePosition.normal;
                 const diff = currentPos.sub(initialPos);
                 let radius = Math.sqrt(diff.x * diff.x + diff.y * diff.y);
-                
+
                 if (keyDown.Shift) {
                     radius = Math.round(radius);
                 }
-                
+
                 console.log("[ELLIPSE] Setting radius:", {
                     radius,
                     diff: diff.toString(),
@@ -85,7 +84,7 @@ export const ellipseToolHandlers = {
             },
             mouseUp: (params, hasMoved) => {
                 console.log("[ELLIPSE] mouseUp:", { hasMoved, createdLayerId });
-                
+
                 if (!hasMoved) {
                     if (createdLayerId) {
                         console.log("[ELLIPSE] Setting default radius");
@@ -94,7 +93,7 @@ export const ellipseToolHandlers = {
                         params.dispatch(defaultRadiusAction);
                     }
                 }
-                
+
                 console.log("[ELLIPSE] Submitting action");
                 params.submitAction(hasMoved ? "Create and resize ellipse" : "Create ellipse");
             }

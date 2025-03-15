@@ -1,11 +1,14 @@
-import { AREA_BORDER_WIDTH } from "~/constants";
 import { cssVariables, cssZIndex } from "~/cssVariables";
 import { StyleParams } from "~/util/stylesheets";
 
 export default ({ css }: StyleParams) => ({
-	area: css`
-		background: ${cssVariables.dark500};
+    area: css`
 		position: absolute;
+		background: ${cssVariables.gray800};
+		border: 1px solid ${cssVariables.gray700};
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
 		z-index: ${cssZIndex.area.areaBase};
 
 		&--raised {
@@ -13,64 +16,66 @@ export default ({ css }: StyleParams) => ({
 		}
 	`,
 
-	area__content: css`
-		border-radius: 8px;
-		background: ${cssVariables.gray500};
-		position: absolute;
-		z-index: 1;
-		top: ${AREA_BORDER_WIDTH}px;
-		left: ${AREA_BORDER_WIDTH}px;
-		bottom: ${AREA_BORDER_WIDTH}px;
-		right: ${AREA_BORDER_WIDTH}px;
+    area__content: css`
+		flex: 1;
+		position: relative;
 		overflow: hidden;
+		background: ${cssVariables.gray800};
 	`,
 
-	area__corner: css`
-		width: 24px;
-		height: 24px;
+    area__corner: css`
 		position: absolute;
-		z-index: 2;
-
-		&--nw {
-			top: 0;
-			left: 0;
-		}
+		width: 10px;
+		height: 10px;
+		background: ${cssVariables.gray700};
+		z-index: ${cssZIndex.area.areaBase};
 
 		&--ne {
 			top: 0;
 			right: 0;
-		}
-
-		&--sw {
-			bottom: 0;
-			left: 0;
+			cursor: ne-resize;
 		}
 
 		&--se {
 			bottom: 0;
 			right: 0;
+			cursor: se-resize;
+		}
+
+		&--sw {
+			bottom: 0;
+			left: 0;
+			cursor: sw-resize;
+		}
+
+		&--nw {
+			top: 0;
+			left: 0;
+			cursor: nw-resize;
 		}
 	`,
 
-	selectAreaButton: css`
+    selectAreaButton: css`
 		position: absolute;
-		top: 6px;
-		left: 12px;
-		z-index: 10;
-		border: none;
-		padding: 2px 6px;
+		top: 4px;
+		right: 4px;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: ${cssVariables.gray800};
+		border: 1px solid ${cssVariables.gray700};
 		border-radius: 4px;
-		outline: none;
-		background: ${cssVariables.dark500};
+		cursor: pointer;
+		z-index: ${cssZIndex.area.areaBase};
 
-		svg {
-			fill: ${cssVariables.gray800};
-			width: 12px;
-			height: 12px;
+		&:hover {
+			background: ${cssVariables.gray700};
 		}
 	`,
 
-	selectArea: css`
+    selectArea: css`
 		position: absolute;
 		top: -32px;
 		left: -32px;
@@ -79,12 +84,12 @@ export default ({ css }: StyleParams) => ({
 		background: transparent;
 	`,
 
-	selectArea__inner: css`
+    selectArea__inner: css`
 		border: 1px solid ${cssVariables.gray800};
 		background: ${cssVariables.dark800};
 	`,
 
-	selectArea__item: css`
+    selectArea__item: css`
 		color: white;
 		border: none;
 		border-radius: 4px;

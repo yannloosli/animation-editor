@@ -1,12 +1,12 @@
 import React, { useLayoutEffect, useRef } from "react";
-import { CompositionSelectionState } from "~/composition/compositionSelectionReducer";
+import { CompositionSelectionState } from "~/composition/compositionSelectionSlice";
 import { CompositionState } from "~/composition/compositionSlice";
 import { Composition } from "~/composition/compositionTypes";
 import { getTimelineIdsReferencedByComposition } from "~/composition/compositionUtils";
 import { cssVariables } from "~/cssVariables";
 import { connectActionState } from "~/state/stateUtils";
-import { TimelineState } from "~/timeline/timelineReducer";
-import { TimelineSelectionState } from "~/timeline/timelineSelectionReducer";
+import { TimelineSelectionState } from "~/timeline/timelineSelectionSlice";
+import { TimelineState } from "~/timeline/timelineSlice";
 import { applyTimelineIndexAndValueShifts } from "~/timeline/timelineUtils";
 import { renderTracks } from "~/trackEditor/renderTrackEditor";
 import { trackHandlers } from "~/trackEditor/trackHandlers";

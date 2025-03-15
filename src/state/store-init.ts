@@ -1,27 +1,28 @@
 import { configureStore, Middleware } from "@reduxjs/toolkit";
 import { registerAreaTypeHandlers } from "~/area/handlers/areaTypeHandlers";
-import { areaSlice } from "~/area/state/areaSlice";
+import { initialState as initialAreaState } from "~/area/state/areaSlice";
 import { initialCompositionSelectionState } from "~/composition/compositionSelectionSlice";
+import { registerCompositionMiddleware } from "~/composition/middleware";
 import { contextMenuMiddleware } from "~/contextMenu/contextMenuMiddleware";
 import { initialState as initialContextMenuState } from "~/contextMenu/contextMenuSlice";
-import { initialFlowState } from "~/flow/state/flowReducers";
-import { initialFlowSelectionState } from "~/flow/state/flowSelectionReducer";
-import { shapeCompatibilityMiddleware } from "~/shape/shapeMiddleware";
-import { initialShapeState } from "~/shape/shapeReducer";
-import { initialShapeSelectionState } from "~/shape/shapeSelectionReducer";
-import { createApplicationStateFromActionState } from "~/state/createApplicationStateFromActionState";
+import { initialFlowSelectionState } from "~/flow/state/flowSelectionSlice";
+import { initialFlowState } from "~/flow/state/flowSlice";
+import { initialShapeSelectionState } from "~/shape/shapeSelectionSlice";
+import { initialState as initialShapeState } from "~/shape/shapeSlice";
 import rootReducer from "~/state/reducers";
 import { getSavedActionState } from "~/state/saveState";
-import { initialTimelineState } from "~/timeline/timelineReducer";
-import { initialTimelineSelectionState } from "~/timeline/timelineSelectionReducer";
+import { initialState as initialTimelineAreaState } from "~/timeline/timelineAreaSlice";
+import { registerTimelineMiddleware } from "~/timeline/timelineMiddleware";
+import { initialTimelineSelectionState } from "~/timeline/timelineSelectionSlice";
+import { initialTimelineState } from "~/timeline/timelineSlice";
 import { initialState as initialToolState } from "~/toolbar/toolSlice";
 import { initialCompositionWorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
 import type { ApplicationState } from "./store-types";
 
 // État initial par défaut
 const defaultInitialState: ApplicationState = {
-    area: { state: areaSlice.getInitialState(), action: null },
-    compositionState: { 
+    area: { state: initialAreaState, action: null },
+    compositionState: {
         past: [],
         present: {
             compositions: {
@@ -60,7 +61,7 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
-    compositionSelectionState: { 
+    compositionSelectionState: {
         past: [],
         present: initialCompositionSelectionState,
         future: [],
@@ -69,7 +70,7 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
-    flowState: { 
+    flowState: {
         past: [],
         present: initialFlowState,
         future: [],
@@ -78,7 +79,7 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
-    flowSelectionState: { 
+    flowSelectionState: {
         past: [],
         present: initialFlowSelectionState,
         future: [],
@@ -127,7 +128,7 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
-    shapeState: { 
+    shapeState: {
         past: [],
         present: initialShapeState,
         future: [],
@@ -136,7 +137,7 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
-    shapeSelectionState: { 
+    shapeSelectionState: {
         past: [],
         present: initialShapeSelectionState,
         future: [],
@@ -145,7 +146,7 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
-    timelineState: { 
+    timelineState: {
         past: [],
         present: initialTimelineState,
         future: [],
@@ -154,7 +155,7 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
-    timelineSelectionState: { 
+    timelineSelectionState: {
         past: [],
         present: initialTimelineSelectionState,
         future: [],
@@ -163,16 +164,17 @@ const defaultInitialState: ApplicationState = {
         index: 0,
         limit: 50
     },
+    timelineArea: { state: initialTimelineAreaState, action: null },
     tool: { state: initialToolState, action: null },
-    workspace: { 
+    workspace: {
         state: {
             ...initialCompositionWorkspaceAreaState,
             pan: {
                 x: initialCompositionWorkspaceAreaState.pan.x,
                 y: initialCompositionWorkspaceAreaState.pan.y
             }
-        }, 
-        action: null 
+        },
+        action: null
     },
     history: {
         type: "normal",
@@ -180,61 +182,47 @@ const defaultInitialState: ApplicationState = {
         index: -1,
         indexDirection: 1,
         action: null
+    },
+    penTool: {
+        state: {},
+        action: null
     }
 };
 
-// Récupérer l'état initial sauvegardé
-let initialState: ApplicationState | undefined;
-const savedActionState = getSavedActionState();
-
-if (savedActionState) {
-    initialState = createApplicationStateFromActionState(savedActionState);
-} else {
-    initialState = defaultInitialState;
-}
-
-// Configuration commune pour la sérialisation
-const serializableCheckConfig = {
-    ignoredActions: [
-        "history/START_ACTION",
-        "history/DISPATCH_TO_ACTION",
-        "history/DISPATCH_BATCH_TO_ACTION",
-        "history/SUBMIT_ACTION",
-        "history/CANCEL_ACTION"
-    ],
-    ignoredPaths: [
-        "history.diffs",
-        "history.action",
-        "history.list",
-        "contextMenu.state.position",
-        "area.state.areaToOpen.position"
-    ]
-};
-
-// Middleware de débogage
-const debugMiddleware: Middleware = store => next => action => {
-    console.log('[DEBUG] Action:', action);
-    const result = next(action);
-    console.log('[DEBUG] Next State:', store.getState());
-    return result;
-};
-
-// Créer le store
+// Configuration du store avec typage explicite
 export const store = configureStore({
-    reducer: rootReducer,
-    middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware({
-            serializableCheck: false,
-        }).concat(
-            debugMiddleware,
-            contextMenuMiddleware as Middleware,
-            shapeCompatibilityMiddleware as Middleware,
-        ),
-    preloadedState: initialState,
+    reducer: rootReducer as any,
+    preloadedState: getSavedActionState() || defaultInitialState,
+    middleware: (getDefaultMiddleware) => {
+        const middleware: Array<Middleware<{}, ApplicationState>> = [];
+
+        // Middleware de débogage avec typage correct
+        const debugMiddleware: Middleware<{}, ApplicationState> = (store) => (next) => (action) => {
+            console.log('[DEBUG] Action reçue:', action);
+            const result = next(action);
+            console.log('[DEBUG] Nouvel état:', store.getState().contextMenu);
+            return result;
+        };
+
+        middleware.push(debugMiddleware);
+        middleware.push(contextMenuMiddleware as Middleware<{}, ApplicationState>);
+
+        // Enregistrer le middleware timeline
+        registerTimelineMiddleware(middleware);
+
+        // Enregistrer le middleware composition
+        registerCompositionMiddleware(middleware);
+
+        return getDefaultMiddleware().concat(middleware);
+    },
 });
 
 // Vérification de l'état initial du store
 console.log('Initial store state:', store.getState());
+console.log('Area state:', JSON.stringify(store.getState().area, null, 2));
+console.log('Area layout:', JSON.stringify(store.getState().area.state?.layout, null, 2));
+console.log('Area rootId:', store.getState().area.state?.rootId);
+console.log('Area areas:', JSON.stringify(store.getState().area.state?.areas, null, 2));
 
 // Types pour TypeScript
 export type RootState = ReturnType<typeof store.getState>;

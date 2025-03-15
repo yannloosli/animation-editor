@@ -1,9 +1,8 @@
 import React from "react";
-import { FlowNodeTValueInput } from "~/flow/components/FlowNodeTValueInput";
 import { FlowNodeInput } from "~/flow/flowTypes";
 import NodeStyles from "~/flow/nodes/Node.styles";
 import { NodeInputCircle } from "~/flow/nodes/NodeInputCircle";
-import { flowActions } from "~/flow/state/flowActions";
+import { setNodeInputValue } from "~/flow/state/flowSlice";
 import { useNumberInputAction } from "~/hook/useNumberInputAction";
 import { connectActionState } from "~/state/stateUtils";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
@@ -27,7 +26,7 @@ const NodeTValueInputComponent: React.FC<Props> = (props) => {
 	const { onChange, onChangeEnd } = useNumberInputAction({
 		onChange: (value, params) => {
 			params.performDiff((diff) => diff.flowNodeState(nodeId));
-			params.dispatch(flowActions.setNodeInputValue(graphId, nodeId, index, value));
+			params.dispatch(setNodeInputValue({ nodeId, inputIndex: index, value }));
 		},
 		onChangeEnd: (_type, params) => {
 			params.addDiff((diff) => diff.flowNodeState(nodeId));
@@ -41,14 +40,22 @@ const NodeTValueInputComponent: React.FC<Props> = (props) => {
 			{input.pointer ? (
 				<div className={s("input__name")}>{input.name}</div>
 			) : (
-				<FlowNodeTValueInput
-					label={input.name}
-					onChange={onChange}
-					onChangeEnd={onChangeEnd}
-					value={input.value}
-					paddingRight
-					paddingLeft
-				/>
+				<div className={s("input__number")}>
+					<input
+						type="number"
+						value={input.value}
+						onChange={(e) => onChange(parseFloat(e.target.value))}
+						onBlur={() => onChangeEnd("blur")}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								onChangeEnd("enter");
+							}
+						}}
+						min={0}
+						max={1}
+						step={0.01}
+					/>
+				</div>
 			)}
 		</div>
 	);

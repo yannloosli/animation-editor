@@ -1,14 +1,14 @@
 import { getAreaViewport } from "~/area/util/getAreaViewport";
 import { AreaType } from "~/constants";
 import { contextMenuActions } from "~/contextMenu/contextMenuActions";
-import { flowAreaActions } from "~/flow/flowAreaActions";
 import {
-	didFlowSelectionChange,
-	flowEditorGlobalToNormal,
-	flowSelectionFromState,
+    didFlowSelectionChange,
+    flowEditorGlobalToNormal,
+    flowSelectionFromState,
 } from "~/flow/flowUtils";
-import { flowActions } from "~/flow/state/flowActions";
-import { flowSelectionActions } from "~/flow/state/flowSelectionReducer";
+import { setPan, setScale } from "~/flow/state/flowAreaSlice";
+import { removeGraph, setSelectedNodesInGraph } from "~/flow/state/flowSelectionSlice";
+import { setDragSelectRect } from "~/flow/state/flowSlice";
 import { getFlowGraphContextMenuOptions } from "~/flow/util/flowGraphContextMenu";
 import { calculateNodeHeight } from "~/flow/util/flowNodeHeight";
 import { isKeyDown } from "~/listener/keyboard";
@@ -18,6 +18,7 @@ import { getActionState } from "~/state/stateUtils";
 import { mouseDownMoveAction } from "~/util/action/mouseDownMoveAction";
 import { clearElementFocus } from "~/util/focus";
 import { rectOfTwoVecs, rectsIntersect } from "~/util/math";
+import { Vec2 } from "~/util/math/vec2";
 
 export const flowEditorHandlers = {
 	onLeftClickOutside: (
@@ -37,11 +38,11 @@ export const flowEditorHandlers = {
 			beforeMove: () => {},
 			mouseMove: (params, { initialMousePosition, mousePosition }) => {
 				const rect = rectOfTwoVecs(initialMousePosition.normal, mousePosition.normal);
-				params.dispatch(flowActions.setDragSelectRect(graphId, rect));
+				params.dispatch(setDragSelectRect({ graphId, rect }));
 			},
 			mouseUp: (params, hasMoved) => {
 				if (!hasMoved) {
-					params.dispatch(flowSelectionActions.removeGraph(graphId));
+					params.dispatch(removeGraph(graphId));
 					params.submitAction("Modify selection");
 					return;
 				}
@@ -69,8 +70,8 @@ export const flowEditorHandlers = {
 					return arr;
 				}, []);
 
-				params.dispatch(flowActions.setDragSelectRect(graphId, null));
-				params.dispatch(flowSelectionActions.setSelectedNodesInGraph(graphId, nodeIds));
+				params.dispatch(setDragSelectRect({ graphId, rect: null }));
+				params.dispatch(setSelectedNodesInGraph(graphId, nodeIds));
 				params.submitAction("Modify selection");
 			},
 		});
@@ -110,7 +111,7 @@ export const flowEditorHandlers = {
 	},
 
 	...createViewportWheelHandlers(AreaType.FlowEditor, {
-		setPan: flowAreaActions.setPan,
-		setScale: flowAreaActions.setScale,
+		setPan,
+		setScale,
 	}),
 };

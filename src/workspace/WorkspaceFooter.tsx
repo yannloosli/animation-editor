@@ -1,13 +1,14 @@
 import { useRef } from "react";
 import { NumberInput } from "~/components/common/NumberInput";
 import {
+    CompositionState,
     setCompositionDimension,
     setCompositionLength
 } from "~/composition/compositionSlice";
 import { cssVariables } from "~/cssVariables";
 import { requestAction, RequestActionParams } from "~/listener/requestAction";
-import { connectActionState } from "~/state/stateUtils";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
+import { WorkspaceAreaState } from "./workspaceTypes";
 
 const FOOTER_HEIGHT = 24;
 
@@ -39,18 +40,26 @@ const s = compileStylesheetLabelled(({ css }) => ({
 	`,
 }));
 
-interface OwnProps {
-	compositionId: string;
+interface Props {
+	areaState: WorkspaceAreaState;
+	compositionState: CompositionState;
 }
-interface StateProps {
-	width: number;
-	height: number;
-	length: number;
-}
-type Props = OwnProps & StateProps;
 
-const WorkspaceFooterComponent = (props: Props) => {
-	const { compositionId } = props;
+export const WorkspaceFooter: React.FC<Props> = (props) => {
+	const { areaState, compositionState } = props;
+	const composition = compositionState.compositions[areaState.compositionId];
+
+	if (!composition) {
+		return (
+			<div className="workspace-footer">
+				<div className="workspace-footer__dimensions">
+					<span>No composition selected</span>
+				</div>
+			</div>
+		);
+	}
+
+	const { width, height, length } = composition;
 
 	const paramsRef = useRef<RequestActionParams | null>(null);
 	const onValueChangeFn = useRef<((value: number) => void) | null>(null);
@@ -68,15 +77,15 @@ const WorkspaceFooterComponent = (props: Props) => {
 			onValueChangeFn.current = (value) => {
 				params.dispatch(
 					which === "length"
-						? setCompositionLength({ compositionId, value })
-						: setCompositionDimension({ compositionId, which, value }),
+						? setCompositionLength({ compositionId: areaState.compositionId, value })
+						: setCompositionDimension({ compositionId: areaState.compositionId, which, value }),
 				);
-				paramsRef.current?.performDiff((diff) => diff.compositionDimensions(compositionId));
+				paramsRef.current?.performDiff((diff) => diff.compositionDimensions(areaState.compositionId));
 			};
 			onValueChangeFn.current(value);
 
 			onValueChangeEndFn.current = () => {
-				paramsRef.current?.addDiff((diff) => diff.compositionDimensions(compositionId));
+				paramsRef.current?.addDiff((diff) => diff.compositionDimensions(areaState.compositionId));
 				if (which === "length") {
 					paramsRef.current?.submitAction("Update composition length");
 				} else {
@@ -101,33 +110,22 @@ const WorkspaceFooterComponent = (props: Props) => {
 				min={1}
 				onChange={(value) => onValueChange("width", value)}
 				onChangeEnd={onValueChangeEnd}
-				value={props.width}
+				value={width}
 			/>
 			<div className={s("dimensionLabel")}>Height</div>
 			<NumberInput
 				min={1}
 				onChange={(value) => onValueChange("height", value)}
 				onChangeEnd={onValueChangeEnd}
-				value={props.height}
+				value={height}
 			/>
 			<div className={s("dimensionLabel")}>Length</div>
 			<NumberInput
 				min={1}
 				onChange={(value) => onValueChange("length", value)}
 				onChangeEnd={onValueChangeEnd}
-				value={props.length}
+				value={length}
 			/>
 		</div>
 	);
 };
-
-const mapState: MapActionState<StateProps, OwnProps> = (
-	{ compositionState },
-	{ compositionId },
-) => {
-	const { width, height, length } = compositionState.compositions[compositionId];
-
-	return { width, height, length };
-};
-
-export const WorkspaceFooter = connectActionState(mapState)(WorkspaceFooterComponent);

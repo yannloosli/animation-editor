@@ -8,7 +8,7 @@ export interface WorkspaceAreaState {
 }
 
 export const initialWorkspaceState: WorkspaceAreaState = {
-    compositionId: "",
+    compositionId: "default",
     pan: { x: 0, y: 0 },
     scale: 1,
     selectionRect: null,

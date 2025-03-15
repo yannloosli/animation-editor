@@ -41,6 +41,10 @@ type Props = OwnProps & StateProps;
 export const NodeOutputsComponent: React.FC<Props> = (props) => {
 	const { nodeId, node } = props;
 
+	if (!node.outputs.length) {
+		return null;
+	}
+
 	return (
 		<>
 			{node.outputs.map((output, i) => (

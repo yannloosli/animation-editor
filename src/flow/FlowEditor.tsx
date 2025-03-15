@@ -11,13 +11,14 @@ import { getFlowNodeComponent } from "~/flow/flowNodeComponents";
 import { FlowGraph, FlowNode } from "~/flow/flowTypes";
 import { flowEditorGlobalToNormal } from "~/flow/flowUtils";
 import { NodePreview } from "~/flow/nodes/NodePreview";
-import { FlowAreaState } from "~/flow/state/flowAreaReducer";
+import { FlowAreaState } from "~/flow/state/flowAreaSlice";
 import { useKeyDownEffect } from "~/hook/useKeyDown";
 import { subscribeToDiffs, unsubscribeToDiffs } from "~/listener/diffListener";
 import { connectActionState, getActionState } from "~/state/stateUtils";
 import { CompositionError, CompositionErrorType } from "~/types";
 import { AreaComponentProps } from "~/types/areaTypes";
 import { isArrayShallowEqual } from "~/util/arrayUtils";
+import { Vec2 } from "~/util/math/vec2";
 import { separateLeftRightMouse } from "~/util/mouse";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
@@ -263,8 +264,8 @@ const FlowEditorComponent: React.FC<Props> = (props) => {
 				areaState={props.areaState}
 				width={props.width}
 				height={props.height}
-				left={props.left}
-				top={props.top}
+				x={props.x}
+				y={props.y}
 			/>
 			<div
 				className={s("clickCaptureTarget")}
@@ -296,4 +297,4 @@ const mapStateToProps: MapActionState<StateProps, OwnProps> = ({ flowState }, pr
 	};
 };
 
-export const FlowEditor = connectActionState(mapStateToProps)(FlowEditorComponent);
+export const FlowEditor = connectActionState<StateProps, OwnProps>(mapStateToProps)(FlowEditorComponent);

@@ -34,8 +34,8 @@ const computeFnMap: Record<Type, (args: unknown[]) => unknown[]> = {
 		const vec2 = args[1] as Vec2;
 		return [
 			{
-				left: rect.left + vec2.x,
-				top: rect.top + vec2.y,
+				x: rect.x + vec2.x,
+				y: rect.y + vec2.y,
 				width: rect.width,
 				height: rect.height,
 			},

@@ -4,138 +4,143 @@ import { AREA_MIN_CONTENT_WIDTH } from "~/constants";
 import { AreaLayout, AreaRowLayout } from "~/types/areaTypes";
 
 export const computeAreaToViewport = (
-	areaLayout: AreaReducerState["layout"],
-	rootId: string,
-	rootViewport: Rect,
+    areaLayout: AreaReducerState["layout"],
+    rootId: string,
+    rootViewport: Rect,
 ) => {
-	const areaToViewport: { [areaId: string]: Rect } = {};
+    const areaToViewport: { [areaId: string]: Rect } = {};
 
-	const rowToMinSize = computeAreaRowToMinSize(rootId, areaLayout);
+    const rowToMinSize = computeAreaRowToMinSize(rootId, areaLayout);
 
-	function computeArea(area: AreaLayout, contentArea: Rect) {
-		areaToViewport[area.id] = contentArea;
-	}
+    function computeArea(area: AreaLayout, contentArea: Rect) {
+        areaToViewport[area.id] = contentArea;
+    }
 
-	function computeRow(row: AreaRowLayout, contentArea: Rect) {
-		areaToViewport[row.id] = contentArea;
+    function computeRow(row: AreaRowLayout, contentArea: Rect) {
+        areaToViewport[row.id] = contentArea;
 
-		const size = row.orientation === "horizontal" ? contentArea.width : contentArea.height;
+        const size = row.orientation === "horizontal" ? contentArea.width : contentArea.height;
 
-		const totalArea = row.areas.reduce((acc, area) => acc + area.size, 0);
+        const totalArea = row.areas.reduce((acc, area) => acc + area.size, 0);
 
-		const minSize = row.areas.map(() => 0);
-		let adjustedArea = size;
-		let adjustedSize = totalArea;
-		let unbiasedSizes!: Array<{
-			value: number;
-			index: number;
-			layout: AreaRowLayout | AreaLayout;
-		}>;
+        const minSize = row.areas.map(() => 0);
+        let adjustedArea = size;
+        let adjustedSize = totalArea;
+        let unbiasedSizes!: Array<{
+            value: number;
+            index: number;
+            layout: AreaRowLayout | AreaLayout;
+        }>;
 
-		const computeUnbiasedSizes = () =>
-			row.areas.map((item, i) => {
-				const t = item.size / adjustedSize;
-				const layout = areaLayout[row.areas[i].id];
-				const value = adjustedArea * t;
-				return { value, index: i, layout };
-			});
+        const computeUnbiasedSizes = () =>
+            row.areas.map((item, i) => {
+                const t = item.size / adjustedSize;
+                const layout = areaLayout[row.areas[i].id];
+                const value = adjustedArea * t;
+                return { value, index: i, layout };
+            });
 
-		let iterateAgain = true;
+        let iterateAgain = true;
 
-		while (iterateAgain) {
-			iterateAgain = false;
-			unbiasedSizes = computeUnbiasedSizes();
+        while (iterateAgain) {
+            iterateAgain = false;
+            unbiasedSizes = computeUnbiasedSizes();
 
-			for (let _i = 0; _i < unbiasedSizes.length; _i += 1) {
-				if (minSize[_i]) {
-					continue;
-				}
+            for (let _i = 0; _i < unbiasedSizes.length; _i += 1) {
+                if (minSize[_i]) {
+                    continue;
+                }
 
-				const { index, value } = unbiasedSizes[_i];
+                const { index, value } = unbiasedSizes[_i];
 
-				const layout = areaLayout[row.areas[index].id];
-				const n =
-					layout.type === "area"
-						? 1
-						: rowToMinSize[layout.id][
-								layout.orientation === "horizontal" ? "height" : "width"
-						  ];
-				const diff =
-					AREA_MIN_CONTENT_WIDTH * n - Math.min(value, AREA_MIN_CONTENT_WIDTH * n);
+                const layout = areaLayout[row.areas[index].id];
+                const n =
+                    layout.type === "area"
+                        ? 1
+                        : rowToMinSize[layout.id][
+                        layout.orientation === "horizontal" ? "height" : "width"
+                        ];
+                const diff =
+                    AREA_MIN_CONTENT_WIDTH * n - Math.min(value, AREA_MIN_CONTENT_WIDTH * n);
 
-				if (diff !== 0) {
-					adjustedArea -= AREA_MIN_CONTENT_WIDTH * n;
-					adjustedSize -= row.areas[index].size;
-					minSize[index] = AREA_MIN_CONTENT_WIDTH * n;
+                if (diff !== 0) {
+                    adjustedArea -= AREA_MIN_CONTENT_WIDTH * n;
+                    adjustedSize -= row.areas[index].size;
+                    minSize[index] = AREA_MIN_CONTENT_WIDTH * n;
 
-					iterateAgain = true;
-					break;
-				}
-			}
-		}
+                    iterateAgain = true;
+                    break;
+                }
+            }
+        }
 
-		let left = contentArea.left;
-		let top = contentArea.top;
+        let left = contentArea.x;
+        let top = contentArea.y;
 
-		const contentAreas = row.areas.map((area, i) => {
-			const t = area.size / adjustedSize;
+        const contentAreas = row.areas.map((area, i) => {
+            const t = area.size / adjustedSize;
 
-			const contentAreaForArea = {
-				left,
-				top,
-				width: Math.floor(
-					row.orientation === "horizontal"
-						? minSize[i] || adjustedArea * t
-						: contentArea.width,
-				),
-				height: Math.floor(
-					row.orientation === "vertical"
-						? minSize[i] || adjustedArea * t
-						: contentArea.height,
-				),
-			};
+            const contentAreaForArea = {
+                x: left,
+                y: top,
+                width: Math.floor(
+                    row.orientation === "horizontal"
+                        ? minSize[i] || adjustedArea * t
+                        : contentArea.width,
+                ),
+                height: Math.floor(
+                    row.orientation === "vertical"
+                        ? minSize[i] || adjustedArea * t
+                        : contentArea.height,
+                ),
+            };
 
-			left += row.orientation === "horizontal" ? contentAreaForArea.width : 0;
-			top += row.orientation === "vertical" ? contentAreaForArea.height : 0;
+            left += row.orientation === "horizontal" ? contentAreaForArea.width : 0;
+            top += row.orientation === "vertical" ? contentAreaForArea.height : 0;
 
-			return contentAreaForArea;
-		});
+            return contentAreaForArea;
+        });
 
-		const contentAreasCombined = contentAreas.reduce(
-			(acc, area) => {
-				return { width: acc.width + area.width, height: acc.height + area.height };
-			},
-			{ width: 0, height: 0 },
-		);
+        const contentAreasCombined = contentAreas.reduce(
+            (acc, area) => {
+                return { width: acc.width + area.width, height: acc.height + area.height };
+            },
+            { width: 0, height: 0 },
+        );
 
-		const diff = {
-			width: contentArea.width - contentAreasCombined.width,
-			height: contentArea.height - contentAreasCombined.height,
-		};
+        const diff = {
+            width: contentArea.width - contentAreasCombined.width,
+            height: contentArea.height - contentAreasCombined.height,
+        };
 
-		if (row.orientation === "horizontal") {
-			contentAreas[contentAreas.length - 1].width += diff.width;
-		} else {
-			contentAreas[contentAreas.length - 1].height += diff.height;
-		}
+        if (row.orientation === "horizontal") {
+            contentAreas[contentAreas.length - 1].width += diff.width;
+        } else {
+            contentAreas[contentAreas.length - 1].height += diff.height;
+        }
 
-		contentAreas.forEach((contentAreaForArea, i) => {
-			const area = row.areas[i];
-			compute(area.id, contentAreaForArea);
-		});
-	}
+        contentAreas.forEach((contentAreaForArea, i) => {
+            const area = row.areas[i];
+            compute(area.id, contentAreaForArea);
+        });
+    }
 
-	function compute(id: string, contentArea: Rect) {
-		const layout = areaLayout[id];
+    function compute(id: string, contentArea: Rect) {
+        const layout = areaLayout[id];
 
-		if (layout.type === "area_row") {
-			computeRow(areaLayout[id] as AreaRowLayout, contentArea);
-		}
+        if (!layout) {
+            console.warn(`Layout not found for id ${id}`);
+            return;
+        }
 
-		computeArea(areaLayout[id] as AreaLayout, contentArea);
-	}
+        if (layout.type === "area_row") {
+            computeRow(layout as AreaRowLayout, contentArea);
+        } else {
+            computeArea(layout as AreaLayout, contentArea);
+        }
+    }
 
-	compute(rootId, rootViewport);
+    compute(rootId, rootViewport);
 
-	return areaToViewport;
+    return areaToViewport;
 };

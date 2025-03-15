@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { MutableRefObject, useEffect, useRef, useState } from "react";
 import { useCompositionPlayback } from "~/composition/compositionPlayback";
 import { manageTopLevelComposition } from "~/composition/manager/compositionManager";
 import { Tool } from "~/constants";
@@ -6,12 +6,13 @@ import { cssCursors, cssVariables } from "~/cssVariables";
 import { useKeyDownEffect } from "~/hook/useKeyDown";
 import { getActionState } from "~/state/stateUtils";
 import { AreaComponentProps } from "~/types/areaTypes";
+import { ViewportRect, viewportRectToRect } from '~/types/viewport';
 import { isArrayShallowEqual } from "~/util/arrayUtils";
 import { separateLeftRightMouse } from "~/util/mouse";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 import { ellipseToolHandlers } from "~/workspace/ellipseTool/ellipseTool";
 import { moveToolHandlers } from "~/workspace/moveTool/moveTool";
-import { penToolHandlers } from "~/workspace/penTool/penTool";
+import { penToolHandlers } from "~/workspace/penTool/penToolHandlers";
 import { useWorkspaceCursor } from "~/workspace/useWorkspaceCursor";
 import WorkspaceStyles from "~/workspace/Workspace.styles";
 import { WorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
@@ -25,6 +26,12 @@ interface StateProps {}
 type Props = OwnProps & StateProps;
 
 const WorkspaceComponent: React.FC<Props> = (props) => {
+	console.log("[DEBUG] WorkspaceComponent props:", {
+		props,
+		areaState: props.areaState,
+		fullActionState: getActionState()
+	});
+
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const panTarget = useRef<HTMLDivElement>(null);
 	const zoomTarget = useRef<HTMLDivElement>(null);
@@ -56,7 +63,7 @@ const WorkspaceComponent: React.FC<Props> = (props) => {
 			return;
 		}
 
-		const listener = (e: WheelEvent) => workspaceHandlers.onWheel(e, props.areaId);
+		const listener = (e: WheelEvent) => workspaceHandlers.onWheel(e);
 
 		const el = containerRef.current;
 		el.addEventListener("wheel", listener, { passive: false });
@@ -71,33 +78,58 @@ const WorkspaceComponent: React.FC<Props> = (props) => {
 	errorsRef.current = errors;
 
 	useEffect(() => {
+		console.log("[DEBUG] Canvas effect running with areaState:", {
+			areaState: props.areaState,
+			compositionId: props.areaState?.compositionId,
+			actionState: getActionState()
+		});
 		const canvas = canvasRef.current;
 		if (!canvas) {
+			console.error("[ERROR] No canvas element found");
 			return;
 		}
 
-		const unsubscribe = manageTopLevelComposition(
-			props.areaState.compositionId,
-			props.areaId,
-			canvas,
-			(nextErrors) => {
-				const errorMessages = nextErrors.map((error) => error.error.message);
-				if (isArrayShallowEqual(errorsRef.current, errorMessages)) {
-					return;
-				}
-				setErrors(errorMessages);
-			},
-		);
-		return unsubscribe;
-	}, []);
+		if (!props.areaState?.compositionId) {
+			console.error("[ERROR] No compositionId in areaState:", props.areaState);
+			return;
+		}
 
-	useCompositionPlayback(props.areaState.compositionId, propsRef);
+		console.log("[DEBUG] Canvas dimensions:", {
+			width: canvas.width,
+			height: canvas.height
+		});
 
-	const { left, top, width, height } = props;
+		try {
+			const unsubscribe = manageTopLevelComposition(
+				props.areaState.compositionId,
+				props.areaId,
+				canvas,
+				(nextErrors) => {
+					const errorMessages = nextErrors.map((error) => error.error.message);
+					if (isArrayShallowEqual(errorsRef.current, errorMessages)) {
+						return;
+					}
+					setErrors(errorMessages);
+				},
+			);
+			console.log("[DEBUG] manageTopLevelComposition setup completed");
+			return unsubscribe;
+		} catch (error) {
+			console.error("[ERROR] Failed to setup composition:", error);
+			throw error;
+		}
+	}, [props.areaState?.compositionId]);
+
+	useCompositionPlayback(props.areaState.compositionId, propsRef as unknown as MutableRefObject<Rect>);
+
+	const { x, y, width, height } = props;
+
+	const viewportRect: ViewportRect = { x, y, width, height };
+	const rect = viewportRectToRect(viewportRect);
 
 	const setCursor = useWorkspaceCursor(canvasRef, {
 		compositionId: props.areaState.compositionId,
-		viewport: { width, left, top, height },
+		viewport: viewportRect,
 		areaId: props.areaId,
 	});
 
@@ -108,25 +140,24 @@ const WorkspaceComponent: React.FC<Props> = (props) => {
 		setCursor(e);
 	};
 
-	const onMouseDown = (e: React.MouseEvent) => {
+	const onMouseDown = (e: React.MouseEvent<Element, MouseEvent>) => {
 		const { tool } = getActionState();
-		const viewport = { left, top, width, height };
-
 		switch (tool.selected) {
 			case Tool.pen: {
-				penToolHandlers.onMouseDown(e, props.areaId, viewport);
+				penToolHandlers.onMouseDown(e, props.areaId, rect);
 				break;
 			}
 			case Tool.ellipse: {
-				ellipseToolHandlers.onMouseDown(e, props.areaId, viewport);
+				ellipseToolHandlers.onMouseDown(e, props.areaId, viewportRect);
 				break;
 			}
 			default: {
-				moveToolHandlers.onMouseDown(e, props.areaId, viewport);
+				moveToolHandlers.onMouseDown(e, props.areaId, viewportRect);
 			}
 		}
 	};
 
+	console.log("[DEBUG] About to render workspace");
 	return (
 		<div
 			style={{ background: cssVariables.gray400 }}
@@ -158,7 +189,7 @@ const WorkspaceComponent: React.FC<Props> = (props) => {
 					left: (e) => workspaceHandlers.onZoomClick(e, props.areaId),
 				})}
 			/>
-			<WorkspaceFooter compositionId={props.areaState.compositionId} />
+			<WorkspaceFooter areaState={props.areaState} compositionState={getActionState().compositionState} />
 			{errors.length > 0 && (
 				<div className={s("errors")}>
 					{errors.length > 1 && <>1/{errors.length}:&nbsp;</>}

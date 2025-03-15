@@ -2,7 +2,7 @@ import React from "react";
 import { FlowNodeInput, FlowNodeProps } from "~/flow/flowTypes";
 import { NodeVec2Input } from "~/flow/inputs/NodeVec2Input";
 import { NodeOutputs } from "~/flow/nodes/NodeOutputs";
-import { connectActionState } from "~/state/stateUtils";
+import { connectActionState, MapActionState } from "~/state/stateUtils";
 
 type OwnProps = FlowNodeProps;
 interface StateProps {
@@ -12,7 +12,7 @@ interface StateProps {
 
 type Props = OwnProps & StateProps;
 
-function Vec2FactorsNodeComponent(props: Props) {
+const Vec2FactorsNodeComponent: React.FC<Props> = (props) => {
 	const { areaId, graphId, nodeId, zIndex } = props;
 
 	const baseProps = { areaId, graphId, nodeId, zIndex };

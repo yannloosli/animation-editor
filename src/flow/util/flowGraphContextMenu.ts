@@ -4,10 +4,11 @@ import { contextMenuActions } from "~/contextMenu/contextMenuActions";
 import { ContextMenuOption } from "~/contextMenu/contextMenuReducer";
 import { FlowNodeInput, FlowNodeOutput, FlowNodeType } from "~/flow/flowTypes";
 import { flowEditorGlobalToNormal } from "~/flow/flowUtils";
-import { flowActions } from "~/flow/state/flowActions";
+import { startAddNode, submitAddNode } from "~/flow/state/flowSlice";
 import { RequestActionParams } from "~/listener/requestAction";
 import { getActionState, getAreaActionState } from "~/state/stateUtils";
 import { PropertyGroupName } from "~/types";
+import { Vec2 } from "~/util/math/vec2";
 
 interface Options {
 	graphId: string;
@@ -54,7 +55,11 @@ export const getFlowGraphContextMenuOptions = (options: Options) => {
 
 	const onAddSelect = (options: AddNodeOptions) => {
 		params.dispatch(
-			flowActions.startAddNode(graphId, options.type, options.getIO?.()),
+			startAddNode({
+				graphId,
+				type: options.type,
+				io: options.getIO?.()
+			}),
 			contextMenuActions.closeContextMenu(),
 		);
 
@@ -63,7 +68,10 @@ export const getFlowGraphContextMenuOptions = (options: Options) => {
 				return;
 			}
 			const pos = flowEditorGlobalToNormal(Vec2.fromEvent(e), viewport, scale, pan);
-			params.dispatch(flowActions.submitAddNode(graphId, pos));
+			params.dispatch(submitAddNode({
+				graphId,
+				position: pos
+			}));
 			params.addDiff((diff) => diff.propertyStructure(layerId));
 			params.submitAction("Add node");
 		};

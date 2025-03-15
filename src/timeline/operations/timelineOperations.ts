@@ -7,22 +7,26 @@ import {
     setPropertyValue
 } from "~/composition/compositionSlice";
 import { Property, PropertyGroup } from "~/composition/compositionTypes";
-import { reduceCompProperties } from "~/composition/compositionUtils";
 import { compSelectionFromState } from "~/composition/util/compSelectionUtils";
 import { isKeyDown } from "~/listener/keyboard";
 import { getActionState } from "~/state/stateUtils";
-import { timelineActions } from "~/timeline/timelineActions";
+import {
+    removeTimeline,
+    setKeyframe,
+    setKeyframeControlPoint,
+    setKeyframeReflectControlPoints,
+    setTimeline
+} from "~/timeline/timelineSlice";
 import { TimelineKeyframeControlPoint } from "~/timeline/timelineTypes";
 import {
     createTimelineForLayerProperty,
-    getTimelineValueAtIndex,
-    timelineSelectionFromState,
+    getTimelineValueAtIndex
 } from "~/timeline/timelineUtils";
 import { CompoundPropertyName, Operation, PropertyGroupName, PropertyName } from "~/types";
 import { areSetsEqual } from "~/util/setUtils";
 
-const removeTimeline = (op: Operation, timelineId: string): void => {
-	op.add(timelineActions.removeTimeline(timelineId));
+const removeTimelineOp = (op: Operation, timelineId: string): void => {
+	op.add(removeTimeline({ timelineId }));
 };
 
 const removeTimelineFromProperty = (op: Operation, propertyId: string) => {
@@ -43,7 +47,7 @@ const removeTimelineFromProperty = (op: Operation, propertyId: string) => {
 	});
 
 	op.add(
-		timelineActions.removeTimeline(property.timelineId),
+		removeTimeline({ timelineId: property.timelineId }),
 		setPropertyValue({
 			propertyId,
 			value
@@ -61,70 +65,51 @@ const removeSelectedKeyframes = (
 	timelineIds: string[],
 	compositionId: string,
 ): void => {
-	const { compositionState, timelineState, timelineSelectionState } = getActionState();
-
-	const timelineToPropertyId = reduceCompProperties<{
-		[timelineId: string]: string;
-	}>(
-		compositionId,
-		compositionState,
-		(obj, property) => {
-			if (property.timelineId) {
-				obj[property.timelineId] = property.id;
-			}
-
-			return obj;
-		},
-		{},
-	);
+	const { compositionState, timelineState, timelineSelectionState } = op.state;
 
 	for (const timelineId of timelineIds) {
 		const timeline = timelineState[timelineId];
-		const selection = timelineSelectionFromState(timelineId, timelineSelectionState);
-		const keyframeIds = Object.keys(selection.keyframes);
+		const selection = timelineSelectionState[timelineId];
+		if (!selection) continue;
 
-		let allKeyframesSelected = true;
-		for (const k of timeline.keyframes) {
-			if (!selection.keyframes[k.id]) {
-				allKeyframesSelected = false;
-				break;
-			}
+		const keyframeIds = timeline.keyframes
+			.map((k, i) => ({ k, i }))
+			.filter(({ k }) => selection.keyframes[k.id])
+			.map(({ k }) => k.id);
+
+		for (const keyframeId of keyframeIds) {
+			const keyframe = timeline.keyframes.find(k => k.id === keyframeId);
+			if (!keyframe) continue;
+
+			op.add(setKeyframe({ timelineId, keyframe }));
 		}
-
-		if (allKeyframesSelected) {
-			// Timeline should be removed
-			removeTimelineFromProperty(op, timelineToPropertyId[timelineId]);
-			continue;
-		}
-
-		op.add(timelineActions.removeKeyframes(timelineId, keyframeIds));
 	}
 };
 
 const easyEaseSelectedKeyframes = (op: Operation, timelineIds: string[]): void => {
-	const { timelineState, timelineSelectionState } = getActionState();
+	const { timelineState, timelineSelectionState } = op.state;
+	const t = 0.33;
 
 	for (const timelineId of timelineIds) {
 		const timeline = timelineState[timelineId];
-		const selection = timelineSelectionFromState(timelineId, timelineSelectionState);
+		const selection = timelineSelectionState[timelineId];
+		if (!selection) continue;
 
-		for (let i = 0; i < timeline.keyframes.length; i++) {
-			const k = timeline.keyframes[i];
-
-			if (!selection.keyframes[k.id]) {
+		for (let i = 0; i < timeline.keyframes.length; i += 1) {
+			if (!selection.keyframes[timeline.keyframes[i].id]) {
 				continue;
 			}
 
-			const t = 0.33;
 			const cp = (tx: number): TimelineKeyframeControlPoint => ({
-				value: 0,
-				relativeToDistance: 1,
 				tx,
+				value: 0,
+				relativeToDistance: 1
 			});
+
 			op.add(
-				timelineActions.setKeyframeControlPoint(timelineId, i, "left", cp(1 - t)),
-				timelineActions.setKeyframeControlPoint(timelineId, i, "right", cp(t)),
-				timelineActions.setKeyframeReflectControlPoints(timelineId, i, true),
+				setKeyframeControlPoint({ timelineId, keyframeIndex: i, direction: "left", controlPoint: cp(1 - t) }),
+				setKeyframeControlPoint({ timelineId, keyframeIndex: i, direction: "right", controlPoint: cp(t) }),
+				setKeyframeReflectControlPoints({ timelineId, keyframeIndex: i, reflectControlPoints: true }),
 			);
 		}
 	}
@@ -296,26 +281,25 @@ const addTimelineToProperty = (op: Operation, propertyId: string) => {
 	const { compositionState } = op.state;
 	const property = compositionState.properties[propertyId] as Property;
 	const composition = compositionState.compositions[property.compositionId];
-	const layer = compositionState.layers[property.layerId];
 
 	const timeline = createTimelineForLayerProperty(
 		property.value,
-		composition.frameIndex - layer.index,
+		composition.frameIndex,
 	);
+
 	op.add(
-		timelineActions.setTimeline(timeline.id, timeline),
+		setTimeline({ timelineId: timeline.id, timeline }),
 		setPropertyTimelineId({
 			propertyId,
 			timelineId: timeline.id
 		}),
 	);
-	op.addDiff((diff) => diff.togglePropertyAnimated(propertyId));
 };
 
 export const timelineOperations = {
 	addTimelineToProperty,
 	removeTimelineFromProperty,
-	removeTimeline,
+	removeTimelineOp,
 	removeSelectedKeyframes,
 	easyEaseSelectedKeyframes,
 	viewTransformProperties,

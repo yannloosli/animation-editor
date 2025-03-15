@@ -1,18 +1,18 @@
-import React from "react";
-import { Dispatch } from "redux";
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { areaComponentRegistry } from "~/area/areaRegistry";
 import styles from "~/area/components/Area.styles";
 import { AreaErrorBoundary } from "~/area/components/AreaErrorBoundary";
 import { useAreaKeyboardShortcuts } from "~/area/components/useAreaKeyboardShortcuts";
 import { handleAreaDragFromCorner } from "~/area/handlers/areaDragFromCorner";
+import { getAreaById } from "~/area/state/areaSelectors";
 import { AreaIdContext } from "~/area/util/AreaIdContext";
 import { EditIcon } from "~/components/icons/EditIcon";
 import { AREA_BORDER_WIDTH, AreaType } from "~/constants";
 import { openContextMenu } from "~/contextMenu/contextMenuSlice";
 import { isKeyDown } from "~/listener/keyboard";
-import { connectActionState, MapActionState } from "~/state/stateUtils";
+import { RootState } from "~/state/store-init";
 import { IntercardinalDirection } from "~/types";
-import { AreaComponentProps } from "~/types/areaTypes";
 import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheetLabelled } from "~/util/stylesheets";
 
@@ -25,56 +25,50 @@ const cornerDirections = {
 	nw: ["n", "w"],
 } as const;
 
-const areaTypeOptions = Object.values(AreaType).map(type => {
-	const option = {
-		id: `area-type-${type}`,
-		label: type,
-		iconName: type === AreaType.FlowEditor ? 'edit' : 'pen'
-	};
-	console.log('Creating area type option:', option);
-	return option;
-});
+const areaTypeOptions = Object.values(AreaType).map(type => ({
+	id: `area-type-${type}`,
+	label: type,
+	iconName: type === AreaType.FlowEditor ? 'edit' : 'pen'
+}));
 
 interface OwnProps {
 	id: string;
 	viewport: {
-		top: number;
-		left: number;
+		y: number;
+		x: number;
 		width: number;
 		height: number;
 	};
 }
 
-interface StateProps {
-	type: AreaType;
-	state: any;
-	raised: boolean;
-	Component: React.ComponentType<AreaComponentProps<any>>;
-}
+export const Area: React.FC<OwnProps> = (props) => {
+	const { viewport, id } = props;
+	const dispatch = useDispatch();
+	const [hoveredCorners, setHoveredCorners] = useState<Set<string>>(new Set());
 
-type Props = OwnProps & StateProps & { dispatch: Dispatch };
+	// Log pour le débogage
+	console.log('Area component - props:', props);
 
-const mapState: MapActionState<StateProps, OwnProps> = (state, ownProps) => {
-	const area = state.area.areas[ownProps.id];
-	return {
-		type: area.type,
-		state: area.state,
-		raised: false,
-		Component: areaComponentRegistry[area.type],
-	};
-};
-
-export const AreaComponent: React.FC<Props> = (props) => {
-	const { viewport, id, state, type, raised, Component, dispatch } = props;
-	const [hoveredCorners, setHoveredCorners] = React.useState<Set<string>>(new Set());
-
-	useAreaKeyboardShortcuts(id, type, viewport);
+	// Utiliser les nouveaux sélecteurs
+	const area = useSelector((state: RootState) => getAreaById(id)(state));
+	
+	// Log pour le débogage
+	console.log('Area component - area from selector:', area);
+	
+	// Vérifier si les données essentielles sont disponibles
+	if (!area) {
+		console.error(`Area ${id} n'existe pas dans le store`);
+		return null;
+	}
+	
+	// Utiliser un type par défaut si area existe mais que son type est manquant
+	const areaType = area.type || AreaType.Workspace;
+	useAreaKeyboardShortcuts(id, areaType, viewport);
 
 	// Gérer les changements d'état de la touche Alt
 	React.useEffect(() => {
 		const handleKeyChange = (e: KeyboardEvent) => {
 			if (e.key === "Alt" && hoveredCorners.size > 0) {
-				// Force un re-render pour mettre à jour le curseur
 				setHoveredCorners(new Set(hoveredCorners));
 			}
 		};
@@ -88,11 +82,18 @@ export const AreaComponent: React.FC<Props> = (props) => {
 		};
 	}, [hoveredCorners]);
 
+	// Typage explicite du composant avec vérification
+	const areaTypeKey = area.type as keyof typeof areaComponentRegistry;
+	const Component = areaComponentRegistry[areaTypeKey];
+	
+	if (!Component) {
+		console.error(`Aucun composant enregistré pour le type d'area: ${area.type}`);
+		return null;
+	}
+
 	const openSelectArea = (e: React.MouseEvent) => {
 		e.preventDefault();
-		const pos = Vec2.new(viewport.left + 4, viewport.top + 4);
-		console.log('Opening area type menu with options:', areaTypeOptions);
-		console.log('Area ID:', id);
+		const pos = Vec2.new(viewport.x + 4, viewport.y + 4);
 		dispatch(openContextMenu({
 			name: "Area type",
 			options: areaTypeOptions,
@@ -130,24 +131,29 @@ export const AreaComponent: React.FC<Props> = (props) => {
 	return (
 		<AreaIdContext.Provider value={id}>
 			<div
-				className={s("area", { raised })}
-				style={viewport}
+				className={s("area", { raised: false })}
+				style={{
+					left: viewport.x,
+					top: viewport.y,
+					width: viewport.width,
+					height: viewport.height
+				}}
 				data-area-id={id}
-				data-area-type={type}
+				data-area-type={area.type}
 				onContextMenu={handleContextMenu}
 			>
 				<div className={s("area__content")}>
 					<AreaErrorBoundary
 						component={Component}
 						areaId={id}
-						areaState={state}
-						left={viewport.left + AREA_BORDER_WIDTH}
-						top={viewport.top + AREA_BORDER_WIDTH}
+						areaState={area.state}
+						x={viewport.x + AREA_BORDER_WIDTH}
+						y={viewport.y + AREA_BORDER_WIDTH}
 						width={viewport.width - AREA_BORDER_WIDTH * 2}
 						height={viewport.height - AREA_BORDER_WIDTH * 2}
 					/>
 				</div>
-				{Object.entries(cornerDirections).map(([dir, parts]) => (
+				{Object.entries(cornerDirections).map(([dir]) => (
 					<div
 						key={dir}
 						className={s("area__corner", { [dir]: true })}
@@ -174,7 +180,8 @@ export const AreaComponent: React.FC<Props> = (props) => {
 				</div>
 			</div>
 		</AreaIdContext.Provider>
-	) as React.ReactElement;
+	);
 };
 
-export const Area = connectActionState(mapState)(AreaComponent);
+// Export supplémentaire pour la compatibilité
+export const AreaComponent = Area;

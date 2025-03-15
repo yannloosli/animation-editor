@@ -1,8 +1,9 @@
-import {v4 as uuid} from "uuid";
+import { v4 as uuid } from "uuid";
 import { DEFAULT_FLOW_NODE_WIDTH } from "~/constants";
 import { FlowGraph, FlowNode, FlowNodeType } from "~/flow/flowTypes";
-import { FlowState } from "~/flow/state/flowReducers";
+import { FlowState } from "~/flow/state/flowSlice";
 import { createMapNumberId } from "~/util/mapUtils";
+import { Vec2 } from "~/util/math/vec2";
 
 const createNode = (graphId: string, flowState: FlowState): FlowNode => {
 	const nodeId = createMapNumberId(flowState.nodes);
