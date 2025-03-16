@@ -34,18 +34,18 @@ export const ellipseToolHandlers = {
                     compositionState
                 });
 
-                console.log("[ELLIPSE] Dispatching create layer");
+
                 const createAction = createLayer({
                     compositionId,
                     type: LayerType.Ellipse
                 });
-                console.log("[ELLIPSE] Create action:", createAction);
+
                 params.dispatch(createAction);
 
-                console.log("[ELLIPSE] Dispatching clear selection");
+
                 params.dispatch(clearCompositionSelection(compositionId));
 
-                console.log("[ELLIPSE] Dispatching add to selection");
+
                 params.dispatch(addLayerToSelection(compositionId, expectedLayerId));
 
                 createdLayerId = expectedLayerId;
@@ -56,12 +56,12 @@ export const ellipseToolHandlers = {
                     y: initialPos.y
                 });
                 const centerAction = setEllipseCenter({ layerId: expectedLayerId, center: initialPos });
-                console.log("[ELLIPSE] Center action:", centerAction);
+
                 params.dispatch(centerAction);
             },
             mouseMove: (params, { mousePosition, keyDown }) => {
                 if (!createdLayerId) {
-                    console.log("[ELLIPSE] No createdLayerId in mouseMove");
+
                     return;
                 }
 
@@ -79,22 +79,22 @@ export const ellipseToolHandlers = {
                     currentPos: currentPos.toString()
                 });
                 const radiusAction = setEllipseRadius({ layerId: createdLayerId, radius });
-                console.log("[ELLIPSE] Radius action:", radiusAction);
+
                 params.dispatch(radiusAction);
             },
             mouseUp: (params, hasMoved) => {
-                console.log("[ELLIPSE] mouseUp:", { hasMoved, createdLayerId });
+
 
                 if (!hasMoved) {
                     if (createdLayerId) {
-                        console.log("[ELLIPSE] Setting default radius");
+
                         const defaultRadiusAction = setEllipseRadius({ layerId: createdLayerId, radius: 50 });
-                        console.log("[ELLIPSE] Default radius action:", defaultRadiusAction);
+
                         params.dispatch(defaultRadiusAction);
                     }
                 }
 
-                console.log("[ELLIPSE] Submitting action");
+
                 params.submitAction(hasMoved ? "Create and resize ellipse" : "Create ellipse");
             }
         });

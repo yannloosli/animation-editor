@@ -116,7 +116,7 @@ export const manageComposition = (options: ManageCompositionOptions): Compositio
             )
             : _emptyInteractionManager;
 
-    console.log("[DEBUG] About to create LayerManager");
+
     console.log("[DEBUG] Current state:", {
         compositionId,
         actionState: getActionState(),
@@ -135,7 +135,7 @@ export const manageComposition = (options: ManageCompositionOptions): Compositio
             dimensions,
             depth,
         });
-        console.log("[DEBUG] LayerManager created successfully");
+
 
         const ctx: CompositionManager = {
             compositionId,
@@ -205,7 +205,7 @@ export const manageTopLevelComposition = (
         initialScale = scale;
     }
 
-    console.log("[DEBUG] About to call manageComposition");
+
     try {
         const ctx = manageComposition({
             compositionId,
@@ -216,7 +216,7 @@ export const manageTopLevelComposition = (
             depth: 0,
             setErrors,
         });
-        console.log("[DEBUG] manageComposition completed successfully");
+
 
         registerCompositionManagerByAreaId(areaId, ctx);
 

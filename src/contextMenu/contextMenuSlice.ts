@@ -70,7 +70,7 @@ export const contextMenuSlice = createSlice({
             customContextMenu?: any;
             areaId?: string;
         }>) => {
-            console.log("[DEBUG] contextMenuSlice - openContextMenu reducer appelé avec action:", action);
+
             if (!action.payload || !action.payload.name || !action.payload.options || !action.payload.position) {
                 console.warn('openContextMenu action missing required fields:', action);
                 return;

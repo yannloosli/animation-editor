@@ -112,7 +112,7 @@ const WorkspaceComponent: React.FC<Props> = (props) => {
 					setErrors(errorMessages);
 				},
 			);
-			console.log("[DEBUG] manageTopLevelComposition setup completed");
+			
 			return unsubscribe;
 		} catch (error) {
 			console.error("[ERROR] Failed to setup composition:", error);
@@ -157,7 +157,7 @@ const WorkspaceComponent: React.FC<Props> = (props) => {
 		}
 	};
 
-	console.log("[DEBUG] About to render workspace");
+	
 	return (
 		<div
 			style={{ background: cssVariables.gray400 }}

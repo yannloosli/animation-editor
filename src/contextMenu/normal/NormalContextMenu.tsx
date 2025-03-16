@@ -9,7 +9,7 @@ import type { ApplicationState } from "~/state/store-types";
 import { Vec2 } from "~/util/math/vec2";
 import { compileStylesheet } from "~/util/stylesheets";
 
-console.log("[DEBUG] NormalContextMenu - Module chargé");
+
 
 const s = compileStylesheet(styles);
 
@@ -34,14 +34,14 @@ interface Rect {
 }
 
 const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) => {
-	console.log("[DEBUG] NormalContextMenu - Props reçues:", contextMenu);
+	
 
 	const [menuRect, setMenuRect] = useState<Rect | null>(null);
 	const [optionRects, setOptionRects] = useState<Rect[]>([]);
 	const menuRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		console.log("[DEBUG] NormalContextMenu - useEffect triggered, isOpen:", contextMenu.isOpen);
+		
 		if (!contextMenu.isOpen || !menuRef.current) {
 			setMenuRect(null);
 			setOptionRects([]);
@@ -50,7 +50,7 @@ const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) 
 
 		const menuElement = menuRef.current;
 		const menuBounds = menuElement.getBoundingClientRect();
-		console.log("[DEBUG] NormalContextMenu - Menu bounds:", menuBounds);
+		
 		const newMenuRect: Rect = {
 			x: menuBounds.left,
 			y: menuBounds.top,
@@ -91,11 +91,11 @@ const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) 
 	};
 
 	if (!contextMenu.isOpen) {
-		console.log("[DEBUG] NormalContextMenu - Menu non affiché car isOpen est false");
+		
 		return null;
 	}
 
-	console.log("[DEBUG] NormalContextMenu - Rendu du menu avec options:", contextMenu.options);
+	
 
 	return (
 		<div
@@ -127,10 +127,10 @@ const NormalContextMenuComponent: React.FC<Props> = ({ contextMenu, dispatch }) 
 };
 
 const mapStateToProps = (state: ApplicationState): StateProps => {
-	console.log("[DEBUG] NormalContextMenu - mapStateToProps appelé avec state complet:", state);
-	console.log("[DEBUG] NormalContextMenu - contextMenu dans state:", state.contextMenu);
+	
+	
 	const contextMenuState = state.contextMenu.action ? state.contextMenu.action.state : state.contextMenu.state;
-	console.log("[DEBUG] NormalContextMenu - État du menu contextuel utilisé:", contextMenuState);
+	
 	return {
 		contextMenu: contextMenuState
 	};

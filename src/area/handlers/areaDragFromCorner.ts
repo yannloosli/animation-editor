@@ -96,8 +96,8 @@ export const handleAreaDragFromCorner = (
     areaId: string,
     viewport: Rect,
 ) => {
-    console.log('handleAreaDragFromCorner - DÉBUT', { corner, areaId, viewport });
-    console.log('Alt key pressed:', isKeyDown("Alt"));
+
+
 
     // Convertir le viewport au format x/y si nécessaire
     const normalizedViewport: RectXY = isRectXY(viewport)
@@ -133,9 +133,9 @@ export const handleAreaDragFromCorner = (
         }
 
         const areaToRow = computeAreaToParentRow(areaState);
-        console.log('areaToRow:', areaToRow);
-        console.log('areaId:', areaId);
-        console.log('areaToRow[areaId]:', areaToRow[areaId]);
+
+
+
 
         const rootViewport = getAreaRootViewport();
 
@@ -149,15 +149,15 @@ export const handleAreaDragFromCorner = (
         // Row does not exist if the area we are operating on is the root area
         const rowId = areaToRow[areaId];
         if (!rowId) {
-            console.log('Pas de rowId pour cette zone, c\'est probablement la zone racine');
+
         }
 
         const row = rowId ? layout[rowId] as AreaRowLayout | null : null;
-        console.log('Row pour cette zone:', row);
+
 
         const createNewArea = (horizontal: boolean) => {
-            console.log('createNewArea appelé avec horizontal:', horizontal);
-            console.log('Alt key pressed dans createNewArea:', isKeyDown("Alt"));
+
+
 
             const getT = (vec: Vec2): number => {
                 const viewportSize = horizontal ? normalizedViewport.width : normalizedViewport.height;
@@ -174,7 +174,7 @@ export const handleAreaDragFromCorner = (
 
             // Si on est en mode Alt, on ne crée pas de nouvelle zone
             if (isKeyDown("Alt")) {
-                console.log('Mode Alt activé, pas de création de nouvelle zone');
+
                 return;
             }
 
@@ -186,7 +186,7 @@ export const handleAreaDragFromCorner = (
             //          mouse was moved in to trigger the creation of the area.
             //
             if (!row || row.orientation !== (horizontal ? "horizontal" : "vertical")) {
-                console.log('Conversion de la zone en rangée:', { areaId, directionParts, horizontal });
+
 
                 try {
                     // Vérifier l'état avant la conversion
@@ -233,7 +233,7 @@ export const handleAreaDragFromCorner = (
 
                     const newMoveFn: MoveFn = (vec: Vec2) => {
                         const t = getT(vec);
-                        console.log('Mise à jour des tailles de rangée:', { rowId: areaId, t });
+
 
                         // Vérifier si l'état a changé depuis le début du glisser-déposer
                         const currentState = store.getState();
@@ -364,7 +364,7 @@ export const handleAreaDragFromCorner = (
                             ? [areaIndex, areaIndex + 1]
                             : [areaIndex - 1, areaIndex];
 
-                        console.log('Indices cibles pour les nouvelles tailles:', targetIndices);
+
 
                         // Mettre à jour les tailles aux indices cibles
                         if (targetIndices[0] >= 0 && targetIndices[0] < rowAreas.length) {
@@ -410,7 +410,7 @@ export const handleAreaDragFromCorner = (
 
             // Gérer la fusion si Alt est enfoncé
             if (isAltDown && row) {
-                console.log('Mode fusion (Alt) activé');
+
                 const areaIndex = row.areas.map((area: AreaRowArea) => area.id).indexOf(areaId);
                 const eligibleAreaIndices = getEligibleAreaIndices(areaState, row, areaIndex);
                 const getEligibleAreaIds = (indices: number[]) => indices.map((i) => row.areas[i].id);
@@ -433,7 +433,7 @@ export const handleAreaDragFromCorner = (
                     if (exceedsAxis) {
                         const horizontal = exceedsAxis === "x";
                         if ((horizontal ? normalizedViewport.width : normalizedViewport.height) >= AREA_MIN_CONTENT_WIDTH * 2) {
-                            console.log('Indices de zones éligibles pour fusion:', eligibleAreaIndices);
+
 
                             // Déterminer la direction de fusion en fonction du coin et du mouvement
                             let targetIndex: number | null = null;
@@ -460,7 +460,7 @@ export const handleAreaDragFromCorner = (
                                 }
                             }
 
-                            console.log('Cible pour fusion:', { targetIndex, arrowDirection });
+
 
                             // Vérifier que l'index cible est valide
                             if (targetIndex !== null && targetIndex >= 0 && targetIndex < row.areas.length) {
@@ -502,7 +502,7 @@ export const handleAreaDragFromCorner = (
                                             mergeInto: targetIndex > areaIndex ? 1 : -1
                                         }));
 
-                                        console.log('Action de fusion dispatched avec succès');
+
 
                                         // Vérifier l'état du store après le dispatch
                                         const updatedState = store.getState();
@@ -525,7 +525,7 @@ export const handleAreaDragFromCorner = (
 
             // Si on n'est pas en mode fusion (Alt non enfoncé), gérer la création de zone
             if (!mouseMoveStarted && !isAltDown) {
-                console.log('Vérification pour création de nouvelle zone');
+
                 for (let i = 0; i < directionParts.length; i += 1) {
                     const direction = directionParts[i] as keyof typeof directionVectors;
                     const exceedsAxis = exceedsDirectionVector(
@@ -542,7 +542,7 @@ export const handleAreaDragFromCorner = (
 
                     if (exceedsAxis) {
                         const horizontal = exceedsAxis === "x";
-                        console.log('Démarrage de la création de zone:', { horizontal });
+
                         mouseMoveStarted = true;
                         createNewArea(horizontal);
                         break;
@@ -552,7 +552,7 @@ export const handleAreaDragFromCorner = (
 
             // Effacer l'aperçu de fusion si Alt n'est pas enfoncé
             if (!isAltDown) {
-                console.log('Effacement de l\'aperçu de fusion (Alt non enfoncé)');
+
                 store.dispatch(setJoinAreasPreview({
                     areaId: null,
                     from: null,
@@ -562,20 +562,20 @@ export const handleAreaDragFromCorner = (
             }
 
             if (onMoveFn) {
-                console.log('Appel de la fonction de déplacement');
+
                 onMoveFn(vec);
             }
         };
 
         const onMouseUp = () => {
-            console.log('onMouseUp - Alt key pressed:', isKeyDown("Alt"));
+
 
             // Exécuter l'action de fusion en attente si elle existe et que Alt est toujours enfoncé
             if (pendingJoinAction && isKeyDown("Alt")) {
-                console.log('Exécution de l\'action de fusion en attente');
+
                 try {
                     pendingJoinAction();
-                    console.log('Action de fusion exécutée avec succès');
+
                 } catch (error) {
                     console.error('Erreur lors de l\'exécution de l\'action de fusion:', error);
                 }
@@ -588,7 +588,7 @@ export const handleAreaDragFromCorner = (
             }
 
             // Nettoyer l'aperçu de fusion
-            console.log('Nettoyage de l\'aperçu de fusion');
+
             store.dispatch(setJoinAreasPreview({
                 areaId: null,
                 from: null,
@@ -604,7 +604,7 @@ export const handleAreaDragFromCorner = (
             window.removeEventListener('mousemove', onMouseMove as any);
             window.removeEventListener('mouseup', onMouseUp);
 
-            console.log('handleAreaDragFromCorner - FIN');
+
         };
 
         window.addEventListener('mousemove', onMouseMove as any);

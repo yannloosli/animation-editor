@@ -394,7 +394,7 @@ export const getPathTargetObject = (
             const cp = shapeState.controlPoints[controlPointId]!;
 
             if (!cp) {
-                console.log({ part, item, path });
+
             }
 
             let cpPos = position.add(cp.position);

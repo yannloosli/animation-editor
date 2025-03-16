@@ -5,7 +5,7 @@ export const joinAreas = (
     areaIndex: number,
     join: -1 | 1,
 ): { area: AreaRowLayout | AreaLayout; removedAreaId: string } => {
-    console.log("joinAreas util - Début:", { rowId: row.id, areaIndex, join });
+
 
     // Vérifications de base
     if (!row || !row.areas) {

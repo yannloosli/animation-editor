@@ -27,7 +27,7 @@ export const handleDragAreaResize = (
 
         // Convertir l'ID en chaîne de caractères si ce n'est pas déjà le cas
         const rowId = String(row.id);
-        console.log("ID de rangée:", { original: row.id, converted: rowId, type: typeof row.id });
+
 
         // Obtenir l'état complet du store
         const storeState = store.getState();
@@ -43,10 +43,10 @@ export const handleDragAreaResize = (
         if (storeState && 'area' in storeState) {
             if ('state' in storeState.area) {
                 areaState = storeState.area.state;
-                console.log("Utilisation de store.area.state");
+
             } else {
                 areaState = storeState.area;
-                console.log("Utilisation de store.area");
+
             }
         }
 
@@ -62,7 +62,7 @@ export const handleDragAreaResize = (
         // Vérifier que la rangée existe dans le layout
         if (!areaState.layout[rowId]) {
             console.error(`La rangée ${rowId} n'existe pas dans le layout`);
-            console.log("Clés disponibles:", Object.keys(areaState.layout));
+
             return;
         }
 

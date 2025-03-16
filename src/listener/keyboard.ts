@@ -80,7 +80,7 @@ export const addKeyDownChangeListener = (
         _listeners[key] = [];
     }
     _listeners[key].push(listener);
-    console.log(`Ajout d'un écouteur pour la touche ${key}`);
+
 };
 
 export const removeKeyDownChangeListener = (key: Key, fn: (isKeyDown: boolean) => void): void => {
@@ -94,5 +94,5 @@ export const removeKeyDownChangeListener = (key: Key, fn: (isKeyDown: boolean) =
 
         return _fn !== fn;
     });
-    console.log(`Suppression d'un écouteur pour la touche ${key}`);
+
 };

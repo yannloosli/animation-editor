@@ -78,7 +78,7 @@ export const compositionSelectionSlice = createSlice({
         clearCompositionSelection: {
             reducer: (state, action: PayloadAction<{ compositionId: string }>) => {
                 const { compositionId } = action.payload;
-                console.log("[DEBUG] CLEAR_COMP_SELECTION triggered", action.payload);
+
 
                 if (state[compositionId]) {
                     state[compositionId] = createNewCompSelection();

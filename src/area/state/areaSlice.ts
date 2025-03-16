@@ -182,7 +182,7 @@ export const areaSlice = createSlice({
             });
 
             // Vérifier la structure de l'état pour accéder au layout correctement
-            console.log('joinAreas - Structure de l\'état:', Object.keys(state));
+
 
             // Déterminer si nous avons un état imbriqué ou direct
             let layout: Record<string, any> | undefined;
@@ -191,11 +191,11 @@ export const areaSlice = createSlice({
             if (state && typeof state === 'object' && 'state' in (state as any) && (state as any).state && typeof (state as any).state === 'object' && 'layout' in (state as any).state) {
                 // Structure imbriquée: state.state.layout
                 layout = (state as any).state.layout;
-                console.log('joinAreas - Utilisation de la structure d\'état imbriquée');
+
             } else if (state && typeof state === 'object' && 'layout' in (state as any) && (state as any).layout) {
                 // Structure directe: state.layout
                 layout = (state as any).layout;
-                console.log('joinAreas - Utilisation de la structure d\'état directe');
+
             } else {
                 console.error('joinAreas - Layout non disponible dans l\'état', {
                     stateExists: !!state,
@@ -210,11 +210,11 @@ export const areaSlice = createSlice({
                 return;
             }
 
-            console.log('joinAreas - Layout trouvé, clés:', Object.keys(layout));
+
 
             // Convertir areaRowId en string pour assurer la compatibilité
             const rowIdStr = String(areaRowId);
-            console.log('joinAreas - Recherche de la ligne avec ID:', rowIdStr);
+
 
             // Vérifier si la ligne existe dans le layout
             if (!layout[rowIdStr]) {
@@ -223,7 +223,7 @@ export const areaSlice = createSlice({
             }
 
             const row = layout[rowIdStr];
-            console.log('joinAreas - Ligne trouvée:', row);
+
 
             // Vérifier que la ligne est de type 'area_row'
             if (row.type !== 'area_row') {
@@ -243,13 +243,13 @@ export const areaSlice = createSlice({
                 return;
             }
 
-            console.log('joinAreas - Indices valides, fusion de', areaIndex, 'avec', targetIndex);
+
 
             // Obtenir les IDs des zones à fusionner
             const sourceAreaId = row.areas[areaIndex].id;
             const targetAreaId = row.areas[targetIndex].id;
 
-            console.log('joinAreas - IDs des zones à fusionner:', { sourceAreaId, targetAreaId });
+
 
             // Vérifier que les zones existent
             if (!layout[sourceAreaId] || !layout[targetAreaId]) {
@@ -260,12 +260,12 @@ export const areaSlice = createSlice({
             const sourceArea = layout[sourceAreaId];
             const targetArea = layout[targetAreaId];
 
-            console.log('joinAreas - Zones trouvées:', { sourceArea, targetArea });
+
 
             // Fusionner les zones
             // Si la zone source est un conteneur, déplacer ses enfants vers la zone cible
             if (sourceArea.type === 'container' && targetArea.type === 'container') {
-                console.log('joinAreas - Fusion de deux conteneurs');
+
 
                 // Copier les enfants de la source vers la cible
                 if (sourceArea.children && sourceArea.children.length > 0) {
@@ -273,7 +273,7 @@ export const areaSlice = createSlice({
                         targetArea.children = [];
                     }
 
-                    console.log('joinAreas - Déplacement des enfants:', sourceArea.children);
+
                     targetArea.children = [...targetArea.children, ...sourceArea.children];
 
                     // Mettre à jour les parents des enfants déplacés
@@ -286,20 +286,20 @@ export const areaSlice = createSlice({
             }
 
             // Mettre à jour la liste des zones dans la ligne
-            console.log('joinAreas - Mise à jour de la liste des zones dans la ligne');
+
             row.areas = row.areas.filter((_: any, i: number) => i !== areaIndex);
 
             // Mettre à jour les tailles
             if (row.sizes && row.sizes.length > row.areas.length) {
-                console.log('joinAreas - Ajustement des tailles:', row.sizes);
+
                 row.sizes = row.sizes.filter((_: any, i: number) => i !== areaIndex);
             }
 
             // Supprimer la zone source du layout
-            console.log('joinAreas - Suppression de la zone source du layout:', sourceAreaId);
+
             delete layout[sourceAreaId];
 
-            console.log('joinAreas - Fusion terminée avec succès');
+
         },
 
         insertAreaIntoRow: (
@@ -365,7 +365,7 @@ export const areaSlice = createSlice({
             state.areas.ids.push(newAreaId);
             state.areas.entities[newAreaId] = area;
 
-            console.log(`insertAreaIntoRow: zone ${newAreaId} insérée avec succès à l'index ${insertIndex} de la rangée ${rowId}`);
+
         },
 
         convertAreaToRow: (
@@ -400,7 +400,7 @@ export const areaSlice = createSlice({
                     (state as any).state && typeof (state as any).state === 'object' &&
                     'layout' in (state as any).state) {
 
-                    console.log("Layout trouvé dans state.state, utilisation de cette structure");
+
                     const nestedState = (state as any).state;
 
                     // Vérifier que l'area existe et est du bon type
@@ -427,12 +427,6 @@ export const areaSlice = createSlice({
                         const idForOldArea = ((nestedState._id || 0) + 1).toString();
                         const idForNewArea = ((nestedState._id || 0) + 2).toString();
                         nestedState._id = (nestedState._id || 0) + 2;
-
-                        console.log("convertAreaToRow - Nouveaux IDs (state.state):", {
-                            idForOldArea,
-                            idForNewArea,
-                            originalId: areaIdStr
-                        });
 
                         // Créer les nouveaux layouts pour les areas
                         nestedState.layout[idForOldArea] = {
@@ -477,11 +471,6 @@ export const areaSlice = createSlice({
                         nestedState.areas.ids = nestedState.areas.ids.filter((id: string) => id !== areaIdStr);
                         delete nestedState.areas.entities[areaIdStr];
 
-                        console.log("convertAreaToRow - Conversion réussie (state.state):", {
-                            areaId: areaIdStr,
-                            horizontal,
-                            newIds: [idForOldArea, idForNewArea]
-                        });
 
                         return;
                     } catch (error) {
@@ -582,7 +571,7 @@ export const areaSlice = createSlice({
                         state.areas.ids.push(areaIdStr);
                     }
                     state.areas.entities[areaIdStr] = originalArea;
-                    console.log("convertAreaToRow - État restauré après erreur");
+
                 }
             }
         },
@@ -625,11 +614,11 @@ export const areaSlice = createSlice({
             if (state && typeof state === 'object' && 'state' in (state as any) && (state as any).state && typeof (state as any).state === 'object' && 'layout' in (state as any).state) {
                 // Structure imbriquée: state.state.layout
                 layout = (state as any).state.layout;
-                console.log("Utilisation de state.state.layout");
+
             } else if (state && typeof state === 'object' && 'layout' in (state as any) && (state as any).layout) {
                 // Structure directe: state.layout
                 layout = (state as any).layout;
-                console.log("Utilisation de state.layout");
+
             } else {
                 console.error("Layout non disponible dans l'état", {
                     stateExists: !!state,
@@ -668,7 +657,7 @@ export const areaSlice = createSlice({
                 const keys = Object.keys(layout);
                 for (const key of keys) {
                     if (key === rowIdStr || key === String(rowId) || Number(key) === Number(rowId)) {
-                        console.log(`Correspondance trouvée pour ${rowIdStr} avec la clé ${key}`);
+
                         layoutEntry = layout[key];
                         rowId = key; // Utiliser la clé qui fonctionne
                         break;
@@ -707,7 +696,7 @@ export const areaSlice = createSlice({
                 // Ajuster les tailles pour qu'elles correspondent au nombre de zones
                 if (sizes.length > row.areas.length) {
                     // Trop de tailles, on tronque
-                    console.log(`Troncature des tailles: ${sizes.length} -> ${row.areas.length}`);
+
                     sizes = sizes.slice(0, row.areas.length);
                 } else if (sizes.length < row.areas.length) {
                     // Pas assez de tailles, on complète avec des valeurs proportionnelles
@@ -715,20 +704,20 @@ export const areaSlice = createSlice({
                     const missingCount = row.areas.length - sizes.length;
                     const defaultSize = lastSize / missingCount;
 
-                    console.log(`Ajout de ${missingCount} tailles manquantes avec la valeur ${defaultSize}`);
+
                     for (let i = 0; i < missingCount; i++) {
                         sizes.push(defaultSize);
                     }
                 }
 
-                console.log(`Tailles ajustées:`, sizes);
+
             }
 
             // Vérifier que les tailles sont valides (positives et leur somme est proche de la somme originale)
             const originalSum = row.areas.reduce((sum: number, area: any) => sum + (area.size || 0), 0);
             const newSum = sizes.reduce((sum: number, size: number) => sum + (size || 0), 0);
 
-            console.log("setRowSizes - Sommes:", { originalSum, newSum });
+
 
             // Si la somme est nulle ou invalide, ne rien faire
             if (isNaN(originalSum) || isNaN(newSum) || newSum <= 0) {
@@ -759,7 +748,7 @@ export const areaSlice = createSlice({
                 });
             }
 
-            console.log("setRowSizes - Fin avec succès");
+
         },
 
         wrapAreaInRow: (
@@ -919,7 +908,7 @@ export const areaSlice = createSlice({
 });
 
 // Log pour le débogage
-console.log('Area slice initialized with state:', initialState);
+
 
 // Export des actions
 export const {

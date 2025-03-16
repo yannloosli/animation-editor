@@ -1,26 +1,19 @@
-import { configureStore, Middleware } from "@reduxjs/toolkit";
-import { registerAreaTypeHandlers } from "~/area/handlers/areaTypeHandlers";
 import { initialState as initialAreaState } from "~/area/state/areaSlice";
 import { initialCompositionSelectionState } from "~/composition/compositionSelectionSlice";
-import { registerCompositionMiddleware } from "~/composition/middleware";
-import { contextMenuMiddleware } from "~/contextMenu/contextMenuMiddleware";
 import { initialState as initialContextMenuState } from "~/contextMenu/contextMenuSlice";
 import { initialFlowSelectionState } from "~/flow/state/flowSelectionSlice";
 import { initialFlowState } from "~/flow/state/flowSlice";
 import { initialShapeSelectionState } from "~/shape/shapeSelectionSlice";
 import { initialState as initialShapeState } from "~/shape/shapeSlice";
-import rootReducer from "~/state/reducers";
-import { getSavedActionState } from "~/state/saveState";
 import { initialState as initialTimelineAreaState } from "~/timeline/timelineAreaSlice";
-import { registerTimelineMiddleware } from "~/timeline/timelineMiddleware";
 import { initialTimelineSelectionState } from "~/timeline/timelineSelectionSlice";
 import { initialTimelineState } from "~/timeline/timelineSlice";
 import { initialState as initialToolState } from "~/toolbar/toolSlice";
 import { initialCompositionWorkspaceAreaState } from "~/workspace/workspaceAreaReducer";
-import type { ApplicationState } from "./store-types";
+import { ApplicationState } from "./types";
 
-// État initial par défaut
-const defaultInitialState: ApplicationState = {
+// État initial par défaut pour l'application
+export const defaultInitialState: ApplicationState = {
     area: { state: initialAreaState, action: null },
     compositionState: {
         past: [],
@@ -187,46 +180,4 @@ const defaultInitialState: ApplicationState = {
         state: {},
         action: null
     }
-};
-
-// Configuration du store avec typage explicite
-export const store = configureStore({
-    reducer: rootReducer as any,
-    preloadedState: getSavedActionState() || defaultInitialState,
-    middleware: (getDefaultMiddleware) => {
-        const middleware: Array<Middleware<{}, ApplicationState>> = [];
-
-        // Middleware de débogage avec typage correct
-        const debugMiddleware: Middleware<{}, ApplicationState> = (store) => (next) => (action) => {
-
-            const result = next(action);
-
-            return result;
-        };
-
-        middleware.push(debugMiddleware);
-        middleware.push(contextMenuMiddleware as Middleware<{}, ApplicationState>);
-
-        // Enregistrer le middleware timeline
-        registerTimelineMiddleware(middleware);
-
-        // Enregistrer le middleware composition
-        registerCompositionMiddleware(middleware);
-
-        return getDefaultMiddleware().concat(middleware);
-    },
-});
-
-// Vérification de l'état initial du store
-
-
-
-
-
-
-// Types pour TypeScript
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
-
-// Enregistrer les gestionnaires d'événements pour les types de zones
-registerAreaTypeHandlers();
+}; 

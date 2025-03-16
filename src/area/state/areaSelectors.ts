@@ -37,7 +37,7 @@ export const selectAreaViewport = createSelector(
         (state: RootState, areaId: string) => areaId
     ],
     (layout, rootId, areaId) => {
-        console.log('[DEBUG] selectAreaViewport - Input:', { layout, rootId, areaId });
+
 
         if (!layout) {
             console.warn('Layout is missing in selectAreaViewport');
@@ -60,11 +60,11 @@ export const selectAreaViewport = createSelector(
             return null;
         }
 
-        console.log('[DEBUG] selectAreaViewport - Root viewport:', rootViewport);
+
 
         try {
             const viewport = computeAreaToViewport(layout, rootId, rootViewport);
-            console.log('[DEBUG] selectAreaViewport - Computed viewport:', viewport);
+
             return viewport;
         } catch (error) {
             console.error('Error computing viewport:', error);
@@ -106,23 +106,23 @@ export const selectAreasWithLayout = createSelector(
  */
 export const selectAreaState = (state: RootState): AreaState | null => {
     // Log pour le débogage
-    console.log('selectAreaState - input state:', state);
-    console.log('selectAreaState - state.area:', state.area);
+
+
 
     // Vérifier si state.area existe
     if (!state.area) {
-        console.log('selectAreaState - state.area is null or undefined');
+
         return null;
     }
 
     // Vérifier si state.area a une propriété state (nouvelle structure)
     if (state.area.state) {
-        console.log('selectAreaState - using new structure:', state.area.state);
+
         return state.area.state;
     }
 
     // Ancienne structure
-    console.log('selectAreaState - using old structure:', state.area);
+
     return state.area;
 };
 
@@ -133,10 +133,10 @@ export const selectRootId = createSelector(
     [selectAreaState],
     (areaState): string | null => {
         if (!areaState) {
-            console.log('selectRootId - areaState is null');
+
             return null;
         }
-        console.log('selectRootId - returning:', areaState.rootId);
+
         return areaState.rootId;
     }
 );
@@ -148,10 +148,10 @@ export const selectAreaLayout = createSelector(
     [selectAreaState],
     (areaState) => {
         if (!areaState) {
-            console.log('selectAreaLayout - areaState is null');
+
             return {};
         }
-        console.log('selectAreaLayout - returning:', areaState.layout);
+
         return areaState.layout;
     }
 );
@@ -163,7 +163,7 @@ export const selectAreas = createSelector(
     [selectAreaState],
     (areaState) => {
         if (!areaState) {
-            console.log('selectAreas - areaState is null');
+
             return {};
         }
 
@@ -172,12 +172,12 @@ export const selectAreas = createSelector(
             // Vérifier si la propriété entities existe
             const areas = areaState.areas as any;
             if (areas.entities) {
-                console.log('selectAreas - using entities structure:', areas.entities);
+
                 return areas.entities;
             }
         }
 
-        console.log('selectAreas - returning:', areaState.areas);
+
         return areaState.areas;
     }
 );

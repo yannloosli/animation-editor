@@ -19,7 +19,7 @@ import { App } from "./App";
 PIXI.utils.skipHello();
 
 // Vérifier que le store est bien initialisé
-console.log('Store state before render:', store.getState());
+
 
 const ErrorFallback = ({ error }: { error: Error }) => (
     <div role="alert">

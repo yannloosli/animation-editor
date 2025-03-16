@@ -27,9 +27,9 @@ export const AreaRoot: React.FC = () => {
 	const areas = useSelector((state: RootState) => selectAreas(state));
 
 	// Logs pour le débogage
-	console.log('AreaRoot - layout:', layout);
-	console.log('AreaRoot - rootId:', rootId);
-	console.log('AreaRoot - areas:', areas);
+	
+	
+	
 
 	const viewportMapRef = useRef<{ [areaId: string]: Rect }>({});
 

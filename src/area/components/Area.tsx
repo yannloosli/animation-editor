@@ -47,13 +47,13 @@ export const Area: React.FC<OwnProps> = (props) => {
 	const [hoveredCorners, setHoveredCorners] = useState<Set<string>>(new Set());
 
 	// Log pour le débogage
-	console.log('Area component - props:', props);
+	
 
 	// Utiliser les nouveaux sélecteurs
 	const area = useSelector((state: RootState) => getAreaById(id)(state));
 	
 	// Log pour le débogage
-	console.log('Area component - area from selector:', area);
+	
 	
 	// Vérifier si les données essentielles sont disponibles
 	if (!area) {

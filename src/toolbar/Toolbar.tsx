@@ -39,7 +39,7 @@ interface DispatchProps {
 type Props = StateProps & DispatchProps;
 
 const ToolbarComponent: React.FC<Props> = ({ toolState, dispatch }) => {
-	console.log('[DEBUG] ToolbarComponent - Props:', { toolState });
+	
 	if (!toolState) {
 		console.error('Toolbar received undefined toolState');
 		return null;
@@ -50,12 +50,12 @@ const ToolbarComponent: React.FC<Props> = ({ toolState, dispatch }) => {
 	const cleanupRef = useRef<(() => void) | null>(null);
 
 	const onItemClick = (tool: Tool) => {
-		console.log('[DEBUG] Toolbar onItemClick - Setting tool:', tool);
+		
 		dispatch(setTool({ tool }));
 	};
 
 	const onGroupClick = (index: number) => {
-		console.log('[DEBUG] Toolbar onGroupClick - Setting openGroupIndex:', index);
+		
 		dispatch(setOpenGroupIndex({ index }));
 
 		// Nettoyer le listener précédent s'il existe
@@ -64,7 +64,7 @@ const ToolbarComponent: React.FC<Props> = ({ toolState, dispatch }) => {
 		}
 
 		onGroupItemClick.current = (tool: Tool) => {
-			console.log('[DEBUG] Toolbar onGroupItemClick - Setting tool and closing group:', { tool, index: -1 });
+			
 			dispatch(setTool({ tool }));
 			dispatch(setOpenGroupIndex({ index: -1 }));
 		};
@@ -167,12 +167,12 @@ const ToolbarComponent: React.FC<Props> = ({ toolState, dispatch }) => {
 };
 
 const mapStateToProps = (state: ActionState): StateProps => {
-	console.log('[DEBUG] Toolbar mapStateToProps - Full state:', JSON.stringify(state, null, 2));
-	console.log('[DEBUG] Toolbar mapStateToProps - Tool state:', state.tool);
+	
+	
 
 	// Utiliser l'état initial si l'état est undefined
 	const toolState = state.tool?.state || initialState;
-	console.log('[DEBUG] Toolbar mapStateToProps - Using toolState:', toolState);
+	
 
 	return { toolState };
 };

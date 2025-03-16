@@ -62,7 +62,7 @@ export class LayerManager {
 	private parentDimensions: LayerDimension[];
 
 	constructor(options: Options) {
-		console.log("[DEBUG] LayerManager constructor called");
+		
 		console.log("[DEBUG] Options received:", {
 			...options,
 			// Ne pas logger les objets PIXI directement car ils sont trop volumineux
@@ -97,14 +97,14 @@ export class LayerManager {
 
 		this.parentDimensions = this.options.dimensions || [];
 
-		console.log("[DEBUG] About to call initialize()");
+		
 		this.initialize();
-		console.log("[DEBUG] Initialize() completed");
+		
 	}
 
 	private initialize() {
-		console.log("[DEBUG] Starting initialization");
-		console.log("[DEBUG] ActionState:", this.options.actionState);
+		
+		
 		
 		if (!this.options.actionState) {
 			console.error("[ERROR] ActionState is undefined");
@@ -112,7 +112,7 @@ export class LayerManager {
 		}
 
 		const { compositionState } = this.options.actionState;
-		console.log("[DEBUG] CompositionState:", compositionState);
+		
 		
 		if (!compositionState) {
 			console.error("[ERROR] CompositionState is undefined");
@@ -125,7 +125,7 @@ export class LayerManager {
 		}
 
 		const composition = compositionState.compositions[this.compositionId];
-		console.log("[DEBUG] Composition:", composition);
+		
 		
 		if (!composition) {
 			console.warn('No composition available for LayerManager');
@@ -141,7 +141,7 @@ export class LayerManager {
 	}
 
 	public addLayer(actionState: ActionState, layerId: string) {
-		console.log("[LAYER] Adding layer:", layerId);
+		
 		
 		if (this.layerContainers[layerId]) {
 			console.warn(`Added already present layer '${layerId}'.`);
@@ -150,7 +150,7 @@ export class LayerManager {
 
 		const { compositionState } = actionState;
 		const layer = compositionState.layers[layerId];
-		console.log("[LAYER] Layer data:", layer);
+		
 
 		const transformContainer = new PIXI.Container();
 		const instanceContainer = new PIXI.Container();
@@ -163,25 +163,25 @@ export class LayerManager {
 			childLayerContainer,
 			instanceContainer,
 		};
-		console.log("[LAYER] Created containers");
+		
 
 		transformContainer.addChild(ownContentContainer);
 		transformContainer.addChild(childLayerContainer);
 
 		if (layer.type !== LayerType.Composition) {
-			console.log("[LAYER] Getting layer graphic");
+			
 			const graphic = this.graphicManager.getLayerGraphic(actionState, layer);
 			ownContentContainer.addChild(graphic);
-			console.log("[LAYER] Added graphic to ownContentContainer");
+			
 		}
 
-		console.log("[LAYER] Getting hit test graphic");
+		
 		const hitTestGraphic = this.hitTestManager.getGraphic(actionState, layerId);
 		transformContainer.addChild(hitTestGraphic);
 
 		const { store } = this.propertyManager;
 		const map = constructLayerPropertyMap(layerId, actionState.compositionState);
-		console.log("[LAYER] Property map:", map);
+		
 
 		applyPixiLayerTransform(transformContainer, map, store.getPropertyValue);
 
@@ -189,7 +189,7 @@ export class LayerManager {
 		if (layer.parentLayerId) {
 			parentContainer = this.getLayerChildLayerContainer(layer.parentLayerId);
 		}
-		console.log("[LAYER] Adding to parent container");
+		
 
 		parentContainer.addChild(transformContainer);
 		this.options.compositionContainer.addChild(instanceContainer);
@@ -201,7 +201,7 @@ export class LayerManager {
 		this.layerToVisible[layerId] = true;
 
 		if (layer.type !== LayerType.Composition) {
-			console.log("[LAYER] Creating layer instances");
+			
 			createLayerInstances(
 				actionState,
 				this.parentDimensions,
@@ -235,7 +235,7 @@ export class LayerManager {
 			this.subCompositions[layerId] = { manager, layerId: layerId };
 		}
 		
-		console.log("[LAYER] Layer added successfully");
+		
 	}
 
 	public updateLayers() {
